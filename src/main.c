@@ -85,7 +85,6 @@ int main(int argc, char **argv)
     SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
 
     struct renderer *rend = malloc(sizeof(struct renderer));
-    ;
     rend->format = SDL_AllocFormat(SDL_PIXELFORMAT_RGB888);
     rend->renderer = renderer;
     rend->window = window;
@@ -94,11 +93,11 @@ int main(int argc, char **argv)
     struct cpu *cpu = malloc(sizeof(struct cpu));
     cpu_init(cpu, rend);
 
-    main_loop(cpu, settings.rom_path, settings.bootrom_path);
+    int success = main_loop(cpu, settings.rom_path, settings.bootrom_path);
 
     free_renderer(cpu->ppu->renderer);
     cpu_free(cpu);
 
     SDL_Quit();
-    return 0;
+    return success;
 }
