@@ -113,7 +113,7 @@ int merge_obj(struct ppu *ppu, uint8_t hi, uint8_t lo, int obj_i)
     size_t i = 0;
     for (; i < RING_BUFFER_GET_COUNT(pixel, &ppu->obj_fifo); ++i)
     {
-        struct pixel *q = ppu->obj_fifo.buffer + i;
+        struct pixel *q = ppu->obj_fifo.buffer + ((ppu->obj_fifo.head + i) % 8);
         int same_x = ppu->obj_slots[q->obj].x == ppu->obj_slots[obj_i].x;
         // Replace only transparent pixels of object already pending
         struct pixel p = make_pixel(hi, lo, i, &attributes, obj_i);
