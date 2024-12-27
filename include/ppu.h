@@ -3,8 +3,9 @@
 
 #include <stdint.h>
 
-#include "queue.h"
+#include "ppu_utils.h"
 #include "rendering.h"
+#include "ring_buffer.h"
 
 // clang-format off
 #define LCDC_BG_WINDOW_ENABLE   0
@@ -65,8 +66,8 @@ struct ppu
     struct obj obj_slots[10];
     int8_t obj_count;
 
-    struct queue *bg_fifo;
-    struct queue *obj_fifo;
+    RING_BUFFER(pixel) bg_fifo;
+    RING_BUFFER(pixel) obj_fifo;
 
     struct fetcher *bg_fetcher;
     struct fetcher *obj_fetcher;
