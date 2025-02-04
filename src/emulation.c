@@ -1,11 +1,10 @@
 #include "emulation.h"
 
-#include <SDL_stdinc.h>
+#include <SDL3/SDL_events.h>
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "SDL_events.h"
 #include "apu.h"
 #include "cpu.h"
 #include "disassembler.h"

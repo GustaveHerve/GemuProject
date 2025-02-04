@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "cpu.h"
 #include "emulation.h"
 #include "ppu.h"

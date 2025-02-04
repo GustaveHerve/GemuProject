@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "SDL_audio.h"
+#include <SDL3/SDL_audio.h>
 #include "cpu.h"
 
 #define SAMPLING_RATE 44100
