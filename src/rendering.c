@@ -21,6 +21,14 @@ struct color
 
 static struct color color_palette[4] = {{224, 248, 208}, {136, 192, 112}, {52, 104, 86}, {8, 24, 32}};
 
+static void render_frame(struct renderer *rend)
+{
+    SDL_UpdateTexture(rend->texture, NULL, frame_buffer, WIDTH * sizeof(uint32_t));
+    SDL_RenderClear(rend->renderer);
+    SDL_RenderTexture(rend->renderer, rend->texture, NULL, NULL);
+    SDL_RenderPresent(rend->renderer);
+}
+
 void draw_pixel(struct cpu *cpu, struct pixel p)
 {
     struct renderer *rend = cpu->ppu->renderer;
@@ -33,16 +41,11 @@ void draw_pixel(struct cpu *cpu, struct pixel p)
     uint32_t pixel = SDL_MapRGB(rend->format, NULL, color->r, color->g, color->b);
     frame_buffer[*cpu->ppu->ly * WIDTH + (cpu->ppu->lx - 8)] = pixel;
 
-    // Render a frame and handle inputs
+    // A whole frame is ready, render it, handle inputs, synchronize
     if (*cpu->ppu->ly == HEIGHT - 1 && cpu->ppu->lx == WIDTH + 7)
     {
         handle_events(cpu);
-
-        SDL_UpdateTexture(rend->texture, NULL, frame_buffer, WIDTH * sizeof(uint32_t));
-        SDL_RenderClear(rend->renderer);
-        SDL_RenderTexture(rend->renderer, rend->texture, NULL, NULL);
-        SDL_RenderPresent(rend->renderer);
-
+        render_frame(rend);
         synchronize(cpu);
     }
 }
@@ -57,10 +60,7 @@ void lcd_off(struct cpu *cpu)
         frame_buffer[i] = color;
     }
 
-    SDL_UpdateTexture(rend->texture, NULL, frame_buffer, WIDTH * sizeof(uint32_t));
-    SDL_RenderClear(rend->renderer);
-    SDL_RenderTexture(rend->renderer, rend->texture, NULL, NULL);
-    SDL_RenderPresent(rend->renderer);
+    render_frame(rend);
 }
 
 void free_renderer(struct renderer *rend)

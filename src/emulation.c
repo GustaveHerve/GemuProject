@@ -135,6 +135,7 @@ void handle_events(struct cpu *cpu)
             }
             case SDLK_T:
                 settings.turbo = true;
+                SDL_SetRenderVSync(cpu->ppu->renderer->renderer, 0);
                 break;
 #if 0
             case SDLK_r:
@@ -180,6 +181,7 @@ void handle_events(struct cpu *cpu)
                 break;
             case SDLK_T:
                 settings.turbo = false;
+                SDL_SetRenderVSync(cpu->ppu->renderer->renderer, 1);
                 break;
             }
         }
