@@ -1,6 +1,7 @@
 #include "emulation.h"
 
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_stdinc.h>
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,9 +95,9 @@ void handle_events(struct cpu *cpu)
     {
         switch (event.type)
         {
-        case SDL_KEYDOWN:
+        case SDL_EVENT_KEY_DOWN:
         {
-            switch (event.key.keysym.sym)
+            switch (event.key.key)
             {
             case SDLK_RIGHT:
                 cpu->joyp_d &= ~(0x01);
@@ -111,10 +112,10 @@ void handle_events(struct cpu *cpu)
                 cpu->joyp_d &= ~(0x08);
                 break;
 
-            case SDLK_x:
+            case SDLK_X:
                 cpu->joyp_a &= ~(0x01);
                 break;
-            case SDLK_z:
+            case SDLK_Z:
                 cpu->joyp_a &= ~(0x02);
                 break;
             case SDLK_SPACE:
@@ -123,7 +124,7 @@ void handle_events(struct cpu *cpu)
             case SDLK_RETURN:
                 cpu->joyp_a &= ~(0x08);
                 break;
-            case SDLK_p:
+            case SDLK_P:
             {
                 settings.paused = !settings.paused;
                 if (settings.paused)
@@ -132,8 +133,8 @@ void handle_events(struct cpu *cpu)
                     SDL_SetWindowTitle(cpu->ppu->renderer->window, "GemuProject");
                 break;
             }
-            case SDLK_t:
-                settings.turbo = SDL_TRUE;
+            case SDLK_T:
+                settings.turbo = true;
                 break;
 #if 0
             case SDLK_r:
@@ -148,9 +149,9 @@ void handle_events(struct cpu *cpu)
 
             break;
         }
-        case SDL_KEYUP:
+        case SDL_EVENT_KEY_UP:
         {
-            switch (event.key.keysym.sym)
+            switch (event.key.key)
             {
             case SDLK_RIGHT:
                 cpu->joyp_d |= 0x01;
@@ -165,10 +166,10 @@ void handle_events(struct cpu *cpu)
                 cpu->joyp_d |= 0x08;
                 break;
 
-            case SDLK_x:
+            case SDLK_X:
                 cpu->joyp_a |= 0x01;
                 break;
-            case SDLK_z:
+            case SDLK_Z:
                 cpu->joyp_a |= 0x02;
                 break;
             case SDLK_SPACE:
@@ -177,13 +178,13 @@ void handle_events(struct cpu *cpu)
             case SDLK_RETURN:
                 cpu->joyp_a |= 0x08;
                 break;
-            case SDLK_t:
-                settings.turbo = SDL_FALSE;
+            case SDLK_T:
+                settings.turbo = false;
                 break;
             }
         }
         break;
-        case SDL_QUIT:
+        case SDL_EVENT_QUIT:
             cpu->running = 0;
             return;
         }

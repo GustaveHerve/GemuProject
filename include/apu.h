@@ -1,9 +1,9 @@
 #ifndef APU_H
 #define APU_H
 
+#include <SDL3/SDL_audio.h>
 #include <stdint.h>
 
-#include <SDL3/SDL_audio.h>
 #include "cpu.h"
 
 #define SAMPLING_RATE 44100
@@ -72,7 +72,7 @@ struct apu
 
     unsigned int sampling_counter;
 
-    SDL_AudioDeviceID device_id;
+    SDL_AudioStream *audio_stream;
 
     uint16_t previous_div;
 };

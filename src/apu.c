@@ -1,5 +1,6 @@
 #include "apu.h"
 
+#include <SDL3/SDL_audio.h>
 #include <stdlib.h>
 
 #include "cpu.h"
@@ -94,27 +95,23 @@ void apu_init(struct cpu *cpu, struct apu *apu)
     apu->sampling_counter = 0;
     apu->previous_div = 0;
 
-    SDL_AudioSpec desired_spec = {
-        .freq = SAMPLING_RATE,
-        .format = AUDIO_F32SYS,
+    SDL_AudioSpec audio_spec = {
+        .format = SDL_AUDIO_F32,
         .channels = 2,
-        .samples = AUDIO_BUFFER_SIZE,
-        .callback = NULL,
+        .freq = SAMPLING_RATE,
     };
 
-    SDL_AudioSpec obtained_spec;
+    apu->audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &audio_spec, NULL, NULL);
 
-    apu->device_id = SDL_OpenAudioDevice(NULL, 0, &desired_spec, &obtained_spec, 0);
-
-    SDL_PauseAudioDevice(apu->device_id, 0);
+    SDL_ResumeAudioStreamDevice(apu->audio_stream);
 }
 
 // TODO: dissociate SDL audio handling from APU handling
 void apu_free(struct apu *apu)
 {
-    SDL_PauseAudioDevice(apu->device_id, 1);
-    SDL_ClearQueuedAudio(apu->device_id);
-    SDL_CloseAudioDevice(apu->device_id);
+    SDL_ClearAudioStream(apu->audio_stream);
+    SDL_PauseAudioStreamDevice(apu->audio_stream);
+    SDL_DestroyAudioStream(apu->audio_stream);
     free(apu->ch1);
     free(apu->ch2);
     free(apu->ch3);
@@ -475,7 +472,7 @@ static float mix_channels(struct apu *apu, uint8_t panning)
 static void queue_audio_sample(struct apu *apu)
 {
     // If we have more than 0.125s of lag, skip this sample
-    if (SDL_GetQueuedAudioSize(apu->device_id) / sizeof(union audio_sample) > SAMPLING_RATE / 8)
+    if (SDL_GetAudioStreamQueued(apu->audio_stream) / sizeof(union audio_sample) > SAMPLING_RATE / 8)
         return;
 
     uint8_t nr50 = apu->cpu->membus[NR50];
@@ -496,7 +493,7 @@ static void queue_audio_sample(struct apu *apu)
     audio_buffer[audio_buffer_len++] = sample;
     if (audio_buffer_len == AUDIO_BUFFER_SIZE)
     {
-        SDL_QueueAudio(apu->device_id, audio_buffer, AUDIO_BUFFER_SIZE * sizeof(union audio_sample));
+        SDL_PutAudioStreamData(apu->audio_stream, audio_buffer, AUDIO_BUFFER_SIZE * sizeof(union audio_sample));
         audio_buffer_len = 0;
     }
 }

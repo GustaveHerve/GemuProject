@@ -1,5 +1,6 @@
 #include "interrupts.h"
 
+#include <assert.h>
 #include <stddef.h>
 
 #include "cpu.h"
@@ -38,8 +39,9 @@ int check_interrupt(struct cpu *cpu)
 /* VBlank, LCD STAT, Timer, Serial, Joypad */
 static unsigned int handlers_vector[] = {0x40, 0x48, 0x50, 0x58, 0x60};
 
-int handle_interrupt(struct cpu *cpu, int bit)
+int handle_interrupt(struct cpu *cpu, unsigned int bit)
 {
+    assert(bit < sizeof(handlers_vector) / sizeof(unsigned int));
     clear_if(cpu, bit);
     cpu->ime = 0;
     tick_m(cpu);

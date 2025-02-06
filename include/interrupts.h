@@ -43,6 +43,6 @@ static inline void clear_ie(struct cpu *cpu, int bit)
 
 int check_interrupt(struct cpu *cpu);
 
-int handle_interrupt(struct cpu *cpu, int bit);
+int handle_interrupt(struct cpu *cpu, unsigned int bit);
 
 #endif

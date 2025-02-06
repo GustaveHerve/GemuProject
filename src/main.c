@@ -69,8 +69,11 @@ int main(int argc, char **argv)
     parse_arguments(argc, argv);
 
     // TODO: dissociate SDL handling from the rest of the program
-    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS))
+    if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS))
+    {
+        fprintf(stderr, "Error initializing SDL\n");
         return EXIT_FAILURE;
+    }
 
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
@@ -80,6 +83,8 @@ int main(int argc, char **argv)
     SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
 
     SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
+    // Disable texture filtering
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
     struct renderer *rend = malloc(sizeof(struct renderer));
     rend->format = SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_XRGB8888);
