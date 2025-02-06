@@ -26,14 +26,14 @@ void synchronize(struct cpu *cpu)
         return;
     }
 
-    int64_t target_nanoseconds = cpu->tcycles_since_sync * SECONDS_TO_NANOSECONDS / CPU_FREQUENCY;
+    int64_t elapsed_ns = cpu->tcycles_since_sync * SECONDS_TO_NANOSECONDS / CPU_FREQUENCY;
     int64_t nanoseconds = get_nanoseconds();
-    int64_t time_to_sleep = target_nanoseconds + cpu->last_sync_timestamp - nanoseconds;
+    int64_t time_to_sleep = elapsed_ns + cpu->last_sync_timestamp - nanoseconds;
     if (time_to_sleep > 0 && time_to_sleep < LCDC_PERIOD * (SECONDS_TO_NANOSECONDS + MARGIN_OF_ERROR) / CPU_FREQUENCY)
     {
         struct timespec sleep = {0, time_to_sleep};
         nanosleep(&sleep, NULL);
-        cpu->last_sync_timestamp += target_nanoseconds;
+        cpu->last_sync_timestamp += elapsed_ns;
     }
     else
     {

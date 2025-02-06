@@ -1,7 +1,7 @@
 #ifndef RENDERING_H
 #define RENDERING_H
 
-#include "SDL_render.h"
+#include <SDL3/SDL_render.h>
 
 struct cpu;
 struct ppu;
@@ -9,7 +9,7 @@ struct pixel;
 
 struct renderer
 {
-    SDL_PixelFormat *format;
+    const SDL_PixelFormatDetails *format;
     SDL_Texture *texture;
     SDL_Renderer *renderer;
     SDL_Window *window;

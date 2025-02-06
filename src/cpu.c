@@ -72,7 +72,6 @@ void cpu_init(struct cpu *cpu, struct renderer *rend)
     cpu->sc = &cpu->membus[0xFF02];
 
     cpu->tcycles_since_sync = 0;
-
     cpu->last_sync_timestamp = get_nanoseconds();
 }
 

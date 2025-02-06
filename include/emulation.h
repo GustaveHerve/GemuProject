@@ -1,17 +1,15 @@
 #ifndef EMULATION_H
 #define EMULATION_H
 
-#include <stdint.h>
-
-#include "SDL_stdinc.h"
+#include <SDL3/SDL_stdinc.h>
 
 struct cpu;
 struct ppu;
 
 struct global_settings
 {
-    SDL_bool paused;
-    SDL_bool turbo;
+    bool paused;
+    bool turbo;
 };
 
 struct global_settings *get_global_settings(void);

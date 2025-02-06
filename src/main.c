@@ -1,11 +1,13 @@
 #define _POSIX_C_SOURCE 2
 
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <SDL3/SDL_render.h>
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "SDL.h"
 #include "cpu.h"
 #include "emulation.h"
 #include "ppu.h"
@@ -67,25 +69,25 @@ int main(int argc, char **argv)
     parse_arguments(argc, argv);
 
     // TODO: dissociate SDL handling from the rest of the program
-    if (SDL_Init(SDL_INIT_EVERYTHING))
+    if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS))
+    {
+        fprintf(stderr, "Error initializing SDL\n");
         return EXIT_FAILURE;
+    }
 
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
-    window = SDL_CreateWindow("GemuProject",
-                              SDL_WINDOWPOS_CENTERED,
-                              SDL_WINDOWPOS_CENTERED,
-                              960,
-                              864,
-                              SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    SDL_RenderSetLogicalSize(renderer, 160, 144);
-    SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
+    window = SDL_CreateWindow("GemuProject", 960, 864, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE);
+    renderer = SDL_CreateRenderer(window, NULL);
+    SDL_SetRenderVSync(renderer, 1);
+    SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
 
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
+    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
+    // Disable texture filtering
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
     struct renderer *rend = malloc(sizeof(struct renderer));
-    rend->format = SDL_AllocFormat(SDL_PIXELFORMAT_RGB888);
+    rend->format = SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_XRGB8888);
     rend->renderer = renderer;
     rend->window = window;
     rend->texture = texture;
