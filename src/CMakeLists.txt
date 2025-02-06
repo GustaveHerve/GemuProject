@@ -13,10 +13,9 @@ target_sources(gemu PUBLIC
     mbc/mbc3.c
     mbc/mbc5.c
     mbc/no_mbc.c
-    ppu.c
     ppu_utils.c
+    ppu.c
     prefix.c
-    queue.c
     rendering.c
     rotshift.c
     rendering.c

@@ -8,8 +8,8 @@
 #include "interrupts.h"
 #include "memory.h"
 #include "ppu_utils.h"
-#include "queue.h"
 #include "rendering.h"
+#include "ring_buffer.h"
 
 uint8_t get_tileid(struct ppu *ppu, int obj_index, int bottom_part)
 {
@@ -197,9 +197,9 @@ int bg_fetcher_step(struct ppu *ppu)
         f->tick = 0;
 
         // If BG empty, refill it
-        if (queue_isempty(ppu->bg_fifo))
+        if (RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
         {
-            push_slice(ppu, ppu->bg_fifo, f->hi, f->lo, -1);
+            push_slice(ppu, &ppu->bg_fifo, f->hi, f->lo, -1);
             f->current_step = 0;
             return bg_fetcher_step(ppu);
         }
@@ -239,8 +239,8 @@ int obj_fetcher_step(struct ppu *ppu)
         break;
     case 3:
     {
-        if (queue_isempty(ppu->obj_fifo))
-            push_slice(ppu, ppu->obj_fifo, f->hi, f->lo, f->obj_index);
+        if (RING_BUFFER_IS_EMPTY(pixel, &ppu->obj_fifo))
+            push_slice(ppu, &ppu->obj_fifo, f->hi, f->lo, f->obj_index);
         else
             merge_obj(ppu, f->hi, f->lo, f->obj_index);
 
@@ -282,8 +282,8 @@ void ppu_init(struct ppu *ppu, struct cpu *cpu, struct renderer *renderer)
 
     ppu->obj_count = 0;
 
-    ppu->bg_fifo = queue_init();
-    ppu->obj_fifo = queue_init();
+    RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
+    RING_BUFFER_INIT(pixel, &ppu->obj_fifo);
 
     ppu->bg_fetcher = malloc(sizeof(struct fetcher));
     ppu->obj_fetcher = malloc(sizeof(struct fetcher));
@@ -328,8 +328,6 @@ void ppu_free(struct ppu *ppu)
 {
     free(ppu->bg_fetcher);
     free(ppu->obj_fetcher);
-    queue_free(ppu->bg_fifo);
-    queue_free(ppu->obj_fifo);
     free(ppu);
 }
 
@@ -350,9 +348,6 @@ void ppu_reset(struct ppu *ppu)
 
     fetcher_reset(ppu->bg_fetcher);
     fetcher_reset(ppu->obj_fetcher);
-
-    queue_clear(ppu->obj_fifo);
-    queue_clear(ppu->bg_fifo);
 
     lcd_off(ppu->cpu);
 }
@@ -385,8 +380,8 @@ int oam_scan(struct ppu *ppu)
     if (ppu->line_dot_count >= 80)
     {
         ppu->current_mode = 3;
-        queue_clear(ppu->bg_fifo);
-        queue_clear(ppu->obj_fifo);
+        RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
+        RING_BUFFER_INIT(pixel, &ppu->obj_fifo);
     }
 
     return 2;
@@ -421,7 +416,7 @@ uint8_t fetchers_step(struct ppu *ppu)
         if (!ppu->obj_mode)
         {
             // BG FIFO must not be empty and BG fetcher must have a slice ready to be pushed
-            if (!queue_isempty(ppu->bg_fifo) && ppu->bg_fetcher->current_step == 3)
+            if (!RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo) && ppu->bg_fetcher->current_step == 3)
             {
                 // Once we enter OBJ mode, we have at least 8+ BG pixels fetched
                 ppu->obj_mode = 1;
@@ -440,21 +435,21 @@ uint8_t fetchers_step(struct ppu *ppu)
 // Send one pixel to the LCD (1 dot)
 uint8_t send_pixel(struct ppu *ppu)
 {
-    if (queue_isempty(ppu->bg_fifo))
+    if (RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
         return 0;
 
     // Don't draw BG prefetch + shift SCX for first BG tile
     if (!ppu->win_mode && ppu->first_tile && ppu->lx > 7)
     {
-        int discard = *ppu->scx % 8;
-        if (ppu->bg_fifo->count <= 8 - discard)
+        size_t discard = *ppu->scx % 8;
+        if (RING_BUFFER_GET_COUNT(pixel, &ppu->bg_fifo) <= 8 - discard)
         {
             struct pixel p = select_pixel(ppu);
             draw_pixel(ppu->cpu, p);
         }
-        else if (!queue_isempty(ppu->bg_fifo))
+        else if (!RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
         {
-            queue_pop(ppu->bg_fifo);
+            RING_BUFFER_DEQUEUE(pixel, &ppu->bg_fifo, NULL);
             --ppu->lx;
         }
     }
@@ -464,7 +459,7 @@ uint8_t send_pixel(struct ppu *ppu)
         draw_pixel(ppu->cpu, p);
     }
 
-    if (ppu->first_tile && queue_isempty(ppu->bg_fifo))
+    if (ppu->first_tile && RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
         ppu->first_tile = 0;
 
     return 1;
@@ -496,8 +491,8 @@ uint8_t mode3_handler(struct ppu *ppu)
         ppu->vram_locked = 1;
 
         // Reset FIFOs and Fetchers
-        queue_clear(ppu->bg_fifo);
-        queue_clear(ppu->obj_fifo);
+        RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
+        RING_BUFFER_INIT(pixel, &ppu->obj_fifo);
 
         fetcher_reset(ppu->bg_fetcher);
         fetcher_reset(ppu->obj_fetcher);
@@ -507,7 +502,7 @@ uint8_t mode3_handler(struct ppu *ppu)
     if (!ppu->win_mode && on_window(ppu))
     {
         // Reset BG Fetcher and FIFO to current step 0 and enable win mode
-        queue_clear(ppu->bg_fifo);
+        RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
         ppu->bg_fetcher->current_step = 0;
         ppu->bg_fetcher->tick = 0;
         ppu->win_mode = 1;
@@ -545,7 +540,7 @@ uint8_t mode3_handler(struct ppu *ppu)
         // wait for the BG FIFO to be filled before popping
         if (ppu->lx < 8)
         {
-            if (!queue_isempty(ppu->bg_fifo))
+            if (!RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
             {
                 // Pop current pixel and do nothing with it
                 select_pixel(ppu);

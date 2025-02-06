@@ -90,11 +90,11 @@ int main(int argc, char **argv)
     struct cpu *cpu = malloc(sizeof(struct cpu));
     cpu_init(cpu, rend);
 
-    main_loop(cpu, settings.rom_path, settings.bootrom_path);
+    int success = main_loop(cpu, settings.rom_path, settings.bootrom_path);
 
     free_renderer(cpu->ppu->renderer);
     cpu_free(cpu);
 
     SDL_Quit();
-    return 0;
+    return success;
 }

@@ -135,7 +135,17 @@ void handle_events(struct cpu *cpu)
             case SDLK_t:
                 settings.turbo = SDL_TRUE;
                 break;
+#if 0
+            case SDLK_r:
+            {
+                ppu_reset(cpu->ppu);
+                cpu_set_registers_post_boot(cpu, 1);
+                set_memory_post_boot(cpu);
+                break;
             }
+#endif
+            }
+
             break;
         }
         case SDL_KEYUP:
@@ -180,36 +190,48 @@ void handle_events(struct cpu *cpu)
     }
 }
 
-void main_loop(struct cpu *cpu, char *rom_path, char *boot_rom_path)
+static int load_boot_rom(struct cpu *cpu, char *boot_rom_path)
+{
+    if (!cpu)
+        return EXIT_FAILURE;
+    if (!boot_rom_path)
+        return EXIT_SUCCESS;
+
+    // Enable bootrom
+    cpu->membus[0xFF50] = 0xFE;
+
+    // Open BOOTROM
+    FILE *fptr = fopen(boot_rom_path, "rb");
+    if (!fptr)
+    {
+        fprintf(stderr, "Invalid boot rom path: %s\n", boot_rom_path);
+        return EXIT_FAILURE;
+    }
+
+    fseek(fptr, 0, SEEK_END);
+    long fsize = ftell(fptr);
+    rewind(fptr);
+
+    fread(cpu->membus, 1, fsize, fptr);
+    fclose(fptr);
+
+    return EXIT_SUCCESS;
+}
+
+int main_loop(struct cpu *cpu, char *rom_path, char *boot_rom_path)
 {
     cpu->running = 1;
 
-    if (boot_rom_path != NULL)
-    {
-        // Enable bootrom
-        cpu->membus[0xFF50] = 0xFE;
-
-        // Open BOOTROM
-        FILE *fptr = fopen(boot_rom_path, "rb");
-        if (!fptr)
-        {
-            fprintf(stderr, "Invalid boot rom path: %s\n", boot_rom_path);
-            return;
-        }
-        fseek(fptr, 0, SEEK_END);
-        long fsize = ftell(fptr);
-        rewind(fptr);
-
-        fread(cpu->membus, 1, fsize, fptr);
-        fclose(fptr);
-    }
+    // Load boot rom if provided
+    if (load_boot_rom(cpu, boot_rom_path))
+        return EXIT_FAILURE;
 
     // Open ROM, get its size and and copy its content in MBC struct
     FILE *fptr = fopen(rom_path, "rb");
     if (!fptr)
     {
         fprintf(stderr, "Invalid rom path: %s\n", rom_path);
-        return;
+        return EXIT_FAILURE;
     }
     fseek(fptr, 0, SEEK_END);
     long fsize = ftell(fptr);
@@ -226,9 +248,8 @@ void main_loop(struct cpu *cpu, char *rom_path, char *boot_rom_path)
 
     lcd_off(cpu);
 
-    if (boot_rom_path == NULL)
+    if (!boot_rom_path)
     {
-        cpu->regist->pc = 0x0100;
         cpu_set_registers_post_boot(cpu, checksum);
         set_memory_post_boot(cpu);
     }
@@ -237,6 +258,7 @@ void main_loop(struct cpu *cpu, char *rom_path, char *boot_rom_path)
     {
         if (settings.paused)
         {
+            // Nothing to do meanwhile, wait for an event and handle it
             SDL_WaitEvent(NULL);
             handle_events(cpu);
             continue;
@@ -246,12 +268,14 @@ void main_loop(struct cpu *cpu, char *rom_path, char *boot_rom_path)
             next_op(cpu);
         else
         {
-            tick_m(cpu); // Previous instruction tick + next OPCode fetch
+            tick_m(cpu);
             synchronize(cpu);
         }
 
         check_interrupt(cpu);
     }
+
+    return EXIT_SUCCESS;
 }
 
 void tick_m(struct cpu *cpu)

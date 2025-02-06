@@ -3,16 +3,17 @@
 
 #include <stdint.h>
 
-struct ppu;
-struct queue;
+#include "ring_buffer.h"
 
-struct pixel
+struct ppu;
+
+typedef struct pixel
 {
     int obj;
     uint8_t color;
     uint8_t palette;
     uint8_t priority;
-};
+} pixel;
 
 struct obj
 {
@@ -22,6 +23,8 @@ struct obj
     uint8_t done;
 };
 
+DEFINE_RING_BUFFER(pixel, 8)
+
 // on_window: read LX and LY and check if drawing in Window or BG
 int on_window(struct ppu *ppu);
 
@@ -29,11 +32,9 @@ int on_window(struct ppu *ppu);
 // returns object index in obj_slots, -1 if no object
 int on_object(struct ppu *ppu, int *bottom_part);
 
-int push_pixel(struct queue *target, struct pixel p);
-
 struct pixel select_pixel(struct ppu *ppu);
 
-int push_slice(struct ppu *ppu, struct queue *q, uint8_t hi, uint8_t lo, int obj_i);
+int push_slice(struct ppu *ppu, RING_BUFFER(pixel) * q, uint8_t hi, uint8_t lo, int obj_i);
 
 uint8_t slice_xflip(uint8_t slice);
 

@@ -5,7 +5,7 @@
 #include "cpu.h"
 #include "interrupts.h"
 #include "ppu.h"
-#include "queue.h"
+#include "ring_buffer.h"
 
 // Pixel and slice utils
 struct pixel make_pixel(uint8_t hi, uint8_t lo, int i, uint8_t *attributes, int obj_i)
@@ -65,18 +65,17 @@ int on_object(struct ppu *ppu, int *bottom_part)
     return -1;
 }
 
-int push_pixel(struct queue *target, struct pixel p)
-{
-    queue_push(target, p);
-    return 1;
-}
-
 struct pixel select_pixel(struct ppu *ppu)
 {
-    struct pixel bg_p = queue_pop(ppu->bg_fifo);
-    if (queue_isempty(ppu->obj_fifo))
+    struct pixel bg_p;
+    RING_BUFFER_DEQUEUE(pixel, &ppu->bg_fifo, &bg_p);
+
+    if (RING_BUFFER_IS_EMPTY(pixel, &ppu->obj_fifo))
         return bg_p;
-    struct pixel obj_p = queue_pop(ppu->obj_fifo);
+
+    struct pixel obj_p;
+    RING_BUFFER_DEQUEUE(pixel, &ppu->obj_fifo, &obj_p);
+
     if (!get_lcdc(ppu, LCDC_BG_WINDOW_ENABLE))
         return obj_p;
     if (!get_lcdc(ppu, LCDC_OBJ_ENABLE))
@@ -88,7 +87,7 @@ struct pixel select_pixel(struct ppu *ppu)
     return obj_p;
 }
 
-int push_slice(struct ppu *ppu, struct queue *q, uint8_t hi, uint8_t lo, int obj_i)
+int push_slice(struct ppu *ppu, RING_BUFFER(pixel) * q, uint8_t hi, uint8_t lo, int obj_i)
 {
     uint8_t *attributes = NULL;
     if (obj_i != -1)
@@ -99,7 +98,7 @@ int push_slice(struct ppu *ppu, struct queue *q, uint8_t hi, uint8_t lo, int obj
         // TODO verify this
         if (!get_lcdc(ppu, LCDC_BG_WINDOW_ENABLE))
             p.color = 0;
-        push_pixel(q, p);
+        RING_BUFFER_ENQUEUE(pixel, q, &p);
     }
     return 2;
 }
@@ -107,33 +106,32 @@ int push_slice(struct ppu *ppu, struct queue *q, uint8_t hi, uint8_t lo, int obj
 int merge_obj(struct ppu *ppu, uint8_t hi, uint8_t lo, int obj_i)
 {
     uint8_t attributes = ppu->obj_fetcher->attributes;
-    struct queue_node *q = ppu->obj_fifo->front;
-    int i = 0;
+    struct pixel q;
+    RING_BUFFER_GET_FRONT(pixel, &ppu->obj_fifo, &q);
 
     // Merge the pending pixels in the OBJ FIFO
-    while (q != NULL && i < 8)
+    size_t i = 0;
+    for (; i < RING_BUFFER_GET_COUNT(pixel, &ppu->obj_fifo); ++i)
     {
-        int same_x = ppu->obj_slots[q->data.obj].x == ppu->obj_slots[obj_i].x;
+        struct pixel *q = ppu->obj_fifo.buffer + ((ppu->obj_fifo.head + i) % 8);
+        int same_x = ppu->obj_slots[q->obj].x == ppu->obj_slots[obj_i].x;
         // Replace only transparent pixels of object already pending
         struct pixel p = make_pixel(hi, lo, i, &attributes, obj_i);
-        if (q->data.color == 0)
-            q->data = p;
+        if (q->color == 0)
+            *q = p;
         else if (same_x && p.color != 0)
         {
             // If both objects have the same X, use OAM index to choose pixel
-            if (obj_i < q->data.obj)
-                q->data = p;
+            if (obj_i < q->obj)
+                *q = p;
         }
-        q = q->next;
-        ++i;
     }
 
     // Add the remaining pixels that don't need merging in the FIFO
-    while (i < 8)
+    for (; i < 8; ++i)
     {
         struct pixel p = make_pixel(hi, lo, i, &attributes, obj_i);
-        queue_push(ppu->obj_fifo, p);
-        ++i;
+        RING_BUFFER_ENQUEUE(pixel, &ppu->obj_fifo, &p);
     }
     return 2;
 }
