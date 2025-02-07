@@ -15,16 +15,11 @@
 
 #define MEMBUS_SIZE 65536
 
-void cpu_init(struct cpu *cpu, struct renderer *rend)
+void cpu_init(struct cpu *cpu)
 {
-    cpu->regist = malloc(sizeof(struct cpu_register));
-    cpu->membus = calloc(MEMBUS_SIZE, sizeof(uint8_t));
-    cpu->ppu = malloc(sizeof(struct ppu));
-    cpu->apu = malloc(sizeof(struct apu));
-
     cpu->mbc = NULL;
 
-    ppu_init(cpu->ppu, cpu, rend);
+    ppu_init(cpu->ppu, cpu);
     apu_init(cpu, cpu->apu);
 
     cpu->ime = 0;
@@ -47,14 +42,14 @@ void cpu_init(struct cpu *cpu, struct renderer *rend)
     cpu->joyp_a = 0xF;
     cpu->joyp_d = 0xF;
 
-    cpu->regist->a = 0x00;
-    cpu->regist->f = 0x00;
-    cpu->regist->b = 0x00;
-    cpu->regist->c = 0x00;
-    cpu->regist->h = 0x00;
-    cpu->regist->l = 0x00;
-    cpu->regist->pc = 0x00;
-    cpu->regist->sp = 0x00;
+    cpu->regist.a = 0x00;
+    cpu->regist.f = 0x00;
+    cpu->regist.b = 0x00;
+    cpu->regist.c = 0x00;
+    cpu->regist.h = 0x00;
+    cpu->regist.l = 0x00;
+    cpu->regist.pc = 0x00;
+    cpu->regist.sp = 0x00;
 
     *cpu->ie = 0x00;
     *cpu->_if = 0xE1;
@@ -77,35 +72,30 @@ void cpu_init(struct cpu *cpu, struct renderer *rend)
 
 void cpu_set_registers_post_boot(struct cpu *cpu, int checksum)
 {
-    cpu->regist->a = 0x01;
-    set_z(cpu->regist, 1);
-    set_n(cpu->regist, 0);
+    cpu->regist.a = 0x01;
+    set_z(&cpu->regist, 1);
+    set_n(&cpu->regist, 0);
     if (checksum == 0x00)
     {
-        set_h(cpu->regist, 0);
-        set_c(cpu->regist, 0);
+        set_h(&cpu->regist, 0);
+        set_c(&cpu->regist, 0);
     }
     else
     {
-        set_h(cpu->regist, 1);
-        set_c(cpu->regist, 1);
+        set_h(&cpu->regist, 1);
+        set_c(&cpu->regist, 1);
     }
-    cpu->regist->b = 0x00;
-    cpu->regist->c = 0x13;
-    cpu->regist->d = 0x00;
-    cpu->regist->e = 0xD8;
-    cpu->regist->h = 0x01;
-    cpu->regist->l = 0x4D;
-    cpu->regist->pc = 0x0100;
-    cpu->regist->sp = 0xFFFE;
+    cpu->regist.b = 0x00;
+    cpu->regist.c = 0x13;
+    cpu->regist.d = 0x00;
+    cpu->regist.e = 0xD8;
+    cpu->regist.h = 0x01;
+    cpu->regist.l = 0x4D;
+    cpu->regist.pc = 0x0100;
+    cpu->regist.sp = 0xFFFE;
 }
 
-void cpu_free(struct cpu *todelete)
+void cpu_free(struct cpu *cpu)
 {
-    ppu_free(todelete->ppu);
-    free(todelete->membus);
-    free(todelete->regist);
-    mbc_free(todelete->mbc);
-    apu_free(todelete->apu);
-    free(todelete);
+    mbc_free(cpu->mbc);
 }

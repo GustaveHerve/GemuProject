@@ -116,7 +116,6 @@ void apu_free(struct apu *apu)
     free(apu->ch2);
     free(apu->ch3);
     free(apu->ch4);
-    free(apu);
 }
 
 static void length_trigger(struct apu *apu, struct ch_generic *ch)

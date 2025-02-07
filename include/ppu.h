@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
+#include "display.h"
 #include "ppu_utils.h"
-#include "rendering.h"
 #include "ring_buffer.h"
 
 // clang-format off
@@ -45,23 +45,7 @@ struct fetcher
 
 struct ppu
 {
-    struct cpu *cpu;
-    uint8_t *oam;
-
-    uint8_t *lcdc;
     uint8_t lx;
-    uint8_t *ly;
-    uint8_t *lyc;
-
-    uint8_t *scy;
-    uint8_t *scx;
-    uint8_t *wy;
-    uint8_t *wx;
-    uint8_t *stat;
-
-    uint8_t *bgp;
-    uint8_t *obp0;
-    uint8_t *obp1;
 
     struct obj obj_slots[10];
     int8_t obj_count;
@@ -69,8 +53,8 @@ struct ppu
     RING_BUFFER(pixel) bg_fifo;
     RING_BUFFER(pixel) obj_fifo;
 
-    struct fetcher *bg_fetcher;
-    struct fetcher *obj_fetcher;
+    struct fetcher bg_fetcher;
+    struct fetcher obj_fetcher;
 
     uint8_t oam_locked;
     uint8_t vram_locked;
@@ -91,8 +75,6 @@ struct ppu
     uint8_t wy_trigger;
 
     uint8_t obj_mode;
-
-    struct renderer *renderer;
 };
 
 static inline int get_lcdc(struct ppu *ppu, int bit)
@@ -116,7 +98,7 @@ static inline void clear_stat(struct ppu *ppu, int bit)
 }
 
 void ppu_init(struct ppu *ppu, struct cpu *cpu, struct renderer *renderer);
-void ppu_free(struct ppu *ppu);
+
 void ppu_reset(struct ppu *ppu);
 
 void ppu_tick_m(struct ppu *ppu);

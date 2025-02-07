@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_render.h>
 #include <err.h>
 #include <stdio.h>
@@ -10,7 +11,10 @@
 
 #include "cpu.h"
 #include "emulation.h"
-#include "ppu.h"
+#include "gb_core.h"
+#include "rendering.h"
+
+struct gb_core gb;
 
 static struct
 {
@@ -75,29 +79,13 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-    window = SDL_CreateWindow("GemuProject", 960, 864, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE);
-    renderer = SDL_CreateRenderer(window, NULL);
-    SDL_SetRenderVSync(renderer, 1);
-    SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+    init_rendering();
 
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
-    // Disable texture filtering
-    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+    cpu_init(&cpu, &rend);
 
-    struct renderer *rend = malloc(sizeof(struct renderer));
-    rend->format = SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_XRGB8888);
-    rend->renderer = renderer;
-    rend->window = window;
-    rend->texture = texture;
+    int success = start_emulator(settings.rom_path, settings.bootrom_path);
 
-    struct cpu *cpu = malloc(sizeof(struct cpu));
-    cpu_init(cpu, rend);
-
-    int success = main_loop(cpu, settings.rom_path, settings.bootrom_path);
-
-    free_renderer(cpu->ppu->renderer);
+    free_renderer(rend);
     cpu_free(cpu);
 
     SDL_Quit();

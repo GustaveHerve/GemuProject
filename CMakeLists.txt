@@ -20,7 +20,12 @@ add_executable(gemu)
 
 add_subdirectory(src)
 
-target_include_directories(gemu PUBLIC "${PROJECT_SOURCE_DIR}/include")
-target_include_directories(gemu PUBLIC "${PROJECT_SOURCE_DIR}/include/mbc")
+target_include_directories(gemu PUBLIC
+    "include"
+    "include/core"
+    "include/front"
+    "include/front/sdl"
+    "include/mbc"
+)
 
 target_link_libraries(gemu PRIVATE SDL3::SDL3)

@@ -16,7 +16,7 @@ struct global_settings *get_global_settings(void);
 
 void handle_events(struct cpu *cpu);
 
-int main_loop(struct cpu *cpu, char *rom_path, char *boot_rom_path);
+int start_emulator(struct cpu *cpu, char *rom_path, char *boot_rom_path);
 
 void tick_m(struct cpu *cpu);
 

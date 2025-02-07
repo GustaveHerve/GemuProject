@@ -1,0 +1,26 @@
+target_sources(gemu PUBLIC
+    control.c
+    cpu.c
+    interrupts.c
+    timers.c
+    disassembler.c
+    emulation.c
+    jump.c
+    load.c
+    logic.c
+    mbc/mbc_base.c
+    mbc/mbc1.c
+    mbc/mbc3.c
+    mbc/mbc5.c
+    mbc/no_mbc.c
+    ppu_utils.c
+    ppu.c
+    prefix.c
+    rotshift.c
+    save.c
+    serial.c
+    apu.c
+    memory.c
+    sync.c
+    display.c
+)

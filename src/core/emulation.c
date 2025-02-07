@@ -221,7 +221,7 @@ static int load_boot_rom(struct cpu *cpu, char *boot_rom_path)
     return EXIT_SUCCESS;
 }
 
-int main_loop(struct cpu *cpu, char *rom_path, char *boot_rom_path)
+int start_emulator(struct cpu *cpu, char *rom_path, char *boot_rom_path)
 {
     cpu->running = 1;
 

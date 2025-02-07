@@ -285,9 +285,6 @@ void ppu_init(struct ppu *ppu, struct cpu *cpu, struct renderer *renderer)
     RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
     RING_BUFFER_INIT(pixel, &ppu->obj_fifo);
 
-    ppu->bg_fetcher = malloc(sizeof(struct fetcher));
-    ppu->obj_fetcher = malloc(sizeof(struct fetcher));
-
     fetcher_reset(ppu->bg_fetcher);
     fetcher_reset(ppu->obj_fetcher);
 
@@ -322,13 +319,6 @@ void ppu_init(struct ppu *ppu, struct cpu *cpu, struct renderer *renderer)
     *ppu->obp1 = 0xFF;
     *ppu->wx = 0x00;
     *ppu->wy = 0x00;
-}
-
-void ppu_free(struct ppu *ppu)
-{
-    free(ppu->bg_fetcher);
-    free(ppu->obj_fetcher);
-    free(ppu);
 }
 
 // Sets back PPU to default state when turned off
