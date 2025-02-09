@@ -1,18 +1,9 @@
 #include <SDL3/SDL_render.h>
-#include <stdio.h>
 #include <stdlib.h>
 
+#include "common.h"
 #include "display.h"
-
-#define SDL_CHECK_ERROR(COND)                                                                                          \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        if (!(COND))                                                                                                   \
-        {                                                                                                              \
-            fputs(SDL_GetError(), stderr);                                                                             \
-            return EXIT_FAILURE;                                                                                       \
-        }                                                                                                              \
-    } while (0)
+#include "sdl_utils.h"
 
 void *pixel_buffer;
 
@@ -22,7 +13,7 @@ SDL_Window *window;
 
 static void render_frame(SDL_Renderer *renderer, SDL_Texture *texture)
 {
-    SDL_UpdateTexture(texture, NULL, pixel_buffer, WIDTH * sizeof(uint32_t));
+    SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t));
     SDL_RenderClear(renderer);
     SDL_RenderTexture(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
@@ -31,9 +22,6 @@ static void render_frame(SDL_Renderer *renderer, SDL_Texture *texture)
 int init_rendering(void)
 {
     pixel_buffer = get_frame_buffer();
-
-    SDL_CHECK_ERROR(
-        window = SDL_CreateWindow("GemuProject", 960, 864, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE));
 
     SDL_CHECK_ERROR(
         window = SDL_CreateWindow("GemuProject", 960, 864, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE));
@@ -50,4 +38,11 @@ int init_rendering(void)
     SDL_CHECK_ERROR(SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST));
 
     return EXIT_SUCCESS;
+}
+
+void free_rendering(void)
+{
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
 }

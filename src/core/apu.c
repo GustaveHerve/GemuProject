@@ -69,7 +69,6 @@ static unsigned int ch4_divisors[] = {
 
 #define LENGTH_ENABLE(NRX4) (((NRX4) >> 6) & 0x1)
 
-// TODO: dissociate SDL audio handling from APU handling
 static union audio_sample audio_buffer[AUDIO_BUFFER_SIZE];
 static size_t audio_buffer_len = 0;
 
@@ -83,14 +82,9 @@ struct ch_generic
     unsigned int env_period;
 };
 
-// TODO: dissociate SDL audio handling with APU handling
 void apu_init(struct cpu *cpu, struct apu *apu)
 {
-    apu->cpu = cpu;
-    apu->ch1 = calloc(1, sizeof(struct ch1));
-    apu->ch2 = calloc(1, sizeof(struct ch2));
-    apu->ch3 = calloc(1, sizeof(struct ch3));
-    apu->ch4 = calloc(1, sizeof(struct ch4));
+    memset(apu, 0, sizeof(struct apu));
     apu->fs_pos = 0;
     apu->sampling_counter = 0;
     apu->previous_div = 0;
@@ -106,16 +100,11 @@ void apu_init(struct cpu *cpu, struct apu *apu)
     SDL_ResumeAudioStreamDevice(apu->audio_stream);
 }
 
-// TODO: dissociate SDL audio handling from APU handling
 void apu_free(struct apu *apu)
 {
     SDL_ClearAudioStream(apu->audio_stream);
     SDL_PauseAudioStreamDevice(apu->audio_stream);
     SDL_DestroyAudioStream(apu->audio_stream);
-    free(apu->ch1);
-    free(apu->ch2);
-    free(apu->ch3);
-    free(apu->ch4);
 }
 
 static void length_trigger(struct apu *apu, struct ch_generic *ch)
@@ -467,7 +456,6 @@ static float mix_channels(struct apu *apu, uint8_t panning)
     return sum / 4.0f;
 }
 
-// TODO: dissociate SDL audio handling from APU handling
 static void queue_audio_sample(struct apu *apu)
 {
     // If we have more than 0.125s of lag, skip this sample

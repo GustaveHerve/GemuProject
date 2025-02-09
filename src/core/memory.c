@@ -49,6 +49,7 @@ uint8_t read_mem(struct cpu *cpu, uint16_t address)
     // JOYP
     else if (address == 0xFF00)
     {
+        // TODO: redo this
         // Neither directions nor actions buttons selected, low nibble = 0xF
         if ((cpu->membus[address] & 0x30) == 0x30)
             return cpu->membus[address] | 0xF;
@@ -101,6 +102,7 @@ void write_mem(struct cpu *cpu, uint16_t address, uint8_t val)
     // JOYP
     else if (address == 0xFF00)
     {
+        // TODO: redo this
         write = 0;
         val &= 0x30; // don't write in bit 3-0 and keep only bit 5-4
         uint8_t low_nibble = 0x00;

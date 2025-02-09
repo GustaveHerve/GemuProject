@@ -3,15 +3,15 @@
 #include <err.h>
 #include <stdlib.h>
 
-#include "cpu.h"
+#include "common.h"
 #include "emulation.h"
+#include "gb_core.h"
 #include "interrupts.h"
 #include "memory.h"
 #include "ppu_utils.h"
-#include "rendering.h"
 #include "ring_buffer.h"
 
-uint8_t get_tileid(struct ppu *ppu, int obj_index, int bottom_part)
+static uint8_t get_tileid(struct gb_core *gb, int obj_index, int bottom_part)
 {
     uint8_t tileid = 0;
     /* obj_index == -1 means BG/Win Mode */
@@ -20,42 +20,42 @@ uint8_t get_tileid(struct ppu *ppu, int obj_index, int bottom_part)
         uint8_t x_part = 0;
         uint8_t y_part = 0;
         int bit = 0;
-        if (ppu->win_mode)
+        if (gb->ppu.win_mode)
         {
-            x_part = ppu->win_lx / 8;
-            ppu->win_lx += 8;
-            y_part = ppu->win_ly / 8;
+            x_part = gb->ppu.win_lx / 8;
+            gb->ppu.win_lx += 8;
+            y_part = gb->ppu.win_ly / 8;
             bit = LCDC_WINDOW_TILE_MAP;
         }
         else
         {
-            x_part = ((uint8_t)(ppu->bg_fetcher->lx_save + *ppu->scx)) / 8;
-            y_part = ((uint8_t)(*ppu->ly + *ppu->scy)) / 8;
+            x_part = ((uint8_t)(gb->ppu.bg_fetcher.lx_save + gb->membus[SCX])) / 8;
+            y_part = ((uint8_t)(gb->membus[LY] + gb->membus[SCY])) / 8;
             bit = LCDC_BG_TILE_MAP;
         }
 
-        uint16_t address = (0x13 << 11) | (get_lcdc(ppu, bit) << 10) | (y_part << 5) | x_part;
+        uint16_t address = (0x13 << 11) | (get_lcdc(gb->membus, bit) << 10) | (y_part << 5) | x_part;
 
-        tileid = ppu->cpu->membus[address];
+        tileid = gb->membus[address];
     }
 
     else
     {
-        if (ppu->dma)
+        if (gb->ppu.dma)
         {
             tileid = 0xFF;
-            ppu->obj_fetcher->attributes = 0xFF;
+            gb->ppu.obj_fetcher.attributes = 0xFF;
         }
         else
         {
-            tileid = *(ppu->obj_slots[obj_index].oam_address + 2);
-            ppu->obj_fetcher->attributes = *(ppu->obj_slots[obj_index].oam_address + 3);
+            tileid = *(gb->ppu.obj_slots[obj_index].oam_address + 2);
+            gb->ppu.obj_fetcher.attributes = *(gb->ppu.obj_slots[obj_index].oam_address + 3);
         }
 
-        if (get_lcdc(ppu, LCDC_OBJ_SIZE))
+        if (get_lcdc(gb->membus, LCDC_OBJ_SIZE))
         {
             uint8_t cond = !bottom_part;
-            if ((ppu->obj_fetcher->attributes >> 6) & 0x01)
+            if ((gb->ppu.obj_fetcher.attributes >> 6) & 0x01)
                 cond = bottom_part;
 
             if (cond)
@@ -68,14 +68,14 @@ uint8_t get_tileid(struct ppu *ppu, int obj_index, int bottom_part)
     return tileid;
 }
 
-uint8_t get_tile_lo(struct ppu *ppu, uint8_t tileid, int obj_index)
+static uint8_t get_tile_lo(struct gb_core *gb, uint8_t tileid, int obj_index)
 {
     uint8_t y_part = 0;
     int bit_12 = 0;
-    uint8_t attributes = ppu->obj_fetcher->attributes;
+    uint8_t attributes = gb->ppu.obj_fetcher.attributes;
     if (obj_index != -1)
     {
-        y_part = (*ppu->ly - (ppu->obj_slots[obj_index].y - 16)) % 8;
+        y_part = (gb->membus[LY] - (gb->ppu.obj_slots[obj_index].y - 16)) % 8;
         // Y flip
         if ((attributes >> 6) & 0x01)
         {
@@ -83,20 +83,20 @@ uint8_t get_tile_lo(struct ppu *ppu, uint8_t tileid, int obj_index)
             y_part &= 0x07;
         }
     }
-    else if (ppu->win_mode)
+    else if (gb->ppu.win_mode)
     {
-        y_part = ppu->win_ly % 8;
-        bit_12 = !(get_lcdc(ppu, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
+        y_part = gb->ppu.win_ly % 8;
+        bit_12 = !(get_lcdc(gb->membus, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
     }
     else
     {
-        y_part = (uint8_t)(((*ppu->ly + *ppu->scy)) % 8);
-        bit_12 = !(get_lcdc(ppu, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
+        y_part = (uint8_t)(((gb->membus[LY] + gb->membus[SCY])) % 8);
+        bit_12 = !(get_lcdc(gb->membus, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
     }
 
     uint16_t address_low = (0x4 << 13) | (bit_12 << 12) | (tileid << 4) | (y_part << 1) | 0;
 
-    uint8_t slice_low = ppu->cpu->membus[address_low];
+    uint8_t slice_low = gb->membus[address_low];
 
     if (obj_index != -1)
     {
@@ -109,35 +109,32 @@ uint8_t get_tile_lo(struct ppu *ppu, uint8_t tileid, int obj_index)
 }
 
 /* TODO optimize this ? (address is same as low + 1) */
-uint8_t get_tile_hi(struct ppu *ppu, uint8_t tileid, int obj_index)
+static uint8_t get_tile_hi(struct gb_core *gb, uint8_t tileid, int obj_index)
 {
     uint8_t y_part = 0;
     int bit_12 = 0;
-    uint8_t attributes = ppu->obj_fetcher->attributes;
+    uint8_t attributes = gb->ppu.obj_fetcher.attributes;
     if (obj_index != -1)
     {
-        y_part = (*ppu->ly - (ppu->obj_slots[obj_index].y - 16)) % 8;
+        y_part = (gb->membus[LY] - (gb->ppu.obj_slots[obj_index].y - 16)) % 8;
         /* Y flip */
         if ((attributes >> 6) & 0x01)
-        {
-            y_part = ~y_part;
-            y_part &= 0x07;
-        }
+            y_part = (~y_part) & 0x07;
     }
-    else if (ppu->win_mode)
+    else if (gb->ppu.win_mode)
     {
-        y_part = ppu->win_ly % 8;
-        bit_12 = !(get_lcdc(ppu, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
+        y_part = gb->ppu.win_ly % 8;
+        bit_12 = !(get_lcdc(gb->membus, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
     }
     else
     {
-        y_part = (uint8_t)(((*ppu->ly + *ppu->scy)) % 8);
-        bit_12 = !(get_lcdc(ppu, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
+        y_part = (uint8_t)(((gb->membus[LY] + gb->membus[SCY])) % 8);
+        bit_12 = !(get_lcdc(gb->membus, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
     }
 
     uint16_t address_high = (0x4 << 13) | (bit_12 << 12) | (tileid << 4) | (y_part << 1) | 1;
 
-    uint8_t slice_high = ppu->cpu->membus[address_high];
+    uint8_t slice_high = gb->membus[address_high];
 
     if (obj_index != -1)
     {
@@ -152,44 +149,37 @@ uint8_t get_tile_hi(struct ppu *ppu, uint8_t tileid, int obj_index)
 // Fetcher functions
 void fetcher_reset(struct fetcher *f)
 {
-    f->attributes = 0;
-    f->tileid = 0;
-    f->lo = 0;
-    f->hi = 0;
-    f->current_step = 0;
+    memset(f, 0, sizeof(struct fetcher));
     f->obj_index = -1;
-    f->bottom_part = 0;
-    f->tick = 0;
-    f->lx_save = 0;
 }
 
 // Does one fetcher step (2 dots)
-int bg_fetcher_step(struct ppu *ppu)
+int bg_fetcher_step(struct gb_core *gb)
 {
-    struct fetcher *f = ppu->bg_fetcher;
     // BG/Win fetcher
+    struct fetcher *f = &gb->ppu.bg_fetcher;
 
     // Each step must take 2 dots
     if (!f->tick && f->current_step != 3)
     {
         f->tick = 1;
         // Save the state of lx for next fetch
-        f->lx_save = ppu->lx;
+        f->lx_save = gb->ppu.lx;
         return 1;
     }
 
     switch (f->current_step)
     {
     case 0:
-        f->tileid = get_tileid(ppu, -1, 0);
+        f->tileid = get_tileid(gb, -1, 0);
         f->current_step = 1;
         break;
     case 1:
-        f->lo = get_tile_lo(ppu, f->tileid, -1);
+        f->lo = get_tile_lo(gb, f->tileid, -1);
         f->current_step = 2;
         break;
     case 2:
-        f->hi = get_tile_hi(ppu, f->tileid, -1);
+        f->hi = get_tile_hi(gb, f->tileid, -1);
         f->current_step = 3;
         break;
     case 3:
@@ -197,11 +187,11 @@ int bg_fetcher_step(struct ppu *ppu)
         f->tick = 0;
 
         // If BG empty, refill it
-        if (RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
+        if (RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo))
         {
-            push_slice(ppu, &ppu->bg_fifo, f->hi, f->lo, -1);
+            push_slice(&gb->ppu, &gb->ppu.bg_fifo, f->hi, f->lo, -1);
             f->current_step = 0;
-            return bg_fetcher_step(ppu);
+            return bg_fetcher_step(gb);
         }
         return 0;
     }
@@ -211,43 +201,43 @@ int bg_fetcher_step(struct ppu *ppu)
     return 1;
 }
 
-int obj_fetcher_step(struct ppu *ppu)
+int obj_fetcher_step(struct gb_core *gb)
 {
-    struct fetcher *f = ppu->obj_fetcher;
+    struct fetcher *f = &gb->ppu.obj_fetcher;
 
     if (!f->tick && f->current_step != 3)
     {
         f->tick = 1;
         // Save the state of lx during first wait dot
-        f->lx_save = ppu->lx;
+        f->lx_save = gb->ppu.lx;
         return 1;
     }
 
     switch (f->current_step)
     {
     case 0:
-        f->tileid = get_tileid(ppu, f->obj_index, f->bottom_part);
+        f->tileid = get_tileid(gb, f->obj_index, f->bottom_part);
         f->current_step = 1;
         break;
     case 1:
-        f->lo = get_tile_lo(ppu, f->tileid, f->obj_index);
+        f->lo = get_tile_lo(gb, f->tileid, f->obj_index);
         f->current_step = 2;
         break;
     case 2:
-        f->hi = get_tile_hi(ppu, f->tileid, f->obj_index);
+        f->hi = get_tile_hi(gb, f->tileid, f->obj_index);
         f->current_step = 3;
         break;
     case 3:
     {
-        if (RING_BUFFER_IS_EMPTY(pixel, &ppu->obj_fifo))
-            push_slice(ppu, &ppu->obj_fifo, f->hi, f->lo, f->obj_index);
+        if (RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.obj_fifo))
+            push_slice(&gb->ppu, &gb->ppu.obj_fifo, f->hi, f->lo, f->obj_index);
         else
-            merge_obj(ppu, f->hi, f->lo, f->obj_index);
+            merge_obj(&gb->ppu, f->hi, f->lo, f->obj_index);
 
         // Fetch is done, we can reset the index
         // so that we can detect other (overlapped or not) objects
         // also mark it done
-        ppu->obj_slots[f->obj_index].done = 1;
+        gb->ppu.obj_slots[f->obj_index].done = 1;
         f->obj_index = -1;
         f->current_step = 0;
         f->tick = 0;
@@ -259,66 +249,47 @@ int obj_fetcher_step(struct ppu *ppu)
     return 2;
 }
 
-void ppu_init(struct ppu *ppu, struct cpu *cpu, struct renderer *renderer)
+void ppu_init(struct ppu *ppu, uint8_t *membus)
 {
-    ppu->cpu = cpu;
-    cpu->ppu = ppu;
-
-    ppu->oam = cpu->membus + 0xFE00;
-    ppu->lcdc = cpu->membus + 0xFF40;
-    ppu->lx = 0;
-    ppu->ly = cpu->membus + 0xFF44;
-    ppu->lyc = cpu->membus + 0xFF45;
-    ppu->scy = cpu->membus + 0xFF42;
-    ppu->scx = cpu->membus + 0xFF43;
-    ppu->wy = cpu->membus + 0xFF4A;
-    ppu->wx = cpu->membus + 0xFF4B;
-    ppu->stat = cpu->membus + 0xFF41;
     // TODO set bit 7 of stat to 1 (unused bit)
-
-    ppu->bgp = cpu->membus + 0xFF47;
-    ppu->obp0 = cpu->membus + 0xFF48;
-    ppu->obp1 = cpu->membus + 0xFF49;
-
+    ppu->lx = 0;
     ppu->obj_count = 0;
 
     RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
     RING_BUFFER_INIT(pixel, &ppu->obj_fifo);
 
-    fetcher_reset(ppu->bg_fetcher);
-    fetcher_reset(ppu->obj_fetcher);
+    fetcher_reset(&gb->ppu.bg_fetcher);
+    fetcher_reset(&gb->ppu.obj_fetcher);
 
-    ppu->renderer = renderer;
+    gb->ppu.current_mode = 0;
+    gb->ppu.oam_locked = 0;
+    gb->ppu.vram_locked = 0;
 
-    ppu->current_mode = 0;
-    ppu->oam_locked = 0;
-    ppu->vram_locked = 0;
+    gb->ppu.dma = 0;
+    gb->ppu.dma_acc = 0;
 
-    ppu->dma = 0;
-    ppu->dma_acc = 0;
+    gb->ppu.line_dot_count = 0;
+    gb->ppu.mode1_153th = 0;
+    gb->ppu.first_tile = 1;
 
-    ppu->line_dot_count = 0;
-    ppu->mode1_153th = 0;
-    ppu->first_tile = 1;
+    gb->ppu.win_mode = 0;
+    gb->ppu.win_ly = 0;
+    gb->ppu.win_lx = 7;
+    gb->ppu.wy_trigger = 0;
 
-    ppu->win_mode = 0;
-    ppu->win_ly = 0;
-    ppu->win_lx = 7;
-    ppu->wy_trigger = 0;
+    gb->ppu.obj_mode = 0;
 
-    ppu->obj_mode = 0;
-
-    *ppu->lcdc = 0x00;
-    *ppu->stat = 0x84;
-    *ppu->scy = 0x00;
-    *ppu->scx = 0x00;
-    *ppu->ly = 0x00;
-    *ppu->lyc = 0x00;
-    *ppu->bgp = 0xFC;
-    *ppu->obp0 = 0xFF;
-    *ppu->obp1 = 0xFF;
-    *ppu->wx = 0x00;
-    *ppu->wy = 0x00;
+    gb->membus[LCDC] = 0x00;
+    gb->membus[STAT] = 0x84;
+    gb->membus[SCY] = 0x00;
+    gb->membus[SCX] = 0x00;
+    gb->membus[LY] = 0x00;
+    gb->membus[LYC] = 0x00;
+    gb->membus[BGP] = 0xFC;
+    gb->membus[OBP0] = 0xFF;
+    gb->membus[OBP1] = 0xFF;
+    gb->membus[WX] = 0x00;
+    gb->membus[WY] = 0x00;
 }
 
 // Sets back PPU to default state when turned off

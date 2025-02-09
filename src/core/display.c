@@ -1,14 +1,11 @@
 #include <stdlib.h>
 
+#include "common.h"
 #include "cpu.h"
 #include "emulation.h"
 #include "ppu.h"
 #include "ppu_utils.h"
 #include "sync.h"
-
-#define WIDTH 160
-#define HEIGHT 144
-#define SCREEN_RESOLUTION (WIDTH * HEIGHT)
 
 struct color
 {
@@ -23,7 +20,7 @@ struct pixel_data
     struct color values;
 };
 
-static struct color color_palette[4] = {{224, 248, 208}, {136, 192, 112}, {52, 104, 86}, {8, 24, 32}};
+static struct color color_palette[5] = {{224, 248, 208}, {136, 192, 112}, {52, 104, 86}, {8, 24, 32}, {229, 245, 218}};
 
 static struct pixel_data frame_buffer[SCREEN_RESOLUTION] = {0};
 
@@ -40,30 +37,32 @@ void draw_pixel(struct cpu *cpu, struct pixel p)
 
     unsigned int color_index = (*c_regist >> (p.color * 2)) & 0x03;
 
-    frame_buffer[*cpu->ppu->ly * WIDTH + (cpu->ppu->lx - 8)] = {
+    struct pixel_data pixel = {
         ._unused = 0,
         .values = color_palette[color_index],
     };
 
+    frame_buffer[*cpu->ppu->ly * SCREEN_WIDTH + (cpu->ppu->lx - 8)] = pixel;
+
     // uint32_t pixel = SDL_MapRGB(rend->format, NULL, color->r, color->g, color->b);
     //  A whole frame is ready, render it, handle inputs, synchronize
-    if (*cpu->ppu->ly == HEIGHT - 1 && cpu->ppu->lx == WIDTH + 7)
+    if (*cpu->ppu->ly == SCREEN_HEIGHT - 1 && cpu->ppu->lx == SCREEN_WIDTH + 7)
     {
         handle_events(cpu);
-        render_frame(rend);
+        // render_frame(rend); TODO: callback render frame
         synchronize(cpu);
     }
 }
 
-void lcd_off(struct cpu *cpu)
+void lcd_off(void)
 {
-    struct renderer *rend = cpu->ppu->renderer;
-    uint32_t color = SDL_MapRGB(rend->format, NULL, 229, 245, 218);
-
     for (size_t i = 0; i < SCREEN_RESOLUTION; ++i)
     {
-        frame_buffer[i] = color;
-    }
-
-    render_frame(rend);
+        struct pixel_data pixel = {
+            ._unused = 0,
+            .values = color_palette[4],
+        };
+        frame_buffer[i] = pixel;
+    };
+    // render_frame(rend); TODO: callback render frame
 }

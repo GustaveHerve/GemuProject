@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "common.h"
 #include "display.h"
 #include "ppu_utils.h"
 #include "ring_buffer.h"
@@ -77,27 +78,29 @@ struct ppu
     uint8_t obj_mode;
 };
 
-static inline int get_lcdc(struct ppu *ppu, int bit)
+static inline int get_lcdc(uint8_t *membus, int bit)
 {
-    return *ppu->lcdc >> bit & 0x01;
+    return membus[LCDC] >> bit & 0x01;
 }
 
-static inline void set_stat(struct ppu *ppu, int bit)
+static inline void set_stat(uint8_t *membus, int bit)
 {
-    *ppu->stat |= 0x01 << bit;
+    membus[STAT] |= 0x01 << bit;
 }
 
-static inline int get_stat(struct ppu *ppu, int bit)
+static inline int get_stat(uint8_t *membus, int bit)
 {
-    return (*ppu->stat >> bit) & 0x01;
+    return (membus[STAT] >> bit) & 0x01;
 }
 
-static inline void clear_stat(struct ppu *ppu, int bit)
+static inline void clear_stat(uint8_t *membus, int bit)
 {
-    *ppu->stat &= ~(0x01 << bit);
+    membus[STAT] &= ~(0x01 << bit);
 }
 
-void ppu_init(struct ppu *ppu, struct cpu *cpu, struct renderer *renderer);
+struct gb_core;
+
+void ppu_init(struct ppu *ppu, uint8_t *membus);
 
 void ppu_reset(struct ppu *ppu);
 

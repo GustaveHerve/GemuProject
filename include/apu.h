@@ -59,24 +59,6 @@ union audio_sample
     uint64_t full_sample_packed;
 };
 
-struct apu
-{
-    struct cpu *cpu;
-
-    struct ch1 *ch1;
-    struct ch2 *ch2;
-    struct ch3 *ch3;
-    struct ch4 *ch4;
-
-    uint8_t fs_pos;
-
-    unsigned int sampling_counter;
-
-    SDL_AudioStream *audio_stream;
-
-    uint16_t previous_div;
-};
-
 struct ch1
 {
     /* Length */
@@ -138,6 +120,22 @@ struct ch4
 
     unsigned int lfsr;
     unsigned int polynomial_counter;
+};
+
+struct apu
+{
+    struct ch1 ch1;
+    struct ch2 ch2;
+    struct ch3 ch3;
+    struct ch4 ch4;
+
+    uint8_t fs_pos;
+
+    unsigned int sampling_counter;
+
+    SDL_AudioStream *audio_stream;
+
+    uint16_t previous_div;
 };
 
 void apu_init(struct cpu *cpu, struct apu *apu);

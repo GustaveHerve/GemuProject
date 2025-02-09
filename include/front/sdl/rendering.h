@@ -3,4 +3,6 @@
 
 int init_rendering(void);
 
+void free_rendering(void);
+
 #endif

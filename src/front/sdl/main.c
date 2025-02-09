@@ -9,10 +9,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "cpu.h"
 #include "emulation.h"
 #include "gb_core.h"
 #include "rendering.h"
+#include "sdl_utils.h"
 
 struct gb_core gb;
 
@@ -72,21 +72,18 @@ int main(int argc, char **argv)
 {
     parse_arguments(argc, argv);
 
-    // TODO: dissociate SDL handling from the rest of the program
-    if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS))
-    {
-        fprintf(stderr, "Error initializing SDL\n");
+    SDL_CHECK_ERROR(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS));
+
+    if (init_rendering())
         return EXIT_FAILURE;
-    }
 
-    init_rendering();
-
-    cpu_init(&cpu, &rend);
+    init_gb_core(&gb);
 
     int success = start_emulator(settings.rom_path, settings.bootrom_path);
 
-    free_renderer(rend);
-    cpu_free(cpu);
+    free_gb_core(&gb);
+
+    free_rendering();
 
     SDL_Quit();
     return success;
