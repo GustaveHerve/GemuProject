@@ -3,21 +3,20 @@
 
 #include <SDL3/SDL_stdinc.h>
 
+struct gb_core;
 struct cpu;
-struct ppu;
 
 struct global_settings
 {
+    bool quit_signal;
     bool paused;
     bool turbo;
 };
 
 struct global_settings *get_global_settings(void);
 
-void handle_events(struct cpu *cpu);
+int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path);
 
-int start_emulator(struct cpu *cpu, char *rom_path, char *boot_rom_path);
-
-void tick_m(struct cpu *cpu);
+void tick_m(struct gb_core *gb);
 
 #endif

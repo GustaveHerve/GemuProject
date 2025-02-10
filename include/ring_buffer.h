@@ -1,7 +1,6 @@
 #ifndef RING_BUFFER_H
 #define RING_BUFFER_H
 
-#include <assert.h>
 #include <stddef.h>
 
 #define DEFINE_RING_BUFFER(TYPE, SIZE)                                                                                 \

@@ -5,6 +5,7 @@
 
 #include "ring_buffer.h"
 
+struct gb_core;
 struct ppu;
 
 typedef struct pixel
@@ -26,21 +27,21 @@ struct obj
 DEFINE_RING_BUFFER(pixel, 8)
 
 // on_window: read LX and LY and check if drawing in Window or BG
-int on_window(struct ppu *ppu);
+int on_window(struct gb_core *gb);
 
 // on_object: reads the 10 OAM slots and checks if we need to draw an object at current LX LY
 // returns object index in obj_slots, -1 if no object
-int on_object(struct ppu *ppu, int *bottom_part);
+int on_object(struct gb_core *gb, int *bottom_part);
 
-struct pixel select_pixel(struct ppu *ppu);
+struct pixel select_pixel(struct gb_core *gb);
 
-int push_slice(struct ppu *ppu, RING_BUFFER(pixel) * q, uint8_t hi, uint8_t lo, int obj_i);
+int push_slice(struct gb_core *gb, RING_BUFFER(pixel) * q, uint8_t hi, uint8_t lo, int obj_i);
 
 uint8_t slice_xflip(uint8_t slice);
 
 // OBJ Merge version of push_slice in case it is not empty, overwrite transparent pixels OBJ FIFO
-int merge_obj(struct ppu *ppu, uint8_t hi, uint8_t lo, int obj_i);
+int merge_obj(struct gb_core *gb, uint8_t hi, uint8_t lo, int obj_i);
 
-void check_lyc(struct ppu *ppu, int line_153);
+void check_lyc(struct gb_core *gb, int line_153);
 
 #endif

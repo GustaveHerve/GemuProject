@@ -3,7 +3,7 @@
 #include "common.h"
 #include "cpu.h"
 #include "emulation.h"
-#include "ppu.h"
+#include "gb_core.h"
 #include "ppu_utils.h"
 #include "sync.h"
 
@@ -29,24 +29,21 @@ void *get_frame_buffer(void)
     return &frame_buffer;
 }
 
-void draw_pixel(struct cpu *cpu, struct pixel p)
+void draw_pixel(struct gb_core *gb, struct pixel p)
 {
-    struct renderer *rend = cpu->ppu->renderer;
-
-    uint8_t *c_regist = p.obj > -1 ? (p.palette ? cpu->ppu->obp1 : cpu->ppu->obp0) : cpu->ppu->bgp;
-
-    unsigned int color_index = (*c_regist >> (p.color * 2)) & 0x03;
+    unsigned int palette_address = p.obj > -1 ? (p.palette ? OBP1 : OBP0) : BGP;
+    unsigned int color_index = (gb->membus[palette_address] >> (p.color * 2)) & 0x03;
 
     struct pixel_data pixel = {
         ._unused = 0,
         .values = color_palette[color_index],
     };
 
-    frame_buffer[*cpu->ppu->ly * SCREEN_WIDTH + (cpu->ppu->lx - 8)] = pixel;
+    frame_buffer[gb->membus[LY] * SCREEN_WIDTH + (gb->ppu.lx - 8)] = pixel;
 
     // uint32_t pixel = SDL_MapRGB(rend->format, NULL, color->r, color->g, color->b);
     //  A whole frame is ready, render it, handle inputs, synchronize
-    if (*cpu->ppu->ly == SCREEN_HEIGHT - 1 && cpu->ppu->lx == SCREEN_WIDTH + 7)
+    if (gb->membus[LY] == SCREEN_HEIGHT - 1 && gb->ppu.lx == SCREEN_WIDTH + 7)
     {
         handle_events(cpu);
         // render_frame(rend); TODO: callback render frame

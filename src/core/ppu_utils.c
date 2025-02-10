@@ -2,9 +2,8 @@
 
 #include <stdlib.h>
 
-#include "cpu.h"
+#include "gb_core.h"
 #include "interrupts.h"
-#include "ppu.h"
 #include "ring_buffer.h"
 
 // Pixel and slice utils
@@ -38,26 +37,26 @@ uint8_t slice_xflip(uint8_t slice)
     return res;
 }
 
-int on_window(struct ppu *ppu)
+int on_window(struct gb_core *gb)
 {
-    return get_lcdc(ppu, LCDC_BG_WINDOW_ENABLE) && get_lcdc(ppu, LCDC_WINDOW_ENABLE) && ppu->wy_trigger &&
-           ppu->lx == *ppu->wx + 1;
+    return get_lcdc(gb->membus, LCDC_BG_WINDOW_ENABLE) && get_lcdc(gb->membus, LCDC_WINDOW_ENABLE) &&
+           gb->ppu.wy_trigger && gb->ppu.lx == gb->membus[WX] + 1;
 }
 
-int on_object(struct ppu *ppu, int *bottom_part)
+int on_object(struct gb_core *gb, int *bottom_part)
 {
-    for (int i = 0; i < ppu->obj_count; ++i)
+    for (int i = 0; i < gb->ppu.obj_count; ++i)
     {
         // Ignore already fetched objects
-        if (ppu->obj_slots[i].done)
+        if (gb->ppu.obj_slots[i].done)
             continue;
 
         // 8x16 (LCDC bit 2 = 1) or 8x8 (LCDC bit 2 = 0)
-        int y_max_offset = get_lcdc(ppu, LCDC_OBJ_SIZE) ? 16 : 8;
-        if (ppu->obj_slots[i].x == ppu->lx && *ppu->ly + 16 >= ppu->obj_slots[i].y &&
-            *ppu->ly + 16 < ppu->obj_slots[i].y + y_max_offset)
+        int y_max_offset = get_lcdc(gb->membus, LCDC_OBJ_SIZE) ? 16 : 8;
+        if (gb->ppu.obj_slots[i].x == gb->ppu.lx && gb->membus[LY] + 16 >= gb->ppu.obj_slots[i].y &&
+            gb->membus[LY] + 16 < gb->ppu.obj_slots[i].y + y_max_offset)
         {
-            if (bottom_part != NULL && y_max_offset == 16 && *ppu->ly + 16 >= ppu->obj_slots[i].y + 8)
+            if (bottom_part != NULL && y_max_offset == 16 && gb->membus[LY] + 16 >= gb->ppu.obj_slots[i].y + 8)
                 *bottom_part = 1;
             return i;
         }
@@ -65,20 +64,20 @@ int on_object(struct ppu *ppu, int *bottom_part)
     return -1;
 }
 
-struct pixel select_pixel(struct ppu *ppu)
+struct pixel select_pixel(struct gb_core *gb)
 {
     struct pixel bg_p;
-    RING_BUFFER_DEQUEUE(pixel, &ppu->bg_fifo, &bg_p);
+    RING_BUFFER_DEQUEUE(pixel, &gb->ppu.bg_fifo, &bg_p);
 
-    if (RING_BUFFER_IS_EMPTY(pixel, &ppu->obj_fifo))
+    if (RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.obj_fifo))
         return bg_p;
 
     struct pixel obj_p;
-    RING_BUFFER_DEQUEUE(pixel, &ppu->obj_fifo, &obj_p);
+    RING_BUFFER_DEQUEUE(pixel, &gb->ppu.obj_fifo, &obj_p);
 
-    if (!get_lcdc(ppu, LCDC_BG_WINDOW_ENABLE))
+    if (!get_lcdc(gb->membus, LCDC_BG_WINDOW_ENABLE))
         return obj_p;
-    if (!get_lcdc(ppu, LCDC_OBJ_ENABLE))
+    if (!get_lcdc(gb->membus, LCDC_OBJ_ENABLE))
         return bg_p;
     if (obj_p.priority && bg_p.color != 0)
         return bg_p;
@@ -87,34 +86,32 @@ struct pixel select_pixel(struct ppu *ppu)
     return obj_p;
 }
 
-int push_slice(struct ppu *ppu, RING_BUFFER(pixel) * q, uint8_t hi, uint8_t lo, int obj_i)
+int push_slice(struct gb_core *gb, RING_BUFFER(pixel) * q, uint8_t hi, uint8_t lo, int obj_i)
 {
     uint8_t *attributes = NULL;
     if (obj_i != -1)
-        attributes = &ppu->obj_fetcher->attributes;
+        attributes = &gb->ppu.obj_fetcher.attributes;
     for (int i = 0; i < 8; ++i)
     {
         struct pixel p = make_pixel(hi, lo, i, attributes, obj_i);
         // TODO verify this
-        if (!get_lcdc(ppu, LCDC_BG_WINDOW_ENABLE))
+        if (!get_lcdc(gb->membus, LCDC_BG_WINDOW_ENABLE))
             p.color = 0;
         RING_BUFFER_ENQUEUE(pixel, q, &p);
     }
     return 2;
 }
 
-int merge_obj(struct ppu *ppu, uint8_t hi, uint8_t lo, int obj_i)
+int merge_obj(struct gb_core *gb, uint8_t hi, uint8_t lo, int obj_i)
 {
-    uint8_t attributes = ppu->obj_fetcher->attributes;
-    struct pixel q;
-    RING_BUFFER_GET_FRONT(pixel, &ppu->obj_fifo, &q);
+    uint8_t attributes = gb->ppu.obj_fetcher.attributes;
 
     // Merge the pending pixels in the OBJ FIFO
     size_t i = 0;
-    for (; i < RING_BUFFER_GET_COUNT(pixel, &ppu->obj_fifo); ++i)
+    for (; i < RING_BUFFER_GET_COUNT(pixel, &gb->ppu.obj_fifo); ++i)
     {
-        struct pixel *q = ppu->obj_fifo.buffer + ((ppu->obj_fifo.head + i) % 8);
-        int same_x = ppu->obj_slots[q->obj].x == ppu->obj_slots[obj_i].x;
+        struct pixel *q = gb->ppu.obj_fifo.buffer + ((gb->ppu.obj_fifo.head + i) % 8);
+        int same_x = gb->ppu.obj_slots[q->obj].x == gb->ppu.obj_slots[obj_i].x;
         // Replace only transparent pixels of object already pending
         struct pixel p = make_pixel(hi, lo, i, &attributes, obj_i);
         if (q->color == 0)
@@ -131,21 +128,21 @@ int merge_obj(struct ppu *ppu, uint8_t hi, uint8_t lo, int obj_i)
     for (; i < 8; ++i)
     {
         struct pixel p = make_pixel(hi, lo, i, &attributes, obj_i);
-        RING_BUFFER_ENQUEUE(pixel, &ppu->obj_fifo, &p);
+        RING_BUFFER_ENQUEUE(pixel, &gb->ppu.obj_fifo, &p);
     }
     return 2;
 }
 
-void check_lyc(struct ppu *ppu, int line_153)
+void check_lyc(struct gb_core *gb, int line_153)
 {
-    if (*ppu->ly == *ppu->lyc)
+    if (gb->membus[LY] == gb->membus[LYC])
     {
-        set_stat(ppu, STAT_LYC_EQUAL_LY);
-        if (line_153 && ppu->line_dot_count == 12 && get_stat(ppu, 6))
-            set_if(ppu->cpu, INTERRUPT_LCD);
-        else if (ppu->line_dot_count == 4 && get_stat(ppu, 6)) //&& !get_if(ppu->cpu, INTERRUPT_LCD))
-            set_if(ppu->cpu, INTERRUPT_LCD);
+        set_stat(gb->membus, STAT_LYC_EQUAL_LY);
+        if (line_153 && gb->ppu.line_dot_count == 12 && get_stat(gb->membus, 6))
+            set_if(&gb->cpu, INTERRUPT_LCD);
+        else if (gb->ppu.line_dot_count == 4 && get_stat(gb->membus, 6)) //&& !get_if(ppu->cpu, INTERRUPT_LCD))
+            set_if(&gb->cpu, INTERRUPT_LCD);
     }
     else
-        clear_stat(ppu, 2);
+        clear_stat(gb->membus, 2);
 }

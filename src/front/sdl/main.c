@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "emulation.h"
+#include "events.h"
 #include "gb_core.h"
 #include "rendering.h"
 #include "sdl_utils.h"
@@ -20,7 +21,7 @@ static struct
 {
     char *rom_path;
     char *bootrom_path;
-} settings = {0};
+} args = {0};
 
 static void print_usage(FILE *stream)
 {
@@ -40,7 +41,7 @@ static void parse_arguments(int argc, char **argv)
         switch (opt)
         {
         case 'b':
-            settings.bootrom_path = optarg;
+            args.bootrom_path = optarg;
             break;
         case 'h':
             print_usage(stdout);
@@ -65,7 +66,32 @@ static void parse_arguments(int argc, char **argv)
         exit(-1);
     }
 
-    settings.rom_path = argv[optind];
+    args.rom_path = argv[optind];
+}
+
+int main_loop(void)
+{
+    struct global_settings *settings = get_global_settings();
+    while (!settings->quit_signal)
+    {
+        if (settings->paused)
+        {
+            // Nothing to do meanwhile, wait for an event and handle it
+            SDL_WaitEvent(NULL);
+            handle_events(&gb);
+            continue;
+        }
+
+        if (gb.halt)
+            next_op(cpu);
+        else
+        {
+            tick_m(cpu);
+            synchronize(cpu);
+        }
+
+        check_interrupt(cpu);
+    }
 }
 
 int main(int argc, char **argv)
@@ -79,7 +105,7 @@ int main(int argc, char **argv)
 
     init_gb_core(&gb);
 
-    int success = start_emulator(settings.rom_path, settings.bootrom_path);
+    int success = load_rom(&gb, args.rom_path, args.bootrom_path);
 
     free_gb_core(&gb);
 

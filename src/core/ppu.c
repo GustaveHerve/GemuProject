@@ -4,12 +4,11 @@
 #include <stdlib.h>
 
 #include "common.h"
+#include "display.h"
 #include "emulation.h"
 #include "gb_core.h"
 #include "interrupts.h"
 #include "memory.h"
-#include "ppu_utils.h"
-#include "ring_buffer.h"
 
 static uint8_t get_tileid(struct gb_core *gb, int obj_index, int bottom_part)
 {
@@ -147,14 +146,14 @@ static uint8_t get_tile_hi(struct gb_core *gb, uint8_t tileid, int obj_index)
 }
 
 // Fetcher functions
-void fetcher_reset(struct fetcher *f)
+static void fetcher_reset(struct fetcher *f)
 {
     memset(f, 0, sizeof(struct fetcher));
     f->obj_index = -1;
 }
 
 // Does one fetcher step (2 dots)
-int bg_fetcher_step(struct gb_core *gb)
+static int bg_fetcher_step(struct gb_core *gb)
 {
     // BG/Win fetcher
     struct fetcher *f = &gb->ppu.bg_fetcher;
@@ -189,7 +188,7 @@ int bg_fetcher_step(struct gb_core *gb)
         // If BG empty, refill it
         if (RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo))
         {
-            push_slice(&gb->ppu, &gb->ppu.bg_fifo, f->hi, f->lo, -1);
+            push_slice(gb, &gb->ppu.bg_fifo, f->hi, f->lo, -1);
             f->current_step = 0;
             return bg_fetcher_step(gb);
         }
@@ -201,7 +200,7 @@ int bg_fetcher_step(struct gb_core *gb)
     return 1;
 }
 
-int obj_fetcher_step(struct gb_core *gb)
+static int obj_fetcher_step(struct gb_core *gb)
 {
     struct fetcher *f = &gb->ppu.obj_fetcher;
 
@@ -230,9 +229,9 @@ int obj_fetcher_step(struct gb_core *gb)
     case 3:
     {
         if (RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.obj_fifo))
-            push_slice(&gb->ppu, &gb->ppu.obj_fifo, f->hi, f->lo, f->obj_index);
+            push_slice(gb, &gb->ppu.obj_fifo, f->hi, f->lo, f->obj_index);
         else
-            merge_obj(&gb->ppu, f->hi, f->lo, f->obj_index);
+            merge_obj(gb, f->hi, f->lo, f->obj_index);
 
         // Fetch is done, we can reset the index
         // so that we can detect other (overlapped or not) objects
@@ -249,14 +248,14 @@ int obj_fetcher_step(struct gb_core *gb)
     return 2;
 }
 
-void ppu_init(struct ppu *ppu, uint8_t *membus)
+void ppu_init(struct gb_core *gb)
 {
     // TODO set bit 7 of stat to 1 (unused bit)
-    ppu->lx = 0;
-    ppu->obj_count = 0;
+    gb->ppu.lx = 0;
+    gb->ppu.obj_count = 0;
 
-    RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
-    RING_BUFFER_INIT(pixel, &ppu->obj_fifo);
+    RING_BUFFER_INIT(pixel, &gb->ppu.bg_fifo);
+    RING_BUFFER_INIT(pixel, &gb->ppu.obj_fifo);
 
     fetcher_reset(&gb->ppu.bg_fetcher);
     fetcher_reset(&gb->ppu.obj_fetcher);
@@ -293,351 +292,351 @@ void ppu_init(struct ppu *ppu, uint8_t *membus)
 }
 
 // Sets back PPU to default state when turned off
-void ppu_reset(struct ppu *ppu)
+void ppu_reset(struct gb_core *gb)
 {
-    *ppu->ly = 0;
-    ppu->lx = 0;
-    ppu->current_mode = 0;
-    ppu->mode1_153th = 0;
-    ppu->line_dot_count = 0;
+    gb->membus[LY] = 0;
+    gb->ppu.lx = 0;
+    gb->ppu.current_mode = 0;
+    gb->ppu.mode1_153th = 0;
+    gb->ppu.line_dot_count = 0;
 
-    ppu->oam_locked = 0;
-    ppu->vram_locked = 0;
+    gb->ppu.oam_locked = 0;
+    gb->ppu.vram_locked = 0;
 
-    *ppu->stat &= ~0x03;
-    check_lyc(ppu, 0);
+    gb->membus[STAT] &= ~0x03;
+    check_lyc(gb, 0);
 
-    fetcher_reset(ppu->bg_fetcher);
-    fetcher_reset(ppu->obj_fetcher);
+    fetcher_reset(&gb->ppu.bg_fetcher);
+    fetcher_reset(&gb->ppu.obj_fetcher);
 
-    lcd_off(ppu->cpu);
+    lcd_off();
 }
 
 // Mode 2
-int oam_scan(struct ppu *ppu)
+static int oam_scan(struct gb_core *gb)
 {
-    ppu->oam_locked = 1;
-    ppu->vram_locked = 0;
+    gb->ppu.oam_locked = 1;
+    gb->ppu.vram_locked = 0;
 
-    uint8_t *obj_y = ppu->oam + 2 * (ppu->line_dot_count);
-    if (ppu->obj_count < 10)
+    uint8_t *obj_y = &gb->membus[OAM] + 2 * (gb->ppu.line_dot_count);
+    if (gb->ppu.obj_count < 10)
     {
         // 8x16 (LCDC bit 2 = 1) or 8x8 (LCDC bit 2 = 0)
-        // TODO: obj_y + 1 != 0 is weird ? check this
-        int y_max_offset = get_lcdc(ppu, LCDC_OBJ_SIZE) ? 16 : 8;
-        if (*(obj_y + 1) != 0 && *ppu->ly + 16 >= *obj_y && *ppu->ly + 16 < *obj_y + y_max_offset)
+        // TODO: obj_y + 1 != 0 condition is weird ? check this
+        int y_max_offset = get_lcdc(gb->membus, LCDC_OBJ_SIZE) ? 16 : 8;
+        if (*(obj_y + 1) != 0 && gb->membus[LY] + 16 >= *obj_y && gb->membus[LY] + 16 < *obj_y + y_max_offset)
         {
-            ppu->obj_slots[ppu->obj_count].y = *obj_y;
-            ppu->obj_slots[ppu->obj_count].x = *(obj_y + 1);
-            ppu->obj_slots[ppu->obj_count].oam_address = obj_y;
-            ppu->obj_slots[ppu->obj_count].done = 0;
-            ++ppu->obj_count;
+            gb->ppu.obj_slots[gb->ppu.obj_count].y = *obj_y;
+            gb->ppu.obj_slots[gb->ppu.obj_count].x = *(obj_y + 1);
+            gb->ppu.obj_slots[gb->ppu.obj_count].oam_address = obj_y;
+            gb->ppu.obj_slots[gb->ppu.obj_count].done = 0;
+            ++gb->ppu.obj_count;
         }
     }
 
-    ppu->line_dot_count += 2;
+    gb->ppu.line_dot_count += 2;
 
     // Switch to mode 3 and reset FIFOs
-    if (ppu->line_dot_count >= 80)
+    if (gb->ppu.line_dot_count >= 80)
     {
-        ppu->current_mode = 3;
-        RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
-        RING_BUFFER_INIT(pixel, &ppu->obj_fifo);
+        gb->ppu.current_mode = 3;
+        RING_BUFFER_INIT(pixel, &gb->ppu.bg_fifo);
+        RING_BUFFER_INIT(pixel, &gb->ppu.obj_fifo);
     }
 
     return 2;
 }
 
-uint8_t mode2_handler(struct ppu *ppu)
+static uint8_t mode2_handler(struct gb_core *gb)
 {
-    if (ppu->line_dot_count == 0)
+    if (gb->ppu.line_dot_count == 0)
     {
-        set_stat(ppu, 1);
-        clear_stat(ppu, 0);
+        set_stat(gb->membus, 1);
+        clear_stat(gb->membus, 0);
         // Check the WY trigger
-        if (*ppu->ly == *ppu->wy)
-            ppu->wy_trigger = 1;
+        if (gb->membus[LY] == gb->membus[WY])
+            gb->ppu.wy_trigger = 1;
     }
 
-    check_lyc(ppu, 0);
+    check_lyc(gb, 0);
 
-    ppu->first_tile = 1;
-    oam_scan(ppu);
+    gb->ppu.first_tile = 1;
+    oam_scan(gb);
     return 2;
 }
 
 // Do one iteration of both fetchers step (2 dots)
-uint8_t fetchers_step(struct ppu *ppu)
+static uint8_t fetchers_step(struct gb_core *gb)
 {
     // There is a new object to render
-    if (ppu->obj_fetcher->obj_index != -1)
+    if (gb->ppu.obj_fetcher.obj_index != -1)
     {
         // If OBJ mode is already enabled, it means either we are fetching the
         // obj_index, or a new object came up overlapping the currently rendering one
-        if (!ppu->obj_mode)
+        if (!gb->ppu.obj_mode)
         {
             // BG FIFO must not be empty and BG fetcher must have a slice ready to be pushed
-            if (!RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo) && ppu->bg_fetcher->current_step == 3)
+            if (!RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo) && gb->ppu.bg_fetcher.current_step == 3)
             {
                 // Once we enter OBJ mode, we have at least 8+ BG pixels fetched
-                ppu->obj_mode = 1;
+                gb->ppu.obj_mode = 1;
             }
         }
     }
 
-    if (ppu->obj_mode)
-        obj_fetcher_step(ppu);
+    if (gb->ppu.obj_mode)
+        obj_fetcher_step(gb);
     else
-        bg_fetcher_step(ppu);
+        bg_fetcher_step(gb);
 
     return 1;
 }
 
 // Send one pixel to the LCD (1 dot)
-uint8_t send_pixel(struct ppu *ppu)
+static uint8_t send_pixel(struct gb_core *gb)
 {
-    if (RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
+    if (RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo))
         return 0;
 
     // Don't draw BG prefetch + shift SCX for first BG tile
-    if (!ppu->win_mode && ppu->first_tile && ppu->lx > 7)
+    if (!gb->ppu.win_mode && gb->ppu.first_tile && gb->ppu.lx > 7)
     {
-        size_t discard = *ppu->scx % 8;
-        if (RING_BUFFER_GET_COUNT(pixel, &ppu->bg_fifo) <= 8 - discard)
+        size_t discard = gb->membus[SCX] % 8;
+        if (RING_BUFFER_GET_COUNT(pixel, &gb->ppu.bg_fifo) <= 8 - discard)
         {
-            struct pixel p = select_pixel(ppu);
-            draw_pixel(ppu->cpu, p);
+            struct pixel p = select_pixel(gb);
+            draw_pixel(gb, p);
         }
-        else if (!RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
+        else if (!RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo))
         {
-            RING_BUFFER_DEQUEUE(pixel, &ppu->bg_fifo, NULL);
-            --ppu->lx;
+            RING_BUFFER_DEQUEUE(pixel, &gb->ppu.bg_fifo, NULL);
+            --gb->ppu.lx;
         }
     }
-    else if (ppu->lx > 7 && ppu->lx <= 167)
+    else if (gb->ppu.lx > 7 && gb->ppu.lx <= 167)
     {
-        struct pixel p = select_pixel(ppu);
-        draw_pixel(ppu->cpu, p);
+        struct pixel p = select_pixel(gb);
+        draw_pixel(gb, p);
     }
 
-    if (ppu->first_tile && RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
-        ppu->first_tile = 0;
+    if (gb->ppu.first_tile && RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo))
+        gb->ppu.first_tile = 0;
 
     return 1;
 }
 
-uint8_t mode3_handler(struct ppu *ppu)
+static uint8_t mode3_handler(struct gb_core *gb)
 {
     // End of mode 3, go to HBlank (mode 0)
-    if (ppu->lx > 167)
+    if (gb->ppu.lx > 167)
     {
         // Update WIN internal LY and reset internal LX
-        if (ppu->win_mode)
+        if (gb->ppu.win_mode)
         {
-            ++ppu->win_ly;
-            ppu->win_lx = 7;
+            ++gb->ppu.win_ly;
+            gb->ppu.win_lx = 7;
         }
-        ppu->current_mode = 0;
+        gb->ppu.current_mode = 0;
         return 0;
     }
 
     // Start of mode 3
-    if (ppu->line_dot_count == 80)
+    if (gb->ppu.line_dot_count == 80)
     {
-        set_stat(ppu, 1);
-        set_stat(ppu, 0);
+        set_stat(gb->membus, 1);
+        set_stat(gb->membus, 0);
 
         // Lock OAM and VRAM read (return FF)
-        ppu->oam_locked = 1;
-        ppu->vram_locked = 1;
+        gb->ppu.oam_locked = 1;
+        gb->ppu.vram_locked = 1;
 
         // Reset FIFOs and Fetchers
-        RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
-        RING_BUFFER_INIT(pixel, &ppu->obj_fifo);
+        RING_BUFFER_INIT(pixel, &gb->ppu.bg_fifo);
+        RING_BUFFER_INIT(pixel, &gb->ppu.obj_fifo);
 
-        fetcher_reset(ppu->bg_fetcher);
-        fetcher_reset(ppu->obj_fetcher);
+        fetcher_reset(&gb->ppu.bg_fetcher);
+        fetcher_reset(&gb->ppu.obj_fetcher);
     }
 
     // Check if window triggers are fulfilled
-    if (!ppu->win_mode && on_window(ppu))
+    if (!gb->ppu.win_mode && on_window(gb))
     {
         // Reset BG Fetcher and FIFO to current step 0 and enable win mode
-        RING_BUFFER_INIT(pixel, &ppu->bg_fifo);
-        ppu->bg_fetcher->current_step = 0;
-        ppu->bg_fetcher->tick = 0;
-        ppu->win_mode = 1;
+        RING_BUFFER_INIT(pixel, &gb->ppu.bg_fifo);
+        gb->ppu.bg_fetcher.current_step = 0;
+        gb->ppu.bg_fetcher.tick = 0;
+        gb->ppu.win_mode = 1;
     }
 
     // Check for object if we are not already treating one
     int obj = -1;
     int bottom_part = 0;
-    if (ppu->obj_fetcher->obj_index == -1 && get_lcdc(ppu, LCDC_OBJ_ENABLE))
+    if (gb->ppu.obj_fetcher.obj_index == -1 && get_lcdc(gb->membus, LCDC_OBJ_ENABLE))
     {
-        obj = on_object(ppu, &bottom_part);
+        obj = on_object(gb, &bottom_part);
         if (obj > -1)
         {
-            ppu->obj_fetcher->obj_index = obj;
-            ppu->obj_fetcher->bottom_part = bottom_part;
+            gb->ppu.obj_fetcher.obj_index = obj;
+            gb->ppu.obj_fetcher.bottom_part = bottom_part;
         }
     }
 
-    fetchers_step(ppu);
+    fetchers_step(gb);
 
     // OBJ mode = 1 and OBJ index = -1 means we just ended fetching an object
     // if so check again for remaining not done object on the same LX and LY
-    if (ppu->obj_mode && ppu->obj_fetcher->obj_index == -1)
+    if (gb->ppu.obj_mode && gb->ppu.obj_fetcher.obj_index == -1)
     {
-        ppu->obj_mode = 0;
+        gb->ppu.obj_mode = 0;
         // Force a new iteration of the loop in case of another object
-        if (on_object(ppu, NULL) > -1)
+        if (on_object(gb, NULL) > -1)
             return 0;
     }
 
     // If we are in OBJ mode, we are fetching an object (FIFOs stall)
-    if (ppu->obj_fetcher->obj_index == -1 && !ppu->obj_mode)
+    if (gb->ppu.obj_fetcher.obj_index == -1 && !gb->ppu.obj_mode)
     {
         // Prefetch pixels must be discarded
         // wait for the BG FIFO to be filled before popping
-        if (ppu->lx < 8)
+        if (gb->ppu.lx < 8)
         {
-            if (!RING_BUFFER_IS_EMPTY(pixel, &ppu->bg_fifo))
+            if (!RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo))
             {
                 // Pop current pixel and do nothing with it
-                select_pixel(ppu);
-                ++ppu->lx;
+                select_pixel(gb);
+                ++gb->ppu.lx;
             }
         }
         else
         {
             // Attempt to draw current pixel on the LCD
-            if (send_pixel(ppu))
-                ++ppu->lx;
+            if (send_pixel(gb))
+                ++gb->ppu.lx;
         }
     }
 
-    ++ppu->line_dot_count;
+    ++gb->ppu.line_dot_count;
     return 1;
 }
 
 // Mode 0
-uint8_t mode0_handler(struct ppu *ppu)
+static uint8_t mode0_handler(struct gb_core *gb)
 {
-    if (get_stat(ppu, 1) || get_stat(ppu, 0))
+    if (get_stat(gb->membus, 1) || get_stat(gb->membus, 0))
     {
-        clear_stat(ppu, 1);
-        clear_stat(ppu, 0);
-        if (get_stat(ppu, 3) && !get_if(ppu->cpu, INTERRUPT_LCD))
-            set_if(ppu->cpu, INTERRUPT_LCD);
+        clear_stat(gb->membus, 1);
+        clear_stat(gb->membus, 0);
+        if (get_stat(gb->membus, 3) && !get_if(&gb->cpu, INTERRUPT_LCD))
+            set_if(&gb->cpu, INTERRUPT_LCD);
     }
 
-    ppu->obj_fetcher->obj_index = -1;
-    ppu->oam_locked = 0;
-    ppu->vram_locked = 0;
+    gb->ppu.obj_fetcher.obj_index = -1;
+    gb->ppu.oam_locked = 0;
+    gb->ppu.vram_locked = 0;
     // TODO verify dma lock
-    if (ppu->line_dot_count < 456)
+    if (gb->ppu.line_dot_count < 456)
     {
-        ++ppu->line_dot_count;
+        ++gb->ppu.line_dot_count;
         return 1;
     }
 
     // Exit HBlank
-    ppu->lx = 0;
-    *ppu->ly += 1;
+    gb->ppu.lx = 0;
+    gb->membus[LY] += 1;
 
-    ppu->win_mode = 0;
+    gb->ppu.win_mode = 0;
 
-    ppu->line_dot_count = 0;
-    ppu->current_mode = 2;
-    ppu->obj_count = 0;
+    gb->ppu.line_dot_count = 0;
+    gb->ppu.current_mode = 2;
+    gb->ppu.obj_count = 0;
 
-    set_stat(ppu, 1);
-    clear_stat(ppu, 0);
-    if (get_stat(ppu, 5) && !get_stat(ppu, 4))
-        set_if(ppu->cpu, INTERRUPT_LCD);
+    set_stat(gb->membus, 1);
+    clear_stat(gb->membus, 0);
+    if (get_stat(gb->membus, 5) && !get_stat(gb->membus, 4))
+        set_if(&gb->cpu, INTERRUPT_LCD);
 
     // Start VBlank
-    if (*ppu->ly > 143)
+    if (gb->membus[LY] > 143)
     {
-        ppu->wy_trigger = 0;
-        ppu->current_mode = 1;
-        ppu->mode1_153th = 0;
+        gb->ppu.wy_trigger = 0;
+        gb->ppu.current_mode = 1;
+        gb->ppu.mode1_153th = 0;
     }
 
     return 0;
 }
 
-uint8_t mode1_handler(struct ppu *ppu)
+static uint8_t mode1_handler(struct gb_core *gb)
 {
-    if (*ppu->ly == 144 && ppu->line_dot_count == 0)
+    if (gb->membus[LY] == 144 && gb->ppu.line_dot_count == 0)
     {
-        clear_stat(ppu, 1);
-        set_stat(ppu, 0);
-        set_if(ppu->cpu, INTERRUPT_VBLANK);        // VBlank Interrupt
-        if (get_stat(ppu, 4) && !get_stat(ppu, 3)) // STAT VBlank Interrupt
-            set_if(ppu->cpu, INTERRUPT_LCD);
+        clear_stat(gb->membus, 1);
+        set_stat(gb->membus, 0);
+        set_if(&gb->cpu, INTERRUPT_VBLANK);                      // VBlank Interrupt
+        if (get_stat(gb->membus, 4) && !get_stat(gb->membus, 3)) // STAT VBlank Interrupt
+            set_if(&gb->cpu, INTERRUPT_LCD);
     }
 
-    check_lyc(ppu, ppu->mode1_153th);
+    check_lyc(gb, gb->ppu.mode1_153th);
 
-    if (ppu->line_dot_count < 456)
+    if (gb->ppu.line_dot_count < 456)
     {
         // LY = 153, special case with LY = 0 after 1 MCycle
-        if (*ppu->ly == 153 && !ppu->mode1_153th && ppu->line_dot_count >= 4)
+        if (gb->membus[LY] == 153 && !gb->ppu.mode1_153th && gb->ppu.line_dot_count >= 4)
         {
-            *ppu->ly = 0;
-            ppu->mode1_153th = 1;
+            gb->membus[LY] = 0;
+            gb->ppu.mode1_153th = 1;
         }
-        ++ppu->line_dot_count;
+        ++gb->ppu.line_dot_count;
         return 1;
     }
 
-    if (!ppu->mode1_153th && *ppu->ly < 153) // Go to next VBlank line
+    if (!gb->ppu.mode1_153th && gb->membus[LY]) // Go to next VBlank line
     {
-        *ppu->ly += 1;
-        ppu->line_dot_count = 0;
+        ++gb->membus[LY];
+        gb->ppu.line_dot_count = 0;
         return 0;
     }
 
     // Else exit VBlank, enter OAM Scan
-    ppu->line_dot_count = 0;
-    ppu->mode1_153th = 0;
-    ppu->current_mode = 2;
-    *ppu->ly = 0;
-    ppu->win_ly = 0;
-    ppu->win_lx = 7;
+    gb->ppu.line_dot_count = 0;
+    gb->ppu.mode1_153th = 0;
+    gb->ppu.current_mode = 2;
+    gb->membus[LY] = 0;
+    gb->ppu.win_ly = 0;
+    gb->ppu.win_lx = 7;
     return 0;
 }
 
-void ppu_tick_m(struct ppu *ppu)
+void ppu_tick_m(struct gb_core *gb)
 {
     for (size_t dots = 0; dots < 4;)
     {
-        switch (ppu->current_mode)
+        switch (gb->ppu.current_mode)
         {
         case 2:
-            dots += mode2_handler(ppu);
+            dots += mode2_handler(gb);
             break;
         case 3:
-            dots += mode3_handler(ppu);
+            dots += mode3_handler(gb);
             break;
         case 0:
-            dots += mode0_handler(ppu);
+            dots += mode0_handler(gb);
             break;
         case 1:
-            dots += mode1_handler(ppu);
+            dots += mode1_handler(gb);
             break;
         }
     }
     // DMA handling
     // DMA first setup MCycle
-    if (ppu->dma == 2)
-        ppu->dma = 1;
-    else if (ppu->dma == 1)
+    if (gb->ppu.dma == 2)
+        gb->ppu.dma = 1;
+    else if (gb->ppu.dma == 1)
     {
-        ppu->cpu->membus[0xFE00 + ppu->dma_acc] = read_mem(ppu->cpu, (ppu->dma_source << 8) + ppu->dma_acc);
-        ++ppu->dma_acc;
-        if (ppu->dma_acc >= 160)
-            ppu->dma = 0;
+        gb->membus[OAM + gb->ppu.dma_acc] = read_mem(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
+        ++gb->ppu.dma_acc;
+        if (gb->ppu.dma_acc >= 160)
+            gb->ppu.dma = 0;
     }
 }

@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #include "common.h"
-#include "display.h"
 #include "ppu_utils.h"
 #include "ring_buffer.h"
 
@@ -100,10 +99,10 @@ static inline void clear_stat(uint8_t *membus, int bit)
 
 struct gb_core;
 
-void ppu_init(struct ppu *ppu, uint8_t *membus);
+void ppu_init(struct gb_core *gb);
 
-void ppu_reset(struct ppu *ppu);
+void ppu_reset(struct gb_core *gb);
 
-void ppu_tick_m(struct ppu *ppu);
+void ppu_tick_m(struct gb_core *gb);
 
 #endif

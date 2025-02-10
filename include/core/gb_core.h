@@ -45,6 +45,8 @@ struct gb_core
 
 void init_gb_core(struct gb_core *gb);
 
+void init_gb_core_post_boot(struct gb_core *gb, int checksum);
+
 void free_gb_core(struct gb_core *gb);
 
 #endif

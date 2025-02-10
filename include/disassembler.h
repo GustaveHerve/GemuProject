@@ -1,8 +1,8 @@
 #ifndef DISASSEMBLER_H
 #define DISASSEMBLER_H
 
-struct cpu;
+struct gb_core;
 
-int next_op(struct cpu *cpu);
+int next_op(struct gb_core *gb);
 
 #endif

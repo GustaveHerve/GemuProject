@@ -11,12 +11,25 @@ SDL_Renderer *renderer;
 SDL_Texture *texture;
 SDL_Window *window;
 
-static void render_frame(SDL_Renderer *renderer, SDL_Texture *texture)
+int set_window_title(const char *title)
 {
-    SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t));
-    SDL_RenderClear(renderer);
-    SDL_RenderTexture(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
+    SDL_CHECK_ERROR(SDL_SetWindowTitle(window, title));
+    return 0;
+}
+
+int set_vsync(int val)
+{
+    SDL_CHECK_ERROR(SDL_SetRenderVSync(renderer, val));
+    return 0;
+}
+
+int render_frame_callback(void)
+{
+    SDL_CHECK_ERROR(SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t)));
+    SDL_CHECK_ERROR(SDL_RenderClear(renderer));
+    SDL_CHECK_ERROR(SDL_RenderTexture(renderer, texture, NULL, NULL));
+    SDL_CHECK_ERROR(SDL_RenderPresent(renderer));
+    return 0;
 }
 
 int init_rendering(void)

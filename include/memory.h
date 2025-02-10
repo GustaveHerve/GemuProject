@@ -2,12 +2,12 @@
 #define MEMORY_H
 
 #include <stdint.h>
-struct cpu;
+struct gb_core;
 
-void write_mem(struct cpu *cpu, uint16_t address, uint8_t val);
+void write_mem(struct gb_core *gb, uint16_t address, uint8_t val);
 
-uint8_t read_mem(struct cpu *cpu, uint16_t address);
+uint8_t read_mem(struct gb_core *gb, uint16_t address);
 
-uint8_t read_mem_tick(struct cpu *cpu, uint16_t address);
+uint8_t read_mem_tick(struct gb_core *gb, uint16_t address);
 
 #endif

@@ -3,10 +3,11 @@
 #include "apu.h"
 #include "cpu.h"
 #include "emulation.h"
+#include "gb_core.h"
 #include "mbc_base.h"
 #include "ppu.h"
 
-uint8_t read_mem(struct cpu *cpu, uint16_t address)
+uint8_t read_mem(struct gb_core *gb, uint16_t address)
 {
     // DMA, can only access HRAM
     /*
@@ -17,32 +18,32 @@ uint8_t read_mem(struct cpu *cpu, uint16_t address)
     */
 
     // BOOTROM mapping
-    if (!(*cpu->boot & 0x01) && address <= 0x00FF)
-        return cpu->membus[address];
+    if (!(gb->membus[BOOT] & 0x01) && address <= 0x00FF)
+        return gb->membus[address];
 
     // ROM
     else if (address <= 0x7FFF)
-        return read_mbc_rom(cpu, address);
+        return read_mbc_rom(gb->mbc, address);
 
     // VRAM
     else if (address >= 0x8000 && address <= 0x9FFF)
     {
-        if (cpu->ppu->vram_locked)
+        if (gb->ppu.vram_locked)
             return 0xFF;
     }
 
     // External RAM read
     else if (address >= 0xA000 && address <= 0xBFFF)
-        return read_mbc_ram(cpu, address);
+        return read_mbc_ram(gb->mbc, address);
 
     // Echo RAM
     else if (address >= 0xE000 && address <= 0xFDFF)
-        return cpu->membus[address - 0x2000];
+        return gb->membus[address - 0x2000];
 
     // OAM
     else if (address >= 0xFE00 && address <= 0xFEFF)
     {
-        if (cpu->ppu->oam_locked)
+        if (gb->ppu.oam_locked)
             return 0xFF;
     }
 
@@ -51,27 +52,27 @@ uint8_t read_mem(struct cpu *cpu, uint16_t address)
     {
         // TODO: redo this
         // Neither directions nor actions buttons selected, low nibble = 0xF
-        if ((cpu->membus[address] & 0x30) == 0x30)
-            return cpu->membus[address] | 0xF;
+        if ((gb->membus[address] & 0x30) == 0x30)
+            return gb->membus[address] | 0xF;
     }
 
-    return cpu->membus[address];
+    return gb->membus[address];
 }
 
-uint8_t read_mem_tick(struct cpu *cpu, uint16_t address)
+uint8_t read_mem_tick(struct gb_core *gb, uint16_t address)
 {
     uint8_t res = read_mem(cpu, address);
     tick_m(cpu);
     return res;
 }
 
-void write_mem(struct cpu *cpu, uint16_t address, uint8_t val)
+void write_mem(struct gb_core *gb, uint16_t address, uint8_t val)
 {
     uint8_t write = 1;
     if (address <= 0x7FFF)
     {
         write = 0;
-        write_mbc_rom(cpu, address, val);
+        write_mbc_rom(gb, address, val);
     }
 
     // VRAM

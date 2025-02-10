@@ -145,22 +145,22 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
     *output = mbc;
 }
 
-uint8_t read_mbc_rom(struct cpu *cpu, uint16_t address)
+uint8_t read_mbc_rom(struct mbc_base *mbc, uint16_t address)
 {
-    return cpu->mbc->_read_mbc_rom(cpu, address);
+    return mbc->_read_mbc_rom(mbc, address);
 }
 
-void write_mbc_rom(struct cpu *cpu, uint16_t address, uint8_t val)
+void write_mbc_rom(struct mbc_base *mbc, uint16_t address, uint8_t val)
 {
-    cpu->mbc->_write_mbc_rom(cpu, address, val);
+    mbc->_write_mbc_rom(mbc, address, val);
 }
 
-uint8_t read_mbc_ram(struct cpu *cpu, uint16_t address)
+uint8_t read_mbc_ram(struct mbc_base *mbc, uint16_t address)
 {
-    return cpu->mbc->_read_mbc_ram(cpu, address);
+    return mbc->_read_mbc_ram(mbc, address);
 }
 
-void write_mbc_ram(struct cpu *cpu, uint16_t address, uint8_t val)
+void write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
 {
-    cpu->mbc->_write_mbc_ram(cpu, address, val);
+    mbc->_write_mbc_ram(mbc, address, val);
 }

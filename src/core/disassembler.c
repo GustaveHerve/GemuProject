@@ -3,8 +3,8 @@
 #include <err.h>
 
 #include "control.h"
-#include "cpu.h"
 #include "emulation.h"
+#include "gb_core.h"
 #include "jump.h"
 #include "load.h"
 #include "logic.h"
@@ -13,1530 +13,1530 @@
 #include "rotshift.h"
 #include "utils.h"
 
-int prefix_op(struct cpu *cpu);
+static int prefix_op(struct gb_core *gb);
 
-int next_op(struct cpu *cpu)
+int next_op(struct gb_core *gb)
 {
     int mcycles = 0;
-    uint8_t opcode = read_mem_tick(cpu, cpu->regist->pc++);
+    uint8_t opcode = read_mem_tick(gb, gb->cpu.pc++);
     switch (opcode)
     {
     case 0x00:
         mcycles = nop();
         break;
     case 0x01:
-        mcycles = ld_rr_nn(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = ld_rr_nn(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0x02:
-        mcycles = ld_rr_a(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = ld_rr_a(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0x03:
-        mcycles = inc_rr(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = inc_rr(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0x04:
-        mcycles = inc_r(cpu, &cpu->regist->b);
+        mcycles = inc_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0x05:
-        mcycles = dec_r(cpu, &cpu->regist->b);
+        mcycles = dec_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0x06:
-        mcycles = ld_r_u8(cpu, &cpu->regist->b);
+        mcycles = ld_r_u8(&gb->cpu, &gb->cpu.b);
         break;
     case 0x07:
-        mcycles = rlca(cpu);
+        mcycles = rlca(&gb->cpu);
         break;
     case 0x08:
-        mcycles = ld_nn_sp(cpu);
+        mcycles = ld_nn_sp(&gb->cpu);
         break;
     case 0x09:
-        mcycles = add_hl_rr(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = add_hl_rr(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0x0A:
-        mcycles = ld_a_rr(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = ld_a_rr(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0x0B:
-        mcycles = dec_rr(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = dec_rr(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0x0C:
-        mcycles = inc_r(cpu, &cpu->regist->c);
+        mcycles = inc_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0x0D:
-        mcycles = dec_r(cpu, &cpu->regist->c);
+        mcycles = dec_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0x0E:
-        mcycles = ld_r_u8(cpu, &cpu->regist->c);
+        mcycles = ld_r_u8(&gb->cpu, &gb->cpu.c);
         break;
     case 0x0F:
-        mcycles = rrca(cpu);
+        mcycles = rrca(&gb->cpu);
         break;
     case 0x10:
-        mcycles = stop(cpu);
+        mcycles = stop(&gb->cpu);
         break;
     case 0x11:
-        mcycles = ld_rr_nn(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = ld_rr_nn(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0x12:
-        mcycles = ld_rr_a(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = ld_rr_a(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0x13:
-        mcycles = inc_rr(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = inc_rr(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0x14:
-        mcycles = inc_r(cpu, &cpu->regist->d);
+        mcycles = inc_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0x15:
-        mcycles = dec_r(cpu, &cpu->regist->d);
+        mcycles = dec_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0x16:
-        mcycles = ld_r_u8(cpu, &cpu->regist->d);
+        mcycles = ld_r_u8(&gb->cpu, &gb->cpu.d);
         break;
     case 0x17:
-        mcycles = rla(cpu);
+        mcycles = rla(&gb->cpu);
         break;
     case 0x18:
-        mcycles = jr_e8(cpu);
+        mcycles = jr_e8(&gb->cpu);
         break;
     case 0x19:
-        mcycles = add_hl_rr(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = add_hl_rr(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0x1A:
-        mcycles = ld_a_rr(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = ld_a_rr(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0x1B:
-        mcycles = dec_rr(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = dec_rr(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0x1C:
-        mcycles = inc_r(cpu, &cpu->regist->e);
+        mcycles = inc_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0x1D:
-        mcycles = dec_r(cpu, &cpu->regist->e);
+        mcycles = dec_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0x1E:
-        mcycles = ld_r_u8(cpu, &cpu->regist->e);
+        mcycles = ld_r_u8(&gb->cpu, &gb->cpu.e);
         break;
     case 0x1F:
-        mcycles = rra(cpu);
+        mcycles = rra(&gb->cpu);
         break;
     case 0x20:
-        mcycles = jr_cc_e8(cpu, get_z(cpu->regist) == 0);
+        mcycles = jr_cc_e8(&gb->cpu, get_z(&gb->cpu) == 0);
         break;
     case 0x21:
-        mcycles = ld_rr_nn(cpu, &cpu->regist->h, &cpu->regist->l);
+        mcycles = ld_rr_nn(&gb->cpu, &gb->cpu.h, &gb->cpu.l);
         break;
     case 0x22:
-        mcycles = ldi_hl_a(cpu);
+        mcycles = ldi_hl_a(&gb->cpu);
         break;
     case 0x23:
-        mcycles = inc_rr(cpu, &cpu->regist->h, &cpu->regist->l);
+        mcycles = inc_rr(&gb->cpu, &gb->cpu.h, &gb->cpu.l);
         break;
     case 0x24:
-        mcycles = inc_r(cpu, &cpu->regist->h);
+        mcycles = inc_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0x25:
-        mcycles = dec_r(cpu, &cpu->regist->h);
+        mcycles = dec_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0x26:
-        mcycles = ld_r_u8(cpu, &cpu->regist->h);
+        mcycles = ld_r_u8(&gb->cpu, &gb->cpu.h);
         break;
     case 0x27:
-        mcycles = daa(cpu);
+        mcycles = daa(&gb->cpu);
         break;
     case 0x28:
-        mcycles = jr_cc_e8(cpu, get_z(cpu->regist) == 1);
+        mcycles = jr_cc_e8(&gb->cpu, get_z(&gb->cpu) == 1);
         break;
     case 0x29:
-        mcycles = add_hl_rr(cpu, &cpu->regist->h, &cpu->regist->l);
+        mcycles = add_hl_rr(&gb->cpu, &gb->cpu.h, &gb->cpu.l);
         break;
     case 0x2A:
-        mcycles = ldi_a_hl(cpu);
+        mcycles = ldi_a_hl(&gb->cpu);
         break;
     case 0x2B:
-        mcycles = dec_rr(cpu, &cpu->regist->h, &cpu->regist->l);
+        mcycles = dec_rr(&gb->cpu, &gb->cpu.h, &gb->cpu.l);
         break;
     case 0x2C:
-        mcycles = inc_r(cpu, &cpu->regist->l);
+        mcycles = inc_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0x2D:
-        mcycles = dec_r(cpu, &cpu->regist->l);
+        mcycles = dec_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0x2E:
-        mcycles = ld_r_u8(cpu, &cpu->regist->l);
+        mcycles = ld_r_u8(&gb->cpu, &gb->cpu.l);
         break;
     case 0x2F:
-        mcycles = cpl(cpu);
+        mcycles = cpl(&gb->cpu);
         break;
     case 0x30:
-        mcycles = jr_cc_e8(cpu, get_c(cpu->regist) == 0);
+        mcycles = jr_cc_e8(&gb->cpu, get_c(&gb->cpu) == 0);
         break;
     case 0x31:
-        mcycles = ld_sp_nn(cpu);
+        mcycles = ld_sp_nn(&gb->cpu);
         break;
     case 0x32:
-        mcycles = ldd_hl_a(cpu);
+        mcycles = ldd_hl_a(&gb->cpu);
         break;
     case 0x33:
-        mcycles = inc_sp(cpu);
+        mcycles = inc_sp(&gb->cpu);
         break;
     case 0x34:
-        mcycles = inc_hl(cpu);
+        mcycles = inc_hl(&gb->cpu);
         break;
     case 0x35:
-        mcycles = dec_hl(cpu);
+        mcycles = dec_hl(&gb->cpu);
         break;
     case 0x36:
-        mcycles = ld_hl_u8(cpu);
+        mcycles = ld_hl_u8(&gb->cpu);
         break;
     case 0x37:
-        mcycles = scf(cpu);
+        mcycles = scf(&gb->cpu);
         break;
     case 0x38:
-        mcycles = jr_cc_e8(cpu, get_c(cpu->regist) == 1);
+        mcycles = jr_cc_e8(&gb->cpu, get_c(&gb->cpu) == 1);
         break;
     case 0x39:
-        mcycles = add_hl_sp(cpu);
+        mcycles = add_hl_sp(&gb->cpu);
         break;
     case 0x3A:
-        mcycles = ldd_a_hl(cpu);
+        mcycles = ldd_a_hl(&gb->cpu);
         break;
     case 0x3B:
-        mcycles = dec_sp(cpu);
+        mcycles = dec_sp(&gb->cpu);
         break;
     case 0x3C:
-        mcycles = inc_r(cpu, &cpu->regist->a);
+        mcycles = inc_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0x3D:
-        mcycles = dec_r(cpu, &cpu->regist->a);
+        mcycles = dec_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0x3E:
-        mcycles = ld_r_u8(cpu, &cpu->regist->a);
+        mcycles = ld_r_u8(&gb->cpu, &gb->cpu.a);
         break;
     case 0x3F:
-        mcycles = ccf(cpu);
+        mcycles = ccf(&gb->cpu);
         break;
     case 0x40:
-        mcycles = ld_r_r(cpu, &cpu->regist->b, &cpu->regist->b);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.b, &gb->cpu.b);
         break;
     case 0x41:
-        mcycles = ld_r_r(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0x42:
-        mcycles = ld_r_r(cpu, &cpu->regist->b, &cpu->regist->d);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.b, &gb->cpu.d);
         break;
     case 0x43:
-        mcycles = ld_r_r(cpu, &cpu->regist->b, &cpu->regist->e);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.b, &gb->cpu.e);
         break;
     case 0x44:
-        mcycles = ld_r_r(cpu, &cpu->regist->b, &cpu->regist->h);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.b, &gb->cpu.h);
         break;
     case 0x45:
-        mcycles = ld_r_r(cpu, &cpu->regist->b, &cpu->regist->l);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.b, &gb->cpu.l);
         break;
     case 0x46:
-        mcycles = ld_r_hl(cpu, &cpu->regist->b);
+        mcycles = ld_r_hl(&gb->cpu, &gb->cpu.b);
         break;
     case 0x47:
-        mcycles = ld_r_r(cpu, &cpu->regist->b, &cpu->regist->a);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.b, &gb->cpu.a);
         break;
     case 0x48:
-        mcycles = ld_r_r(cpu, &cpu->regist->c, &cpu->regist->b);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.c, &gb->cpu.b);
         break;
     case 0x49:
-        mcycles = ld_r_r(cpu, &cpu->regist->c, &cpu->regist->c);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.c, &gb->cpu.c);
         break;
     case 0x4A:
-        mcycles = ld_r_r(cpu, &cpu->regist->c, &cpu->regist->d);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.c, &gb->cpu.d);
         break;
     case 0x4B:
-        mcycles = ld_r_r(cpu, &cpu->regist->c, &cpu->regist->e);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.c, &gb->cpu.e);
         break;
     case 0x4C:
-        mcycles = ld_r_r(cpu, &cpu->regist->c, &cpu->regist->h);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.c, &gb->cpu.h);
         break;
     case 0x4D:
-        mcycles = ld_r_r(cpu, &cpu->regist->c, &cpu->regist->l);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.c, &gb->cpu.l);
         break;
     case 0x4E:
-        mcycles = ld_r_hl(cpu, &cpu->regist->c);
+        mcycles = ld_r_hl(&gb->cpu, &gb->cpu.c);
         break;
     case 0x4F:
-        mcycles = ld_r_r(cpu, &cpu->regist->c, &cpu->regist->a);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.c, &gb->cpu.a);
         break;
     case 0x50:
-        mcycles = ld_r_r(cpu, &cpu->regist->d, &cpu->regist->b);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.d, &gb->cpu.b);
         break;
     case 0x51:
-        mcycles = ld_r_r(cpu, &cpu->regist->d, &cpu->regist->c);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.d, &gb->cpu.c);
         break;
     case 0x52:
-        mcycles = ld_r_r(cpu, &cpu->regist->d, &cpu->regist->d);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.d, &gb->cpu.d);
         break;
     case 0x53:
-        mcycles = ld_r_r(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0x54:
-        mcycles = ld_r_r(cpu, &cpu->regist->d, &cpu->regist->h);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.d, &gb->cpu.h);
         break;
     case 0x55:
-        mcycles = ld_r_r(cpu, &cpu->regist->d, &cpu->regist->l);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.d, &gb->cpu.l);
         break;
     case 0x56:
-        mcycles = ld_r_hl(cpu, &cpu->regist->d);
+        mcycles = ld_r_hl(&gb->cpu, &gb->cpu.d);
         break;
     case 0x57:
-        mcycles = ld_r_r(cpu, &cpu->regist->d, &cpu->regist->a);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.d, &gb->cpu.a);
         break;
     case 0x58:
-        mcycles = ld_r_r(cpu, &cpu->regist->e, &cpu->regist->b);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.e, &gb->cpu.b);
         break;
     case 0x59:
-        mcycles = ld_r_r(cpu, &cpu->regist->e, &cpu->regist->c);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.e, &gb->cpu.c);
         break;
     case 0x5A:
-        mcycles = ld_r_r(cpu, &cpu->regist->e, &cpu->regist->d);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.e, &gb->cpu.d);
         break;
     case 0x5B:
-        mcycles = ld_r_r(cpu, &cpu->regist->e, &cpu->regist->e);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.e, &gb->cpu.e);
         break;
     case 0x5C:
-        mcycles = ld_r_r(cpu, &cpu->regist->e, &cpu->regist->h);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.e, &gb->cpu.h);
         break;
     case 0x5D:
-        mcycles = ld_r_r(cpu, &cpu->regist->e, &cpu->regist->l);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.e, &gb->cpu.l);
         break;
     case 0x5E:
-        mcycles = ld_r_hl(cpu, &cpu->regist->e);
+        mcycles = ld_r_hl(&gb->cpu, &gb->cpu.e);
         break;
     case 0x5F:
-        mcycles = ld_r_r(cpu, &cpu->regist->e, &cpu->regist->a);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.e, &gb->cpu.a);
         break;
     case 0x60:
-        mcycles = ld_r_r(cpu, &cpu->regist->h, &cpu->regist->b);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.h, &gb->cpu.b);
         break;
     case 0x61:
-        mcycles = ld_r_r(cpu, &cpu->regist->h, &cpu->regist->c);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.h, &gb->cpu.c);
         break;
     case 0x62:
-        mcycles = ld_r_r(cpu, &cpu->regist->h, &cpu->regist->d);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.h, &gb->cpu.d);
         break;
     case 0x63:
-        mcycles = ld_r_r(cpu, &cpu->regist->h, &cpu->regist->e);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.h, &gb->cpu.e);
         break;
     case 0x64:
-        mcycles = ld_r_r(cpu, &cpu->regist->h, &cpu->regist->h);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.h, &gb->cpu.h);
         break;
     case 0x65:
-        mcycles = ld_r_r(cpu, &cpu->regist->h, &cpu->regist->l);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.h, &gb->cpu.l);
         break;
     case 0x66:
-        mcycles = ld_r_hl(cpu, &cpu->regist->h);
+        mcycles = ld_r_hl(&gb->cpu, &gb->cpu.h);
         break;
     case 0x67:
-        mcycles = ld_r_r(cpu, &cpu->regist->h, &cpu->regist->a);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.h, &gb->cpu.a);
         break;
     case 0x68:
-        mcycles = ld_r_r(cpu, &cpu->regist->l, &cpu->regist->b);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.l, &gb->cpu.b);
         break;
     case 0x69:
-        mcycles = ld_r_r(cpu, &cpu->regist->l, &cpu->regist->c);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.l, &gb->cpu.c);
         break;
     case 0x6A:
-        mcycles = ld_r_r(cpu, &cpu->regist->l, &cpu->regist->d);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.l, &gb->cpu.d);
         break;
     case 0x6B:
-        mcycles = ld_r_r(cpu, &cpu->regist->l, &cpu->regist->e);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.l, &gb->cpu.e);
         break;
     case 0x6C:
-        mcycles = ld_r_r(cpu, &cpu->regist->l, &cpu->regist->h);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.l, &gb->cpu.h);
         break;
     case 0x6D:
-        mcycles = ld_r_r(cpu, &cpu->regist->l, &cpu->regist->l);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.l, &gb->cpu.l);
         break;
     case 0x6E:
-        mcycles = ld_r_hl(cpu, &cpu->regist->l);
+        mcycles = ld_r_hl(&gb->cpu, &gb->cpu.l);
         break;
     case 0x6F:
-        mcycles = ld_r_r(cpu, &cpu->regist->l, &cpu->regist->a);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.l, &gb->cpu.a);
         break;
     case 0x70:
-        mcycles = ld_hl_r(cpu, &cpu->regist->b);
+        mcycles = ld_hl_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0x71:
-        mcycles = ld_hl_r(cpu, &cpu->regist->c);
+        mcycles = ld_hl_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0x72:
-        mcycles = ld_hl_r(cpu, &cpu->regist->d);
+        mcycles = ld_hl_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0x73:
-        mcycles = ld_hl_r(cpu, &cpu->regist->e);
+        mcycles = ld_hl_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0x74:
-        mcycles = ld_hl_r(cpu, &cpu->regist->h);
+        mcycles = ld_hl_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0x75:
-        mcycles = ld_hl_r(cpu, &cpu->regist->l);
+        mcycles = ld_hl_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0x76:
-        mcycles = halt(cpu);
+        mcycles = halt(&gb->cpu);
         break;
     case 0x77:
-        mcycles = ld_hl_r(cpu, &cpu->regist->a);
+        mcycles = ld_hl_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0x78:
-        mcycles = ld_r_r(cpu, &cpu->regist->a, &cpu->regist->b);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.a, &gb->cpu.b);
         break;
     case 0x79:
-        mcycles = ld_r_r(cpu, &cpu->regist->a, &cpu->regist->c);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.a, &gb->cpu.c);
         break;
     case 0x7A:
-        mcycles = ld_r_r(cpu, &cpu->regist->a, &cpu->regist->d);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.a, &gb->cpu.d);
         break;
     case 0x7B:
-        mcycles = ld_r_r(cpu, &cpu->regist->a, &cpu->regist->e);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.a, &gb->cpu.e);
         break;
     case 0x7C:
-        mcycles = ld_r_r(cpu, &cpu->regist->a, &cpu->regist->h);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.a, &gb->cpu.h);
         break;
     case 0x7D:
-        mcycles = ld_r_r(cpu, &cpu->regist->a, &cpu->regist->l);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.a, &gb->cpu.l);
         break;
     case 0x7E:
-        mcycles = ld_r_hl(cpu, &cpu->regist->a);
+        mcycles = ld_r_hl(&gb->cpu, &gb->cpu.a);
         break;
     case 0x7F:
-        mcycles = ld_r_r(cpu, &cpu->regist->a, &cpu->regist->a);
+        mcycles = ld_r_r(&gb->cpu, &gb->cpu.a, &gb->cpu.a);
         break;
     case 0x80:
-        mcycles = add_a_r(cpu, &cpu->regist->b);
+        mcycles = add_a_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0x81:
-        mcycles = add_a_r(cpu, &cpu->regist->c);
+        mcycles = add_a_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0x82:
-        mcycles = add_a_r(cpu, &cpu->regist->d);
+        mcycles = add_a_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0x83:
-        mcycles = add_a_r(cpu, &cpu->regist->e);
+        mcycles = add_a_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0x84:
-        mcycles = add_a_r(cpu, &cpu->regist->h);
+        mcycles = add_a_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0x85:
-        mcycles = add_a_r(cpu, &cpu->regist->l);
+        mcycles = add_a_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0x86:
-        mcycles = add_a_hl(cpu);
+        mcycles = add_a_hl(&gb->cpu);
         break;
     case 0x87:
-        mcycles = add_a_r(cpu, &cpu->regist->a);
+        mcycles = add_a_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0x88:
-        mcycles = adc_a_r(cpu, &cpu->regist->b);
+        mcycles = adc_a_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0x89:
-        mcycles = adc_a_r(cpu, &cpu->regist->c);
+        mcycles = adc_a_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0x8A:
-        mcycles = adc_a_r(cpu, &cpu->regist->d);
+        mcycles = adc_a_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0x8B:
-        mcycles = adc_a_r(cpu, &cpu->regist->e);
+        mcycles = adc_a_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0x8C:
-        mcycles = adc_a_r(cpu, &cpu->regist->h);
+        mcycles = adc_a_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0x8D:
-        mcycles = adc_a_r(cpu, &cpu->regist->l);
+        mcycles = adc_a_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0x8E:
-        mcycles = adc_a_hl(cpu);
+        mcycles = adc_a_hl(&gb->cpu);
         break;
     case 0x8F:
-        mcycles = adc_a_r(cpu, &cpu->regist->a);
+        mcycles = adc_a_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0x90:
-        mcycles = sub_a_r(cpu, &cpu->regist->b);
+        mcycles = sub_a_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0x91:
-        mcycles = sub_a_r(cpu, &cpu->regist->c);
+        mcycles = sub_a_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0x92:
-        mcycles = sub_a_r(cpu, &cpu->regist->d);
+        mcycles = sub_a_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0x93:
-        mcycles = sub_a_r(cpu, &cpu->regist->e);
+        mcycles = sub_a_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0x94:
-        mcycles = sub_a_r(cpu, &cpu->regist->h);
+        mcycles = sub_a_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0x95:
-        mcycles = sub_a_r(cpu, &cpu->regist->l);
+        mcycles = sub_a_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0x96:
-        mcycles = sub_a_hl(cpu);
+        mcycles = sub_a_hl(&gb->cpu);
         break;
     case 0x97:
-        mcycles = sub_a_r(cpu, &cpu->regist->a);
+        mcycles = sub_a_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0x98:
-        mcycles = sbc_a_r(cpu, &cpu->regist->b);
+        mcycles = sbc_a_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0x99:
-        mcycles = sbc_a_r(cpu, &cpu->regist->c);
+        mcycles = sbc_a_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0x9A:
-        mcycles = sbc_a_r(cpu, &cpu->regist->d);
+        mcycles = sbc_a_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0x9B:
-        mcycles = sbc_a_r(cpu, &cpu->regist->e);
+        mcycles = sbc_a_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0x9C:
-        mcycles = sbc_a_r(cpu, &cpu->regist->h);
+        mcycles = sbc_a_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0x9D:
-        mcycles = sbc_a_r(cpu, &cpu->regist->l);
+        mcycles = sbc_a_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0x9E:
-        mcycles = sbc_a_hl(cpu);
+        mcycles = sbc_a_hl(&gb->cpu);
         break;
     case 0x9F:
-        mcycles = sbc_a_r(cpu, &cpu->regist->a);
+        mcycles = sbc_a_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0xA0:
-        mcycles = and_a_r(cpu, &cpu->regist->b);
+        mcycles = and_a_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0xA1:
-        mcycles = and_a_r(cpu, &cpu->regist->c);
+        mcycles = and_a_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0xA2:
-        mcycles = and_a_r(cpu, &cpu->regist->d);
+        mcycles = and_a_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0xA3:
-        mcycles = and_a_r(cpu, &cpu->regist->e);
+        mcycles = and_a_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0xA4:
-        mcycles = and_a_r(cpu, &cpu->regist->h);
+        mcycles = and_a_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0xA5:
-        mcycles = and_a_r(cpu, &cpu->regist->l);
+        mcycles = and_a_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0xA6:
-        mcycles = and_a_hl(cpu);
+        mcycles = and_a_hl(&gb->cpu);
         break;
     case 0xA7:
-        mcycles = and_a_r(cpu, &cpu->regist->a);
+        mcycles = and_a_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0xA8:
-        mcycles = xor_a_r(cpu, &cpu->regist->b);
+        mcycles = xor_a_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0xA9:
-        mcycles = xor_a_r(cpu, &cpu->regist->c);
+        mcycles = xor_a_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0xAA:
-        mcycles = xor_a_r(cpu, &cpu->regist->d);
+        mcycles = xor_a_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0xAB:
-        mcycles = xor_a_r(cpu, &cpu->regist->e);
+        mcycles = xor_a_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0xAC:
-        mcycles = xor_a_r(cpu, &cpu->regist->h);
+        mcycles = xor_a_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0xAD:
-        mcycles = xor_a_r(cpu, &cpu->regist->l);
+        mcycles = xor_a_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0xAE:
-        mcycles = xor_a_hl(cpu);
+        mcycles = xor_a_hl(&gb->cpu);
         break;
     case 0xAF:
-        mcycles = xor_a_r(cpu, &cpu->regist->a);
+        mcycles = xor_a_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0xB0:
-        mcycles = or_a_r(cpu, &cpu->regist->b);
+        mcycles = or_a_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0xB1:
-        mcycles = or_a_r(cpu, &cpu->regist->c);
+        mcycles = or_a_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0xB2:
-        mcycles = or_a_r(cpu, &cpu->regist->d);
+        mcycles = or_a_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0xB3:
-        mcycles = or_a_r(cpu, &cpu->regist->e);
+        mcycles = or_a_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0xB4:
-        mcycles = or_a_r(cpu, &cpu->regist->h);
+        mcycles = or_a_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0xB5:
-        mcycles = or_a_r(cpu, &cpu->regist->l);
+        mcycles = or_a_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0xB6:
-        mcycles = or_a_hl(cpu);
+        mcycles = or_a_hl(&gb->cpu);
         break;
     case 0xB7:
-        mcycles = or_a_r(cpu, &cpu->regist->a);
+        mcycles = or_a_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0xB8:
-        mcycles = cp_a_r(cpu, &cpu->regist->b);
+        mcycles = cp_a_r(&gb->cpu, &gb->cpu.b);
         break;
     case 0xB9:
-        mcycles = cp_a_r(cpu, &cpu->regist->c);
+        mcycles = cp_a_r(&gb->cpu, &gb->cpu.c);
         break;
     case 0xBA:
-        mcycles = cp_a_r(cpu, &cpu->regist->d);
+        mcycles = cp_a_r(&gb->cpu, &gb->cpu.d);
         break;
     case 0xBB:
-        mcycles = cp_a_r(cpu, &cpu->regist->e);
+        mcycles = cp_a_r(&gb->cpu, &gb->cpu.e);
         break;
     case 0xBC:
-        mcycles = cp_a_r(cpu, &cpu->regist->h);
+        mcycles = cp_a_r(&gb->cpu, &gb->cpu.h);
         break;
     case 0xBD:
-        mcycles = cp_a_r(cpu, &cpu->regist->l);
+        mcycles = cp_a_r(&gb->cpu, &gb->cpu.l);
         break;
     case 0xBE:
-        mcycles = cp_a_hl(cpu);
+        mcycles = cp_a_hl(&gb->cpu);
         break;
     case 0xBF:
-        mcycles = cp_a_r(cpu, &cpu->regist->a);
+        mcycles = cp_a_r(&gb->cpu, &gb->cpu.a);
         break;
     case 0xC0:
-        mcycles = ret_cc(cpu, get_z(cpu->regist) == 0);
+        mcycles = ret_cc(&gb->cpu, get_z(&gb->cpu) == 0);
         break;
     case 0xC1:
-        mcycles = pop_rr(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = pop_rr(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0xC2:
-        mcycles = jp_cc_nn(cpu, get_z(cpu->regist) == 0);
+        mcycles = jp_cc_nn(&gb->cpu, get_z(&gb->cpu) == 0);
         break;
     case 0xC3:
-        mcycles = jp_nn(cpu);
+        mcycles = jp_nn(&gb->cpu);
         break;
     case 0xC4:
-        mcycles = call_cc_nn(cpu, get_z(cpu->regist) == 0);
+        mcycles = call_cc_nn(&gb->cpu, get_z(&gb->cpu) == 0);
         break;
     case 0xC5:
-        mcycles = push_rr(cpu, &cpu->regist->b, &cpu->regist->c);
+        mcycles = push_rr(&gb->cpu, &gb->cpu.b, &gb->cpu.c);
         break;
     case 0xC6:
-        mcycles = add_a_n(cpu);
+        mcycles = add_a_n(&gb->cpu);
         break;
     case 0xC7:
-        mcycles = rst(cpu, 0x00);
+        mcycles = rst(&gb->cpu, 0x00);
         break;
     case 0xC8:
-        mcycles = ret_cc(cpu, get_z(cpu->regist) == 1);
+        mcycles = ret_cc(&gb->cpu, get_z(&gb->cpu) == 1);
         break;
     case 0xC9:
-        mcycles = ret(cpu);
+        mcycles = ret(&gb->cpu);
         break;
     case 0xCA:
-        mcycles = jp_cc_nn(cpu, get_z(cpu->regist) == 1);
+        mcycles = jp_cc_nn(&gb->cpu, get_z(&gb->cpu) == 1);
         break;
     case 0xCB:
-        mcycles = prefix_op(cpu);
+        mcycles = prefix_op(gb);
         break;
     case 0xCC:
-        mcycles = call_cc_nn(cpu, get_z(cpu->regist) == 1);
+        mcycles = call_cc_nn(&gb->cpu, get_z(&gb->cpu) == 1);
         break;
     case 0xCD:
-        mcycles = call_nn(cpu);
+        mcycles = call_nn(&gb->cpu);
         break;
     case 0xCE:
-        mcycles = adc_a_n(cpu);
+        mcycles = adc_a_n(&gb->cpu);
         break;
     case 0xCF:
-        mcycles = rst(cpu, 0x08);
+        mcycles = rst(&gb->cpu, 0x08);
         break;
     case 0xD0:
-        mcycles = ret_cc(cpu, get_c(cpu->regist) == 0);
+        mcycles = ret_cc(&gb->cpu, get_c(&gb->cpu) == 0);
         break;
     case 0xD1:
-        mcycles = pop_rr(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = pop_rr(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0xD2:
-        mcycles = jp_cc_nn(cpu, get_c(cpu->regist) == 0);
+        mcycles = jp_cc_nn(&gb->cpu, get_c(&gb->cpu) == 0);
         break;
     case 0xD4:
-        mcycles = call_cc_nn(cpu, get_c(cpu->regist) == 0);
+        mcycles = call_cc_nn(&gb->cpu, get_c(&gb->cpu) == 0);
         break;
     case 0xD5:
-        mcycles = push_rr(cpu, &cpu->regist->d, &cpu->regist->e);
+        mcycles = push_rr(&gb->cpu, &gb->cpu.d, &gb->cpu.e);
         break;
     case 0xD6:
-        mcycles = sub_a_n(cpu);
+        mcycles = sub_a_n(&gb->cpu);
         break;
     case 0xD7:
-        mcycles = rst(cpu, 0x10);
+        mcycles = rst(&gb->cpu, 0x10);
         break;
     case 0xD8:
-        mcycles = ret_cc(cpu, get_c(cpu->regist) == 1);
+        mcycles = ret_cc(&gb->cpu, get_c(&gb->cpu) == 1);
         break;
     case 0xD9:
-        mcycles = reti(cpu);
+        mcycles = reti(&gb->cpu);
         break;
     case 0xDA:
-        mcycles = jp_cc_nn(cpu, get_c(cpu->regist) == 1);
+        mcycles = jp_cc_nn(&gb->cpu, get_c(&gb->cpu) == 1);
         break;
     case 0xDC:
-        mcycles = call_cc_nn(cpu, get_c(cpu->regist) == 1);
+        mcycles = call_cc_nn(&gb->cpu, get_c(&gb->cpu) == 1);
         break;
     case 0xDE:
-        mcycles = sbc_a_n(cpu);
+        mcycles = sbc_a_n(&gb->cpu);
         break;
     case 0xDF:
-        mcycles = rst(cpu, 0x18);
+        mcycles = rst(&gb->cpu, 0x18);
         break;
     case 0xE0:
-        mcycles = ldh_n_a(cpu);
+        mcycles = ldh_n_a(&gb->cpu);
         break;
     case 0xE1:
-        mcycles = pop_rr(cpu, &cpu->regist->h, &cpu->regist->l);
+        mcycles = pop_rr(&gb->cpu, &gb->cpu.h, &gb->cpu.l);
         break;
     case 0xE2:
-        mcycles = ldh_c_a(cpu);
+        mcycles = ldh_c_a(&gb->cpu);
         break;
     case 0xE5:
-        mcycles = push_rr(cpu, &cpu->regist->h, &cpu->regist->l);
+        mcycles = push_rr(&gb->cpu, &gb->cpu.h, &gb->cpu.l);
         break;
     case 0xE6:
-        mcycles = and_a_n(cpu);
+        mcycles = and_a_n(&gb->cpu);
         break;
     case 0xE7:
-        mcycles = rst(cpu, 0x20);
+        mcycles = rst(&gb->cpu, 0x20);
         break;
     case 0xE8:
-        mcycles = add_sp_e8(cpu);
+        mcycles = add_sp_e8(&gb->cpu);
         break;
     case 0xE9:
-        mcycles = jp_hl(cpu);
+        mcycles = jp_hl(&gb->cpu);
         break;
     case 0xEA:
-        mcycles = ld_nn_a(cpu);
+        mcycles = ld_nn_a(&gb->cpu);
         break;
     case 0xEE:
-        mcycles = xor_a_n(cpu);
+        mcycles = xor_a_n(&gb->cpu);
         break;
     case 0xEF:
-        mcycles = rst(cpu, 0x28);
+        mcycles = rst(&gb->cpu, 0x28);
         break;
     case 0xF0:
-        mcycles = ldh_a_n(cpu);
+        mcycles = ldh_a_n(&gb->cpu);
         break;
     case 0xF1:
-        mcycles = pop_af(cpu);
+        mcycles = pop_af(&gb->cpu);
         break;
     case 0xF2:
-        mcycles = ldh_a_c(cpu);
+        mcycles = ldh_a_c(&gb->cpu);
         break;
     case 0xF3:
-        mcycles = di(cpu);
+        mcycles = di(&gb->cpu);
         break;
     case 0xF5:
-        mcycles = push_rr(cpu, &cpu->regist->a, &cpu->regist->f);
+        mcycles = push_rr(&gb->cpu, &gb->cpu.a, &gb->cpu.f);
         break;
     case 0xF6:
-        mcycles = or_a_n(cpu);
+        mcycles = or_a_n(&gb->cpu);
         break;
     case 0xF7:
-        mcycles = rst(cpu, 0x30);
+        mcycles = rst(&gb->cpu, 0x30);
         break;
     case 0xF8:
-        mcycles = ld_hl_spe8(cpu);
+        mcycles = ld_hl_spe8(&gb->cpu);
         break;
     case 0xF9:
-        mcycles = ld_sp_hl(cpu);
+        mcycles = ld_sp_hl(&gb->cpu);
         break;
     case 0xFA:
-        mcycles = ld_a_nn(cpu);
+        mcycles = ld_a_nn(&gb->cpu);
         break;
     case 0xFB:
-        mcycles = ei(cpu);
+        mcycles = ei(&gb->cpu);
         break;
     case 0xFE:
-        mcycles = cp_a_n(cpu);
+        mcycles = cp_a_n(&gb->cpu);
         break;
     case 0xFF:
-        mcycles = rst(cpu, 0x38);
+        mcycles = rst(&gb->cpu, 0x38);
         break;
     default:
-        errx(-2, "ERROR: undefined opcode at PC=0x%X, closing emulator...", cpu->regist->pc - 1);
+        errx(-2, "ERROR: undefined opcode at PC=0x%X, closing emulator...", gb->cpu.pc - 1);
         break;
     }
     return mcycles;
 }
 
-int prefix_op(struct cpu *cpu)
+static int prefix_op(struct gb_core *gb)
 {
     // Fetch the prefix opcode
-    uint8_t opcode = read_mem_tick(cpu, cpu->regist->pc++);
+    uint8_t opcode = read_mem_tick(gb, gb->cpu.pc++);
     int mcycles = 0;
     switch (opcode)
     {
     case 0x00:
-        mcycles = rlc(cpu, &cpu->regist->b);
+        mcycles = rlc(&gb->cpu, &gb->cpu.b);
         break;
     case 0x01:
-        mcycles = rlc(cpu, &cpu->regist->c);
+        mcycles = rlc(&gb->cpu, &gb->cpu.c);
         break;
     case 0x02:
-        mcycles = rlc(cpu, &cpu->regist->d);
+        mcycles = rlc(&gb->cpu, &gb->cpu.d);
         break;
     case 0x03:
-        mcycles = rlc(cpu, &cpu->regist->e);
+        mcycles = rlc(&gb->cpu, &gb->cpu.e);
         break;
     case 0x04:
-        mcycles = rlc(cpu, &cpu->regist->h);
+        mcycles = rlc(&gb->cpu, &gb->cpu.h);
         break;
     case 0x05:
-        mcycles = rlc(cpu, &cpu->regist->l);
+        mcycles = rlc(&gb->cpu, &gb->cpu.l);
         break;
     case 0x06:
-        mcycles = rlc_hl(cpu);
+        mcycles = rlc_hl(&gb->cpu);
         break;
     case 0x07:
-        mcycles = rlc(cpu, &cpu->regist->a);
+        mcycles = rlc(&gb->cpu, &gb->cpu.a);
         break;
     case 0x08:
-        mcycles = rrc(cpu, &cpu->regist->b);
+        mcycles = rrc(&gb->cpu, &gb->cpu.b);
         break;
     case 0x09:
-        mcycles = rrc(cpu, &cpu->regist->c);
+        mcycles = rrc(&gb->cpu, &gb->cpu.c);
         break;
     case 0x0A:
-        mcycles = rrc(cpu, &cpu->regist->d);
+        mcycles = rrc(&gb->cpu, &gb->cpu.d);
         break;
     case 0x0B:
-        mcycles = rrc(cpu, &cpu->regist->e);
+        mcycles = rrc(&gb->cpu, &gb->cpu.e);
         break;
     case 0x0C:
-        mcycles = rrc(cpu, &cpu->regist->h);
+        mcycles = rrc(&gb->cpu, &gb->cpu.h);
         break;
     case 0x0D:
-        mcycles = rrc(cpu, &cpu->regist->l);
+        mcycles = rrc(&gb->cpu, &gb->cpu.l);
         break;
     case 0x0E:
-        mcycles = rrc_hl(cpu);
+        mcycles = rrc_hl(&gb->cpu);
         break;
     case 0x0F:
-        mcycles = rrc(cpu, &cpu->regist->a);
+        mcycles = rrc(&gb->cpu, &gb->cpu.a);
         break;
     case 0x10:
-        mcycles = rl(cpu, &cpu->regist->b);
+        mcycles = rl(&gb->cpu, &gb->cpu.b);
         break;
     case 0x11:
-        mcycles = rl(cpu, &cpu->regist->c);
+        mcycles = rl(&gb->cpu, &gb->cpu.c);
         break;
     case 0x12:
-        mcycles = rl(cpu, &cpu->regist->d);
+        mcycles = rl(&gb->cpu, &gb->cpu.d);
         break;
     case 0x13:
-        mcycles = rl(cpu, &cpu->regist->e);
+        mcycles = rl(&gb->cpu, &gb->cpu.e);
         break;
     case 0x14:
-        mcycles = rl(cpu, &cpu->regist->h);
+        mcycles = rl(&gb->cpu, &gb->cpu.h);
         break;
     case 0x15:
-        mcycles = rl(cpu, &cpu->regist->l);
+        mcycles = rl(&gb->cpu, &gb->cpu.l);
         break;
     case 0x16:
-        mcycles = rl_hl(cpu);
+        mcycles = rl_hl(&gb->cpu);
         break;
     case 0x17:
-        mcycles = rl(cpu, &cpu->regist->a);
+        mcycles = rl(&gb->cpu, &gb->cpu.a);
         break;
     case 0x18:
-        mcycles = rr(cpu, &cpu->regist->b);
+        mcycles = rr(&gb->cpu, &gb->cpu.b);
         break;
     case 0x19:
-        mcycles = rr(cpu, &cpu->regist->c);
+        mcycles = rr(&gb->cpu, &gb->cpu.c);
         break;
     case 0x1A:
-        mcycles = rr(cpu, &cpu->regist->d);
+        mcycles = rr(&gb->cpu, &gb->cpu.d);
         break;
     case 0x1B:
-        mcycles = rr(cpu, &cpu->regist->e);
+        mcycles = rr(&gb->cpu, &gb->cpu.e);
         break;
     case 0x1C:
-        mcycles = rr(cpu, &cpu->regist->h);
+        mcycles = rr(&gb->cpu, &gb->cpu.h);
         break;
     case 0x1D:
-        mcycles = rr(cpu, &cpu->regist->l);
+        mcycles = rr(&gb->cpu, &gb->cpu.l);
         break;
     case 0x1E:
-        mcycles = rr_hl(cpu);
+        mcycles = rr_hl(&gb->cpu);
         break;
     case 0x1F:
-        mcycles = rr(cpu, &cpu->regist->a);
+        mcycles = rr(&gb->cpu, &gb->cpu.a);
         break;
     case 0x20:
-        mcycles = sla(cpu, &cpu->regist->b);
+        mcycles = sla(&gb->cpu, &gb->cpu.b);
         break;
     case 0x21:
-        mcycles = sla(cpu, &cpu->regist->c);
+        mcycles = sla(&gb->cpu, &gb->cpu.c);
         break;
     case 0x22:
-        mcycles = sla(cpu, &cpu->regist->d);
+        mcycles = sla(&gb->cpu, &gb->cpu.d);
         break;
     case 0x23:
-        mcycles = sla(cpu, &cpu->regist->e);
+        mcycles = sla(&gb->cpu, &gb->cpu.e);
         break;
     case 0x24:
-        mcycles = sla(cpu, &cpu->regist->h);
+        mcycles = sla(&gb->cpu, &gb->cpu.h);
         break;
     case 0x25:
-        mcycles = sla(cpu, &cpu->regist->l);
+        mcycles = sla(&gb->cpu, &gb->cpu.l);
         break;
     case 0x26:
-        mcycles = sla_hl(cpu);
+        mcycles = sla_hl(&gb->cpu);
         break;
     case 0x27:
-        mcycles = sla(cpu, &cpu->regist->a);
+        mcycles = sla(&gb->cpu, &gb->cpu.a);
         break;
     case 0x28:
-        mcycles = sra(cpu, &cpu->regist->b);
+        mcycles = sra(&gb->cpu, &gb->cpu.b);
         break;
     case 0x29:
-        mcycles = sra(cpu, &cpu->regist->c);
+        mcycles = sra(&gb->cpu, &gb->cpu.c);
         break;
     case 0x2A:
-        mcycles = sra(cpu, &cpu->regist->d);
+        mcycles = sra(&gb->cpu, &gb->cpu.d);
         break;
     case 0x2B:
-        mcycles = sra(cpu, &cpu->regist->e);
+        mcycles = sra(&gb->cpu, &gb->cpu.e);
         break;
     case 0x2C:
-        mcycles = sra(cpu, &cpu->regist->h);
+        mcycles = sra(&gb->cpu, &gb->cpu.h);
         break;
     case 0x2D:
-        mcycles = sra(cpu, &cpu->regist->l);
+        mcycles = sra(&gb->cpu, &gb->cpu.l);
         break;
     case 0x2E:
-        mcycles = sra_hl(cpu);
+        mcycles = sra_hl(&gb->cpu);
         break;
     case 0x2F:
-        mcycles = sra(cpu, &cpu->regist->a);
+        mcycles = sra(&gb->cpu, &gb->cpu.a);
         break;
     case 0x30:
-        mcycles = swap(cpu, &cpu->regist->b);
+        mcycles = swap(&gb->cpu, &gb->cpu.b);
         break;
     case 0x31:
-        mcycles = swap(cpu, &cpu->regist->c);
+        mcycles = swap(&gb->cpu, &gb->cpu.c);
         break;
     case 0x32:
-        mcycles = swap(cpu, &cpu->regist->d);
+        mcycles = swap(&gb->cpu, &gb->cpu.d);
         break;
     case 0x33:
-        mcycles = swap(cpu, &cpu->regist->e);
+        mcycles = swap(&gb->cpu, &gb->cpu.e);
         break;
     case 0x34:
-        mcycles = swap(cpu, &cpu->regist->h);
+        mcycles = swap(&gb->cpu, &gb->cpu.h);
         break;
     case 0x35:
-        mcycles = swap(cpu, &cpu->regist->l);
+        mcycles = swap(&gb->cpu, &gb->cpu.l);
         break;
     case 0x36:
-        mcycles = swap_hl(cpu);
+        mcycles = swap_hl(&gb->cpu);
         break;
     case 0x37:
-        mcycles = swap(cpu, &cpu->regist->a);
+        mcycles = swap(&gb->cpu, &gb->cpu.a);
         break;
     case 0x38:
-        mcycles = srl(cpu, &cpu->regist->b);
+        mcycles = srl(&gb->cpu, &gb->cpu.b);
         break;
     case 0x39:
-        mcycles = srl(cpu, &cpu->regist->c);
+        mcycles = srl(&gb->cpu, &gb->cpu.c);
         break;
     case 0x3A:
-        mcycles = srl(cpu, &cpu->regist->d);
+        mcycles = srl(&gb->cpu, &gb->cpu.d);
         break;
     case 0x3B:
-        mcycles = srl(cpu, &cpu->regist->e);
+        mcycles = srl(&gb->cpu, &gb->cpu.e);
         break;
     case 0x3C:
-        mcycles = srl(cpu, &cpu->regist->h);
+        mcycles = srl(&gb->cpu, &gb->cpu.h);
         break;
     case 0x3D:
-        mcycles = srl(cpu, &cpu->regist->l);
+        mcycles = srl(&gb->cpu, &gb->cpu.l);
         break;
     case 0x3E:
-        mcycles = srl_hl(cpu);
+        mcycles = srl_hl(&gb->cpu);
         break;
     case 0x3F:
-        mcycles = srl(cpu, &cpu->regist->a);
+        mcycles = srl(&gb->cpu, &gb->cpu.a);
         break;
     case 0x40:
-        mcycles = bit(cpu, &cpu->regist->b, 0);
+        mcycles = bit(&gb->cpu, &gb->cpu.b, 0);
         break;
     case 0x41:
-        mcycles = bit(cpu, &cpu->regist->c, 0);
+        mcycles = bit(&gb->cpu, &gb->cpu.c, 0);
         break;
     case 0x42:
-        mcycles = bit(cpu, &cpu->regist->d, 0);
+        mcycles = bit(&gb->cpu, &gb->cpu.d, 0);
         break;
     case 0x43:
-        mcycles = bit(cpu, &cpu->regist->e, 0);
+        mcycles = bit(&gb->cpu, &gb->cpu.e, 0);
         break;
     case 0x44:
-        mcycles = bit(cpu, &cpu->regist->h, 0);
+        mcycles = bit(&gb->cpu, &gb->cpu.h, 0);
         break;
     case 0x45:
-        mcycles = bit(cpu, &cpu->regist->l, 0);
+        mcycles = bit(&gb->cpu, &gb->cpu.l, 0);
         break;
     case 0x46:
-        mcycles = bit_hl(cpu, 0);
+        mcycles = bit_hl(&gb->cpu, 0);
         break;
     case 0x47:
-        mcycles = bit(cpu, &cpu->regist->a, 0);
+        mcycles = bit(&gb->cpu, &gb->cpu.a, 0);
         break;
     case 0x48:
-        mcycles = bit(cpu, &cpu->regist->b, 1);
+        mcycles = bit(&gb->cpu, &gb->cpu.b, 1);
         break;
     case 0x49:
-        mcycles = bit(cpu, &cpu->regist->c, 1);
+        mcycles = bit(&gb->cpu, &gb->cpu.c, 1);
         break;
     case 0x4A:
-        mcycles = bit(cpu, &cpu->regist->d, 1);
+        mcycles = bit(&gb->cpu, &gb->cpu.d, 1);
         break;
     case 0x4B:
-        mcycles = bit(cpu, &cpu->regist->e, 1);
+        mcycles = bit(&gb->cpu, &gb->cpu.e, 1);
         break;
     case 0x4C:
-        mcycles = bit(cpu, &cpu->regist->h, 1);
+        mcycles = bit(&gb->cpu, &gb->cpu.h, 1);
         break;
     case 0x4D:
-        mcycles = bit(cpu, &cpu->regist->l, 1);
+        mcycles = bit(&gb->cpu, &gb->cpu.l, 1);
         break;
     case 0x4E:
-        mcycles = bit_hl(cpu, 1);
+        mcycles = bit_hl(&gb->cpu, 1);
         break;
     case 0x4F:
-        mcycles = bit(cpu, &cpu->regist->a, 1);
+        mcycles = bit(&gb->cpu, &gb->cpu.a, 1);
         break;
     case 0x50:
-        mcycles = bit(cpu, &cpu->regist->b, 2);
+        mcycles = bit(&gb->cpu, &gb->cpu.b, 2);
         break;
     case 0x51:
-        mcycles = bit(cpu, &cpu->regist->c, 2);
+        mcycles = bit(&gb->cpu, &gb->cpu.c, 2);
         break;
     case 0x52:
-        mcycles = bit(cpu, &cpu->regist->d, 2);
+        mcycles = bit(&gb->cpu, &gb->cpu.d, 2);
         break;
     case 0x53:
-        mcycles = bit(cpu, &cpu->regist->e, 2);
+        mcycles = bit(&gb->cpu, &gb->cpu.e, 2);
         break;
     case 0x54:
-        mcycles = bit(cpu, &cpu->regist->h, 2);
+        mcycles = bit(&gb->cpu, &gb->cpu.h, 2);
         break;
     case 0x55:
-        mcycles = bit(cpu, &cpu->regist->l, 2);
+        mcycles = bit(&gb->cpu, &gb->cpu.l, 2);
         break;
     case 0x56:
-        mcycles = bit_hl(cpu, 2);
+        mcycles = bit_hl(&gb->cpu, 2);
         break;
     case 0x57:
-        mcycles = bit(cpu, &cpu->regist->a, 2);
+        mcycles = bit(&gb->cpu, &gb->cpu.a, 2);
         break;
     case 0x58:
-        mcycles = bit(cpu, &cpu->regist->b, 3);
+        mcycles = bit(&gb->cpu, &gb->cpu.b, 3);
         break;
     case 0x59:
-        mcycles = bit(cpu, &cpu->regist->c, 3);
+        mcycles = bit(&gb->cpu, &gb->cpu.c, 3);
         break;
     case 0x5A:
-        mcycles = bit(cpu, &cpu->regist->d, 3);
+        mcycles = bit(&gb->cpu, &gb->cpu.d, 3);
         break;
     case 0x5B:
-        mcycles = bit(cpu, &cpu->regist->e, 3);
+        mcycles = bit(&gb->cpu, &gb->cpu.e, 3);
         break;
     case 0x5C:
-        mcycles = bit(cpu, &cpu->regist->h, 3);
+        mcycles = bit(&gb->cpu, &gb->cpu.h, 3);
         break;
     case 0x5D:
-        mcycles = bit(cpu, &cpu->regist->l, 3);
+        mcycles = bit(&gb->cpu, &gb->cpu.l, 3);
         break;
     case 0x5E:
-        mcycles = bit_hl(cpu, 3);
+        mcycles = bit_hl(&gb->cpu, 3);
         break;
     case 0x5F:
-        mcycles = bit(cpu, &cpu->regist->a, 3);
+        mcycles = bit(&gb->cpu, &gb->cpu.a, 3);
         break;
     case 0x60:
-        mcycles = bit(cpu, &cpu->regist->b, 4);
+        mcycles = bit(&gb->cpu, &gb->cpu.b, 4);
         break;
     case 0x61:
-        mcycles = bit(cpu, &cpu->regist->c, 4);
+        mcycles = bit(&gb->cpu, &gb->cpu.c, 4);
         break;
     case 0x62:
-        mcycles = bit(cpu, &cpu->regist->d, 4);
+        mcycles = bit(&gb->cpu, &gb->cpu.d, 4);
         break;
     case 0x63:
-        mcycles = bit(cpu, &cpu->regist->e, 4);
+        mcycles = bit(&gb->cpu, &gb->cpu.e, 4);
         break;
     case 0x64:
-        mcycles = bit(cpu, &cpu->regist->h, 4);
+        mcycles = bit(&gb->cpu, &gb->cpu.h, 4);
         break;
     case 0x65:
-        mcycles = bit(cpu, &cpu->regist->l, 4);
+        mcycles = bit(&gb->cpu, &gb->cpu.l, 4);
         break;
     case 0x66:
-        mcycles = bit_hl(cpu, 4);
+        mcycles = bit_hl(&gb->cpu, 4);
         break;
     case 0x67:
-        mcycles = bit(cpu, &cpu->regist->a, 4);
+        mcycles = bit(&gb->cpu, &gb->cpu.a, 4);
         break;
     case 0x68:
-        mcycles = bit(cpu, &cpu->regist->b, 5);
+        mcycles = bit(&gb->cpu, &gb->cpu.b, 5);
         break;
     case 0x69:
-        mcycles = bit(cpu, &cpu->regist->c, 5);
+        mcycles = bit(&gb->cpu, &gb->cpu.c, 5);
         break;
     case 0x6A:
-        mcycles = bit(cpu, &cpu->regist->d, 5);
+        mcycles = bit(&gb->cpu, &gb->cpu.d, 5);
         break;
     case 0x6B:
-        mcycles = bit(cpu, &cpu->regist->e, 5);
+        mcycles = bit(&gb->cpu, &gb->cpu.e, 5);
         break;
     case 0x6C:
-        mcycles = bit(cpu, &cpu->regist->h, 5);
+        mcycles = bit(&gb->cpu, &gb->cpu.h, 5);
         break;
     case 0x6D:
-        mcycles = bit(cpu, &cpu->regist->l, 5);
+        mcycles = bit(&gb->cpu, &gb->cpu.l, 5);
         break;
     case 0x6E:
-        mcycles = bit_hl(cpu, 5);
+        mcycles = bit_hl(&gb->cpu, 5);
         break;
     case 0x6F:
-        mcycles = bit(cpu, &cpu->regist->a, 5);
+        mcycles = bit(&gb->cpu, &gb->cpu.a, 5);
         break;
     case 0x70:
-        mcycles = bit(cpu, &cpu->regist->b, 6);
+        mcycles = bit(&gb->cpu, &gb->cpu.b, 6);
         break;
     case 0x71:
-        mcycles = bit(cpu, &cpu->regist->c, 6);
+        mcycles = bit(&gb->cpu, &gb->cpu.c, 6);
         break;
     case 0x72:
-        mcycles = bit(cpu, &cpu->regist->d, 6);
+        mcycles = bit(&gb->cpu, &gb->cpu.d, 6);
         break;
     case 0x73:
-        mcycles = bit(cpu, &cpu->regist->e, 6);
+        mcycles = bit(&gb->cpu, &gb->cpu.e, 6);
         break;
     case 0x74:
-        mcycles = bit(cpu, &cpu->regist->h, 6);
+        mcycles = bit(&gb->cpu, &gb->cpu.h, 6);
         break;
     case 0x75:
-        mcycles = bit(cpu, &cpu->regist->l, 6);
+        mcycles = bit(&gb->cpu, &gb->cpu.l, 6);
         break;
     case 0x76:
-        mcycles = bit_hl(cpu, 6);
+        mcycles = bit_hl(&gb->cpu, 6);
         break;
     case 0x77:
-        mcycles = bit(cpu, &cpu->regist->a, 6);
+        mcycles = bit(&gb->cpu, &gb->cpu.a, 6);
         break;
     case 0x78:
-        mcycles = bit(cpu, &cpu->regist->b, 7);
+        mcycles = bit(&gb->cpu, &gb->cpu.b, 7);
         break;
     case 0x79:
-        mcycles = bit(cpu, &cpu->regist->c, 7);
+        mcycles = bit(&gb->cpu, &gb->cpu.c, 7);
         break;
     case 0x7A:
-        mcycles = bit(cpu, &cpu->regist->d, 7);
+        mcycles = bit(&gb->cpu, &gb->cpu.d, 7);
         break;
     case 0x7B:
-        mcycles = bit(cpu, &cpu->regist->e, 7);
+        mcycles = bit(&gb->cpu, &gb->cpu.e, 7);
         break;
     case 0x7C:
-        mcycles = bit(cpu, &cpu->regist->h, 7);
+        mcycles = bit(&gb->cpu, &gb->cpu.h, 7);
         break;
     case 0x7D:
-        mcycles = bit(cpu, &cpu->regist->l, 7);
+        mcycles = bit(&gb->cpu, &gb->cpu.l, 7);
         break;
     case 0x7E:
-        mcycles = bit_hl(cpu, 7);
+        mcycles = bit_hl(&gb->cpu, 7);
         break;
     case 0x7F:
-        mcycles = bit(cpu, &cpu->regist->a, 7);
+        mcycles = bit(&gb->cpu, &gb->cpu.a, 7);
         break;
     case 0x80:
-        mcycles = res(&cpu->regist->b, 0);
+        mcycles = res(&gb->cpu.b, 0);
         break;
     case 0x81:
-        mcycles = res(&cpu->regist->c, 0);
+        mcycles = res(&gb->cpu.c, 0);
         break;
     case 0x82:
-        mcycles = res(&cpu->regist->d, 0);
+        mcycles = res(&gb->cpu.d, 0);
         break;
     case 0x83:
-        mcycles = res(&cpu->regist->e, 0);
+        mcycles = res(&gb->cpu.e, 0);
         break;
     case 0x84:
-        mcycles = res(&cpu->regist->h, 0);
+        mcycles = res(&gb->cpu.h, 0);
         break;
     case 0x85:
-        mcycles = res(&cpu->regist->l, 0);
+        mcycles = res(&gb->cpu.l, 0);
         break;
     case 0x86:
-        mcycles = res_hl(cpu, 0);
+        mcycles = res_hl(&gb->cpu, 0);
         break;
     case 0x87:
-        mcycles = res(&cpu->regist->a, 0);
+        mcycles = res(&gb->cpu.a, 0);
         break;
     case 0x88:
-        mcycles = res(&cpu->regist->b, 1);
+        mcycles = res(&gb->cpu.b, 1);
         break;
     case 0x89:
-        mcycles = res(&cpu->regist->c, 1);
+        mcycles = res(&gb->cpu.c, 1);
         break;
     case 0x8A:
-        mcycles = res(&cpu->regist->d, 1);
+        mcycles = res(&gb->cpu.d, 1);
         break;
     case 0x8B:
-        mcycles = res(&cpu->regist->e, 1);
+        mcycles = res(&gb->cpu.e, 1);
         break;
     case 0x8C:
-        mcycles = res(&cpu->regist->h, 1);
+        mcycles = res(&gb->cpu.h, 1);
         break;
     case 0x8D:
-        mcycles = res(&cpu->regist->l, 1);
+        mcycles = res(&gb->cpu.l, 1);
         break;
     case 0x8E:
-        mcycles = res_hl(cpu, 1);
+        mcycles = res_hl(&gb->cpu, 1);
         break;
     case 0x8F:
-        mcycles = res(&cpu->regist->a, 1);
+        mcycles = res(&gb->cpu.a, 1);
         break;
     case 0x90:
-        mcycles = res(&cpu->regist->b, 2);
+        mcycles = res(&gb->cpu.b, 2);
         break;
     case 0x91:
-        mcycles = res(&cpu->regist->c, 2);
+        mcycles = res(&gb->cpu.c, 2);
         break;
     case 0x92:
-        mcycles = res(&cpu->regist->d, 2);
+        mcycles = res(&gb->cpu.d, 2);
         break;
     case 0x93:
-        mcycles = res(&cpu->regist->e, 2);
+        mcycles = res(&gb->cpu.e, 2);
         break;
     case 0x94:
-        mcycles = res(&cpu->regist->h, 2);
+        mcycles = res(&gb->cpu.h, 2);
         break;
     case 0x95:
-        mcycles = res(&cpu->regist->l, 2);
+        mcycles = res(&gb->cpu.l, 2);
         break;
     case 0x96:
-        mcycles = res_hl(cpu, 2);
+        mcycles = res_hl(&gb->cpu, 2);
         break;
     case 0x97:
-        mcycles = res(&cpu->regist->a, 2);
+        mcycles = res(&gb->cpu.a, 2);
         break;
     case 0x98:
-        mcycles = res(&cpu->regist->b, 3);
+        mcycles = res(&gb->cpu.b, 3);
         break;
     case 0x99:
-        mcycles = res(&cpu->regist->c, 3);
+        mcycles = res(&gb->cpu.c, 3);
         break;
     case 0x9A:
-        mcycles = res(&cpu->regist->d, 3);
+        mcycles = res(&gb->cpu.d, 3);
         break;
     case 0x9B:
-        mcycles = res(&cpu->regist->e, 3);
+        mcycles = res(&gb->cpu.e, 3);
         break;
     case 0x9C:
-        mcycles = res(&cpu->regist->h, 3);
+        mcycles = res(&gb->cpu.h, 3);
         break;
     case 0x9D:
-        mcycles = res(&cpu->regist->l, 3);
+        mcycles = res(&gb->cpu.l, 3);
         break;
     case 0x9E:
-        mcycles = res_hl(cpu, 3);
+        mcycles = res_hl(&gb->cpu, 3);
         break;
     case 0x9F:
-        mcycles = res(&cpu->regist->a, 3);
+        mcycles = res(&gb->cpu.a, 3);
         break;
     case 0xA0:
-        mcycles = res(&cpu->regist->b, 4);
+        mcycles = res(&gb->cpu.b, 4);
         break;
     case 0xA1:
-        mcycles = res(&cpu->regist->c, 4);
+        mcycles = res(&gb->cpu.c, 4);
         break;
     case 0xA2:
-        mcycles = res(&cpu->regist->d, 4);
+        mcycles = res(&gb->cpu.d, 4);
         break;
     case 0xA3:
-        mcycles = res(&cpu->regist->e, 4);
+        mcycles = res(&gb->cpu.e, 4);
         break;
     case 0xA4:
-        mcycles = res(&cpu->regist->h, 4);
+        mcycles = res(&gb->cpu.h, 4);
         break;
     case 0xA5:
-        mcycles = res(&cpu->regist->l, 4);
+        mcycles = res(&gb->cpu.l, 4);
         break;
     case 0xA6:
-        mcycles = res_hl(cpu, 4);
+        mcycles = res_hl(&gb->cpu, 4);
         break;
     case 0xA7:
-        mcycles = res(&cpu->regist->a, 4);
+        mcycles = res(&gb->cpu.a, 4);
         break;
     case 0xA8:
-        mcycles = res(&cpu->regist->b, 5);
+        mcycles = res(&gb->cpu.b, 5);
         break;
     case 0xA9:
-        mcycles = res(&cpu->regist->c, 5);
+        mcycles = res(&gb->cpu.c, 5);
         break;
     case 0xAA:
-        mcycles = res(&cpu->regist->d, 5);
+        mcycles = res(&gb->cpu.d, 5);
         break;
     case 0xAB:
-        mcycles = res(&cpu->regist->e, 5);
+        mcycles = res(&gb->cpu.e, 5);
         break;
     case 0xAC:
-        mcycles = res(&cpu->regist->h, 5);
+        mcycles = res(&gb->cpu.h, 5);
         break;
     case 0xAD:
-        mcycles = res(&cpu->regist->l, 5);
+        mcycles = res(&gb->cpu.l, 5);
         break;
     case 0xAE:
-        mcycles = res_hl(cpu, 5);
+        mcycles = res_hl(&gb->cpu, 5);
         break;
     case 0xAF:
-        mcycles = res(&cpu->regist->a, 5);
+        mcycles = res(&gb->cpu.a, 5);
         break;
     case 0xB0:
-        mcycles = res(&cpu->regist->b, 6);
+        mcycles = res(&gb->cpu.b, 6);
         break;
     case 0xB1:
-        mcycles = res(&cpu->regist->c, 6);
+        mcycles = res(&gb->cpu.c, 6);
         break;
     case 0xB2:
-        mcycles = res(&cpu->regist->d, 6);
+        mcycles = res(&gb->cpu.d, 6);
         break;
     case 0xB3:
-        mcycles = res(&cpu->regist->e, 6);
+        mcycles = res(&gb->cpu.e, 6);
         break;
     case 0xB4:
-        mcycles = res(&cpu->regist->h, 6);
+        mcycles = res(&gb->cpu.h, 6);
         break;
     case 0xB5:
-        mcycles = res(&cpu->regist->l, 6);
+        mcycles = res(&gb->cpu.l, 6);
         break;
     case 0xB6:
-        mcycles = res_hl(cpu, 6);
+        mcycles = res_hl(&gb->cpu, 6);
         break;
     case 0xB7:
-        mcycles = res(&cpu->regist->a, 6);
+        mcycles = res(&gb->cpu.a, 6);
         break;
     case 0xB8:
-        mcycles = res(&cpu->regist->b, 7);
+        mcycles = res(&gb->cpu.b, 7);
         break;
     case 0xB9:
-        mcycles = res(&cpu->regist->c, 7);
+        mcycles = res(&gb->cpu.c, 7);
         break;
     case 0xBA:
-        mcycles = res(&cpu->regist->d, 7);
+        mcycles = res(&gb->cpu.d, 7);
         break;
     case 0xBB:
-        mcycles = res(&cpu->regist->e, 7);
+        mcycles = res(&gb->cpu.e, 7);
         break;
     case 0xBC:
-        mcycles = res(&cpu->regist->h, 7);
+        mcycles = res(&gb->cpu.h, 7);
         break;
     case 0xBD:
-        mcycles = res(&cpu->regist->l, 7);
+        mcycles = res(&gb->cpu.l, 7);
         break;
     case 0xBE:
-        mcycles = res_hl(cpu, 7);
+        mcycles = res_hl(&gb->cpu, 7);
         break;
     case 0xBF:
-        mcycles = res(&cpu->regist->a, 7);
+        mcycles = res(&gb->cpu.a, 7);
         break;
     case 0xC0:
-        mcycles = set(&cpu->regist->b, 0);
+        mcycles = set(&gb->cpu.b, 0);
         break;
     case 0xC1:
-        mcycles = set(&cpu->regist->c, 0);
+        mcycles = set(&gb->cpu.c, 0);
         break;
     case 0xC2:
-        mcycles = set(&cpu->regist->d, 0);
+        mcycles = set(&gb->cpu.d, 0);
         break;
     case 0xC3:
-        mcycles = set(&cpu->regist->e, 0);
+        mcycles = set(&gb->cpu.e, 0);
         break;
     case 0xC4:
-        mcycles = set(&cpu->regist->h, 0);
+        mcycles = set(&gb->cpu.h, 0);
         break;
     case 0xC5:
-        mcycles = set(&cpu->regist->l, 0);
+        mcycles = set(&gb->cpu.l, 0);
         break;
     case 0xC6:
-        mcycles = set_hl(cpu, 0);
+        mcycles = set_hl(&gb->cpu, 0);
         break;
     case 0xC7:
-        mcycles = set(&cpu->regist->a, 0);
+        mcycles = set(&gb->cpu.a, 0);
         break;
     case 0xC8:
-        mcycles = set(&cpu->regist->b, 1);
+        mcycles = set(&gb->cpu.b, 1);
         break;
     case 0xC9:
-        mcycles = set(&cpu->regist->c, 1);
+        mcycles = set(&gb->cpu.c, 1);
         break;
     case 0xCA:
-        mcycles = set(&cpu->regist->d, 1);
+        mcycles = set(&gb->cpu.d, 1);
         break;
     case 0xCB:
-        mcycles = set(&cpu->regist->e, 1);
+        mcycles = set(&gb->cpu.e, 1);
         break;
     case 0xCC:
-        mcycles = set(&cpu->regist->h, 1);
+        mcycles = set(&gb->cpu.h, 1);
         break;
     case 0xCD:
-        mcycles = set(&cpu->regist->l, 1);
+        mcycles = set(&gb->cpu.l, 1);
         break;
     case 0xCE:
-        mcycles = set_hl(cpu, 1);
+        mcycles = set_hl(&gb->cpu, 1);
         break;
     case 0xCF:
-        mcycles = set(&cpu->regist->a, 1);
+        mcycles = set(&gb->cpu.a, 1);
         break;
     case 0xD0:
-        mcycles = set(&cpu->regist->b, 2);
+        mcycles = set(&gb->cpu.b, 2);
         break;
     case 0xD1:
-        mcycles = set(&cpu->regist->c, 2);
+        mcycles = set(&gb->cpu.c, 2);
         break;
     case 0xD2:
-        mcycles = set(&cpu->regist->d, 2);
+        mcycles = set(&gb->cpu.d, 2);
         break;
     case 0xD3:
-        mcycles = set(&cpu->regist->e, 2);
+        mcycles = set(&gb->cpu.e, 2);
         break;
     case 0xD4:
-        mcycles = set(&cpu->regist->h, 2);
+        mcycles = set(&gb->cpu.h, 2);
         break;
     case 0xD5:
-        mcycles = set(&cpu->regist->l, 2);
+        mcycles = set(&gb->cpu.l, 2);
         break;
     case 0xD6:
-        mcycles = set_hl(cpu, 2);
+        mcycles = set_hl(&gb->cpu, 2);
         break;
     case 0xD7:
-        mcycles = set(&cpu->regist->a, 2);
+        mcycles = set(&gb->cpu.a, 2);
         break;
     case 0xD8:
-        mcycles = set(&cpu->regist->b, 3);
+        mcycles = set(&gb->cpu.b, 3);
         break;
     case 0xD9:
-        mcycles = set(&cpu->regist->c, 3);
+        mcycles = set(&gb->cpu.c, 3);
         break;
     case 0xDA:
-        mcycles = set(&cpu->regist->d, 3);
+        mcycles = set(&gb->cpu.d, 3);
         break;
     case 0xDB:
-        mcycles = set(&cpu->regist->e, 3);
+        mcycles = set(&gb->cpu.e, 3);
         break;
     case 0xDC:
-        mcycles = set(&cpu->regist->h, 3);
+        mcycles = set(&gb->cpu.h, 3);
         break;
     case 0xDD:
-        mcycles = set(&cpu->regist->l, 3);
+        mcycles = set(&gb->cpu.l, 3);
         break;
     case 0xDE:
-        mcycles = set_hl(cpu, 3);
+        mcycles = set_hl(&gb->cpu, 3);
         break;
     case 0xDF:
-        mcycles = set(&cpu->regist->a, 3);
+        mcycles = set(&gb->cpu.a, 3);
         break;
     case 0xE0:
-        mcycles = set(&cpu->regist->b, 4);
+        mcycles = set(&gb->cpu.b, 4);
         break;
     case 0xE1:
-        mcycles = set(&cpu->regist->c, 4);
+        mcycles = set(&gb->cpu.c, 4);
         break;
     case 0xE2:
-        mcycles = set(&cpu->regist->d, 4);
+        mcycles = set(&gb->cpu.d, 4);
         break;
     case 0xE3:
-        mcycles = set(&cpu->regist->e, 4);
+        mcycles = set(&gb->cpu.e, 4);
         break;
     case 0xE4:
-        mcycles = set(&cpu->regist->h, 4);
+        mcycles = set(&gb->cpu.h, 4);
         break;
     case 0xE5:
-        mcycles = set(&cpu->regist->l, 4);
+        mcycles = set(&gb->cpu.l, 4);
         break;
     case 0xE6:
-        mcycles = set_hl(cpu, 4);
+        mcycles = set_hl(&gb->cpu, 4);
         break;
     case 0xE7:
-        mcycles = set(&cpu->regist->a, 4);
+        mcycles = set(&gb->cpu.a, 4);
         break;
     case 0xE8:
-        mcycles = set(&cpu->regist->b, 5);
+        mcycles = set(&gb->cpu.b, 5);
         break;
     case 0xE9:
-        mcycles = set(&cpu->regist->c, 5);
+        mcycles = set(&gb->cpu.c, 5);
         break;
     case 0xEA:
-        mcycles = set(&cpu->regist->d, 5);
+        mcycles = set(&gb->cpu.d, 5);
         break;
     case 0xEB:
-        mcycles = set(&cpu->regist->e, 5);
+        mcycles = set(&gb->cpu.e, 5);
         break;
     case 0xEC:
-        mcycles = set(&cpu->regist->h, 5);
+        mcycles = set(&gb->cpu.h, 5);
         break;
     case 0xED:
-        mcycles = set(&cpu->regist->l, 5);
+        mcycles = set(&gb->cpu.l, 5);
         break;
     case 0xEE:
-        mcycles = set_hl(cpu, 5);
+        mcycles = set_hl(&gb->cpu, 5);
         break;
     case 0xEF:
-        mcycles = set(&cpu->regist->a, 5);
+        mcycles = set(&gb->cpu.a, 5);
         break;
     case 0xF0:
-        mcycles = set(&cpu->regist->b, 6);
+        mcycles = set(&gb->cpu.b, 6);
         break;
     case 0xF1:
-        mcycles = set(&cpu->regist->c, 6);
+        mcycles = set(&gb->cpu.c, 6);
         break;
     case 0xF2:
-        mcycles = set(&cpu->regist->d, 6);
+        mcycles = set(&gb->cpu.d, 6);
         break;
     case 0xF3:
-        mcycles = set(&cpu->regist->e, 6);
+        mcycles = set(&gb->cpu.e, 6);
         break;
     case 0xF4:
-        mcycles = set(&cpu->regist->h, 6);
+        mcycles = set(&gb->cpu.h, 6);
         break;
     case 0xF5:
-        mcycles = set(&cpu->regist->l, 6);
+        mcycles = set(&gb->cpu.l, 6);
         break;
     case 0xF6:
-        mcycles = set_hl(cpu, 6);
+        mcycles = set_hl(&gb->cpu, 6);
         break;
     case 0xF7:
-        mcycles = set(&cpu->regist->a, 6);
+        mcycles = set(&gb->cpu.a, 6);
         break;
     case 0xF8:
-        mcycles = set(&cpu->regist->b, 7);
+        mcycles = set(&gb->cpu.b, 7);
         break;
     case 0xF9:
-        mcycles = set(&cpu->regist->c, 7);
+        mcycles = set(&gb->cpu.c, 7);
         break;
     case 0xFA:
-        mcycles = set(&cpu->regist->d, 7);
+        mcycles = set(&gb->cpu.d, 7);
         break;
     case 0xFB:
-        mcycles = set(&cpu->regist->e, 7);
+        mcycles = set(&gb->cpu.e, 7);
         break;
     case 0xFC:
-        mcycles = set(&cpu->regist->h, 7);
+        mcycles = set(&gb->cpu.h, 7);
         break;
     case 0xFD:
-        mcycles = set(&cpu->regist->l, 7);
+        mcycles = set(&gb->cpu.l, 7);
         break;
     case 0xFE:
-        mcycles = set_hl(cpu, 7);
+        mcycles = set_hl(&gb->cpu, 7);
         break;
     case 0xFF:
-        mcycles = set(&cpu->regist->a, 7);
+        mcycles = set(&gb->cpu.a, 7);
         break;
     }
     return mcycles;
