@@ -28,9 +28,7 @@ void draw_pixel(struct gb_core *gb, struct pixel p)
     unsigned int palette_address = p.obj > -1 ? (p.palette ? OBP1 : OBP0) : BGP;
     unsigned int color_index = (gb->membus[palette_address] >> (p.color * 2)) & 0x03;
 
-    struct pixel_data pixel = color_palette[color_index];
-
-    frame_buffer[gb->membus[LY] * SCREEN_WIDTH + (gb->ppu.lx - 8)] = pixel;
+    frame_buffer[gb->membus[LY] * SCREEN_WIDTH + (gb->ppu.lx - 8)] = color_palette[color_index];
 
     // uint32_t pixel = SDL_MapRGB(rend->format, NULL, color->r, color->g, color->b);
     //  A whole frame is ready, render it, handle inputs, synchronize
