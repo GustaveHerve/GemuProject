@@ -50,9 +50,19 @@ static void init_membus_post_boot(uint8_t *membus)
     membus[OBP1] = 0xFF;
     membus[WY] = 0x00;
     membus[WX] = 0x00;
-
-    // CGB-only registers
-    memset(membus + 0xFF4D, 0, (0xFF70 - 0xFF4D) * sizeof(uint8_t));
+    membus[BOOT] = 0xFF;
+    membus[HDMA1] = 0xFF;
+    membus[HDMA2] = 0xFF;
+    membus[HDMA3] = 0xFF;
+    membus[HDMA4] = 0xFF;
+    membus[HDMA5] = 0xFF;
+    membus[RP] = 0xFF;
+    membus[BCPS] = 0xFF;
+    membus[BCPD] = 0xFF;
+    membus[OCPS] = 0xFF;
+    membus[OCPD] = 0xFF;
+    membus[SVBK] = 0xFF;
+    membus[IE] = 0xFF;
 }
 
 void init_gb_core_post_boot(struct gb_core *gb, int checksum)
