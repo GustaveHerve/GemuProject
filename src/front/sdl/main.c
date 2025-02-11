@@ -119,9 +119,8 @@ int main(int argc, char **argv)
 
     init_gb_core(&gb);
 
-    load_rom(&gb, args.rom_path, args.bootrom_path);
-
-    main_loop();
+    if (!load_rom(&gb, args.rom_path, args.bootrom_path))
+        main_loop();
 
     free_gb_core(&gb);
 
