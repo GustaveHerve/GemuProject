@@ -46,7 +46,7 @@ int init_rendering(void)
     SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
 
     SDL_CHECK_ERROR(texture =
-                        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144));
+                        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGRX8888, SDL_TEXTUREACCESS_STREAMING, 160, 144));
     // Disable texture filtering
     SDL_CHECK_ERROR(SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST));
 
