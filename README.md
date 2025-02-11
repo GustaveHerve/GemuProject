@@ -30,4 +30,4 @@ This emulator was made using the following documentation:
 ### Frameworks
 I used the following technologies and frameworks to make GemuProject:
 - C language
-- [SDL2](https://www.libsdl.org/) for rendering, input and audio
+- [SDL3](https://www.libsdl.org/) for rendering, input and audio handling

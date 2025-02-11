@@ -265,6 +265,7 @@ void ppu_init(struct gb_core *gb)
 
     gb->ppu.dma = 0;
     gb->ppu.dma_acc = 0;
+    gb->ppu.dma_source = 0;
 
     gb->ppu.line_dot_count = 0;
     gb->ppu.mode1_153th = 0;

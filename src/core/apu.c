@@ -91,6 +91,8 @@ void apu_init(struct apu *apu)
     apu->fs_pos = 0;
     apu->sampling_counter = 0;
     apu->previous_div_apu = 0;
+
+    audio_buffer_len = 0;
 }
 
 static void length_trigger(struct apu *apu, struct ch_generic *ch)

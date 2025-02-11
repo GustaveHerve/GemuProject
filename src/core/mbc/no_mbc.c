@@ -54,7 +54,7 @@ struct mbc_base *make_no_mbc(void)
 
     mbc->type = NO_MBC;
 
-    mbc->_mbc_reset = mbc_reset;
+    mbc->_mbc_reset = _mbc_reset;
     mbc->_mbc_free = _mbc_free;
 
     mbc->_read_mbc_rom = _read_mbc_rom;
