@@ -1,32 +1,26 @@
 #include <stdlib.h>
 
 #include "common.h"
-#include "cpu.h"
 #include "emulation.h"
 #include "gb_core.h"
-#include "ppu_utils.h"
 #include "sync.h"
 
-struct color
+struct pixel_data
 {
+    Uint8 _unused;
     Uint8 r;
     Uint8 g;
     Uint8 b;
 };
 
-struct pixel_data
-{
-    Uint8 _unused;
-    struct color values;
-};
-
-static struct color color_palette[5] = {{224, 248, 208}, {136, 192, 112}, {52, 104, 86}, {8, 24, 32}, {229, 245, 218}};
+static struct pixel_data color_palette[5] = {
+    {0, 224, 248, 208}, {0, 136, 192, 112}, {0, 52, 104, 86}, {0, 8, 24, 32}, {0, 229, 245, 218}};
 
 static struct pixel_data frame_buffer[SCREEN_RESOLUTION] = {0};
 
 void *get_frame_buffer(void)
 {
-    return &frame_buffer;
+    return frame_buffer;
 }
 
 void draw_pixel(struct gb_core *gb, struct pixel p)
@@ -34,10 +28,7 @@ void draw_pixel(struct gb_core *gb, struct pixel p)
     unsigned int palette_address = p.obj > -1 ? (p.palette ? OBP1 : OBP0) : BGP;
     unsigned int color_index = (gb->membus[palette_address] >> (p.color * 2)) & 0x03;
 
-    struct pixel_data pixel = {
-        ._unused = 0,
-        .values = color_palette[color_index],
-    };
+    struct pixel_data pixel = color_palette[color_index];
 
     frame_buffer[gb->membus[LY] * SCREEN_WIDTH + (gb->ppu.lx - 8)] = pixel;
 
@@ -45,21 +36,18 @@ void draw_pixel(struct gb_core *gb, struct pixel p)
     //  A whole frame is ready, render it, handle inputs, synchronize
     if (gb->membus[LY] == SCREEN_HEIGHT - 1 && gb->ppu.lx == SCREEN_WIDTH + 7)
     {
-        handle_events(cpu);
-        // render_frame(rend); TODO: callback render frame
-        synchronize(cpu);
+        gb->callbacks.handle_events(gb);
+        gb->callbacks.render_frame();
+        synchronize(gb);
     }
 }
 
-void lcd_off(void)
+void lcd_off(struct gb_core *gb)
 {
     for (size_t i = 0; i < SCREEN_RESOLUTION; ++i)
     {
-        struct pixel_data pixel = {
-            ._unused = 0,
-            .values = color_palette[4],
-        };
+        struct pixel_data pixel = color_palette[4];
         frame_buffer[i] = pixel;
     };
-    // render_frame(rend); TODO: callback render frame
+    gb->callbacks.render_frame();
 }

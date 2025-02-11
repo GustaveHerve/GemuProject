@@ -33,4 +33,6 @@ void cpu_set_registers_post_boot(struct cpu *cpu, int checksum)
     cpu->l = 0x4D;
     cpu->pc = 0x0100;
     cpu->sp = 0xFFFE;
+
+    cpu->ime = 0;
 }

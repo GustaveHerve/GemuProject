@@ -1,5 +1,5 @@
-#ifndef SAVE_H
-#define SAVE_H
+#ifndef CORE_SAVE_H
+#define CORE_SAVE_H
 
 #include <stdio.h>
 

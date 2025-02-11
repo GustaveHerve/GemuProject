@@ -1,10 +1,12 @@
-#ifndef APU_H
-#define APU_H
+#ifndef CORE_APU_H
+#define CORE_APU_H
 
 #include <SDL3/SDL_audio.h>
 #include <stdint.h>
 
-#include "cpu.h"
+#include "common.h"
+
+struct gb_core;
 
 #define SAMPLING_RATE 44100
 #define SAMPLING_TCYCLES_INTERVAL (CPU_FREQUENCY / SAMPLING_RATE)
@@ -12,37 +14,6 @@
 
 /* Default GB audio samples are WAY too loud by default, scale them back */
 #define EMULATOR_SOUND_VOLUME 0.4f;
-
-/* Global control registers */
-#define NR50 0xFF24 // Master volume ^ VIN panning
-#define NR51 0xFF25 // Sound Panning
-#define NR52 0xFF26 // Audio Master Control
-
-/* Sound Channel 1 - Pulse with period sweep */
-#define NR10 0xFF10
-#define NR11 0xFF11
-#define NR12 0xFF12
-#define NR13 0xFF13
-#define NR14 0xFF14
-
-/* Sound Channel 2 - Pulse */
-#define NR21 0xFF16
-#define NR22 0xFF17
-#define NR23 0xFF18
-#define NR24 0xFF19
-
-/* Sound Channel 3 - Wave output */
-#define NR30 0xFF1A
-#define NR31 0xFF1B
-#define NR32 0xFF1C
-#define NR33 0xFF1D
-#define NR34 0xFF1E
-
-/* Sound Channel 4 - Noise */
-#define NR41 0xFF20
-#define NR42 0xFF21
-#define NR43 0xFF22
-#define NR44 0xFF23
 
 #define NRx4_TRIGGER_MASK (1 << 7)
 #define NRx4_LENGTH_ENABLE (1 << 6)
@@ -133,55 +104,23 @@ struct apu
 
     unsigned int sampling_counter;
 
-    SDL_AudioStream *audio_stream;
-
     uint16_t previous_div;
 };
 
-void apu_init(struct cpu *cpu, struct apu *apu);
+void apu_init(struct apu *apu);
 
-void apu_free(struct apu *apu);
+void handle_trigger_event_ch1(struct gb_core *gb);
+void handle_trigger_event_ch2(struct gb_core *gb);
+void handle_trigger_event_ch3(struct gb_core *gb);
+void handle_trigger_event_ch4(struct gb_core *gb);
 
-void handle_trigger_event_ch1(struct apu *apu);
-void handle_trigger_event_ch2(struct apu *apu);
-void handle_trigger_event_ch3(struct apu *apu);
-void handle_trigger_event_ch4(struct apu *apu);
+void enable_timer(struct gb_core *gb, uint8_t ch_number);
 
-void enable_timer(struct apu *apu, uint8_t ch_number);
-
-void apu_tick_m(struct apu *apu);
-
-static inline uint8_t is_apu_on(struct apu *apu)
-{
-    return apu->cpu->membus[NR52] >> 7;
-}
-
-static inline uint8_t is_dac_on(struct apu *apu, uint8_t number)
-{
-    if (number == 3)
-        return apu->cpu->membus[NR30] >> 7;
-    unsigned int nrx2 = NR12 + ((NR22 - NR12) * (number - 1));
-    return apu->cpu->membus[nrx2] & 0xF8;
-}
-
-static inline uint8_t is_channel_on(struct apu *apu, uint8_t number)
-{
-    return (apu->cpu->membus[NR52] >> (number - 1)) & 0x01;
-}
-
-static inline void turn_channel_off(struct apu *apu, uint8_t number)
-{
-    apu->cpu->membus[NR52] &= ~(1 << (number - 1));
-}
-
-static inline void turn_channel_on(struct apu *apu, uint8_t number)
-{
-    apu->cpu->membus[NR52] |= 1 << (number - 1);
-}
+void apu_tick_m(struct gb_core *gb);
 
 static inline float dac_output(unsigned int amplitude)
 {
-    return (amplitude / 7.5f) - 1.0f;
+    return (amplitude / 7.5f) - 1.f;
 }
 
 #endif

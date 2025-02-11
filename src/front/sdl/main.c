@@ -1,3 +1,4 @@
+#include "audio.h"
 #define _POSIX_C_SOURCE 2
 
 #include <SDL3/SDL.h>
@@ -9,11 +10,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "disassembler.h"
 #include "emulation.h"
 #include "events.h"
 #include "gb_core.h"
+#include "interrupts.h"
 #include "rendering.h"
 #include "sdl_utils.h"
+#include "sync.h"
 
 struct gb_core gb;
 
@@ -69,7 +73,15 @@ static void parse_arguments(int argc, char **argv)
     args.rom_path = argv[optind];
 }
 
-int main_loop(void)
+static void init_gb_callbacks(struct gb_core *gb)
+{
+    gb->callbacks.queue_audio = queue_audio;
+    gb->callbacks.get_queued_audio_sample_count = get_queued_sample_count;
+    gb->callbacks.handle_events = handle_events;
+    gb->callbacks.render_frame = render_frame_callback;
+}
+
+void main_loop(void)
 {
     struct global_settings *settings = get_global_settings();
     while (!settings->quit_signal)
@@ -82,15 +94,15 @@ int main_loop(void)
             continue;
         }
 
-        if (gb.halt)
-            next_op(cpu);
+        if (!gb.halt)
+            next_op(&gb);
         else
         {
-            tick_m(cpu);
-            synchronize(cpu);
+            tick_m(&gb);
+            synchronize(&gb);
         }
 
-        check_interrupt(cpu);
+        check_interrupt(&gb);
     }
 }
 
@@ -103,14 +115,18 @@ int main(int argc, char **argv)
     if (init_rendering())
         return EXIT_FAILURE;
 
+    init_gb_callbacks(&gb);
+
     init_gb_core(&gb);
 
-    int success = load_rom(&gb, args.rom_path, args.bootrom_path);
+    load_rom(&gb, args.rom_path, args.bootrom_path);
+
+    main_loop();
 
     free_gb_core(&gb);
 
     free_rendering();
 
     SDL_Quit();
-    return success;
+    return 0;
 }

@@ -1,9 +1,8 @@
 #include "apu.h"
 
-#include <SDL3/SDL_audio.h>
 #include <stdlib.h>
 
-#include "cpu.h"
+#include "gb_core.h"
 
 // clang-format off
 static unsigned int duty_table[][8] = {
@@ -34,7 +33,7 @@ static unsigned int ch4_divisors[] = {
 
 #define NRXY(X, Y) (NR1##Y + ((NR2##Y - NR1##Y) * ((X) - 1)))
 
-#define FREQUENCY(CH_NUMBER) ((apu->cpu->membus[NR##CH_NUMBER##4] & 0x07) << 8 | apu->cpu->membus[NR##CH_NUMBER##3])
+#define FREQUENCY(CH_NUMBER) ((gb->membus[NR##CH_NUMBER##4] & 0x07) << 8 | gb->membus[NR##CH_NUMBER##3])
 
 #define DIV_APU_MASK (1 << (4 + 8))
 
@@ -82,43 +81,27 @@ struct ch_generic
     unsigned int env_period;
 };
 
-void apu_init(struct cpu *cpu, struct apu *apu)
+void apu_init(struct apu *apu)
 {
     memset(apu, 0, sizeof(struct apu));
     apu->fs_pos = 0;
     apu->sampling_counter = 0;
     apu->previous_div = 0;
-
-    SDL_AudioSpec audio_spec = {
-        .format = SDL_AUDIO_F32,
-        .channels = 2,
-        .freq = SAMPLING_RATE,
-    };
-
-    apu->audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &audio_spec, NULL, NULL);
-
-    SDL_ResumeAudioStreamDevice(apu->audio_stream);
-}
-
-void apu_free(struct apu *apu)
-{
-    SDL_ClearAudioStream(apu->audio_stream);
-    SDL_PauseAudioStreamDevice(apu->audio_stream);
-    SDL_DestroyAudioStream(apu->audio_stream);
 }
 
 static void length_trigger(struct apu *apu, struct ch_generic *ch)
 {
-    if ((void *)ch == (void *)apu->ch3 && ch->length_timer == 0)
+    if ((void *)ch == (void *)&apu->ch3 && ch->length_timer == 0)
         ch->length_timer = 256;
     else if (ch->length_timer == 0)
         ch->length_timer = 64;
 }
 
-static unsigned int calculate_frequency(struct apu *apu, uint8_t sweep_shift, uint8_t dir);
-static void frequency_sweep_trigger(struct apu *apu, struct ch1 *ch1)
+static unsigned int calculate_frequency(struct gb_core *gb, uint8_t sweep_shift, uint8_t dir);
+
+static void frequency_sweep_trigger(struct gb_core *gb, struct ch1 *ch1)
 {
-    uint8_t nr10 = apu->cpu->membus[NR10];
+    uint8_t nr10 = gb->membus[NR10];
     unsigned int sweep_shift = SWEEP_SHIFT(nr10);
     unsigned int sweep_period = SWEEP_PERIOD(nr10);
 
@@ -134,72 +117,72 @@ static void frequency_sweep_trigger(struct apu *apu, struct ch1 *ch1)
         ch1->sweep_enabled = 0;
 
     if (sweep_shift)
-        calculate_frequency(apu, sweep_shift, SWEEP_DIR(nr10));
+        calculate_frequency(gb, sweep_shift, SWEEP_DIR(nr10));
 }
 
-static void envelope_trigger(struct apu *apu, struct ch_generic *ch, uint8_t ch_number)
+static void envelope_trigger(struct gb_core *gb, struct ch_generic *ch, uint8_t ch_number)
 {
-    uint8_t nrx2 = apu->cpu->membus[NRXY(ch_number, 2)];
+    uint8_t nrx2 = gb->membus[NRXY(ch_number, 2)];
     ch->current_volume = ENV_INIT_VOLUME(nrx2);
     ch->env_dir = ENV_DIR(nrx2);
     ch->env_period = ENV_SWEEP_PERIOD(nrx2);
     ch->period_timer = ch->env_period;
 }
 
-void handle_trigger_event_ch1(struct apu *apu)
+void handle_trigger_event_ch1(struct gb_core *gb)
 {
-    length_trigger(apu, (void *)apu->ch1);
-    apu->ch1->frequency_timer = (2048 - FREQUENCY(1)) * 4;
-    envelope_trigger(apu, (void *)apu->ch1, 1);
-    frequency_sweep_trigger(apu, apu->ch1);
+    length_trigger(&gb->apu, (void *)&gb->apu.ch1);
+    gb->apu.ch1.frequency_timer = (2048 - FREQUENCY(1)) * 4;
+    envelope_trigger(gb, (void *)&gb->apu.ch1, 1);
+    frequency_sweep_trigger(gb, &gb->apu.ch1);
 
-    if (is_dac_on(apu, 1))
-        turn_channel_on(apu, 1);
+    if (is_dac_on(gb, 1))
+        turn_channel_on(gb, 1);
     else
-        turn_channel_off(apu, 1);
+        turn_channel_off(gb, 1);
 }
 
-void handle_trigger_event_ch2(struct apu *apu)
+void handle_trigger_event_ch2(struct gb_core *gb)
 {
-    length_trigger(apu, (void *)apu->ch2);
-    apu->ch2->frequency_timer = (2048 - FREQUENCY(2)) * 4;
-    envelope_trigger(apu, (void *)apu->ch2, 2);
+    length_trigger(&gb->apu, (void *)&gb->apu.ch2);
+    gb->apu.ch2.frequency_timer = (2048 - FREQUENCY(2)) * 4;
+    envelope_trigger(gb, (void *)&gb->apu.ch2, 2);
 
-    if (is_dac_on(apu, 2))
-        turn_channel_on(apu, 2);
+    if (is_dac_on(gb, 2))
+        turn_channel_on(gb, 2);
     else
-        turn_channel_off(apu, 2);
+        turn_channel_off(gb, 2);
 }
 
-void handle_trigger_event_ch3(struct apu *apu)
+void handle_trigger_event_ch3(struct gb_core *gb)
 {
-    length_trigger(apu, (void *)apu->ch3);
-    apu->ch3->frequency_timer = (2048 - FREQUENCY(3)) * 2;
-    apu->ch3->wave_pos = 0;
+    length_trigger(&gb->apu, (void *)&gb->apu.ch3);
+    gb->apu.ch3.frequency_timer = (2048 - FREQUENCY(3)) * 2;
+    gb->apu.ch3.wave_pos = 0;
 
-    if (is_dac_on(apu, 3))
-        turn_channel_on(apu, 3);
+    if (is_dac_on(gb, 3))
+        turn_channel_on(gb, 3);
     else
-        turn_channel_off(apu, 3);
+        turn_channel_off(gb, 3);
 }
 
-void handle_trigger_event_ch4(struct apu *apu)
+void handle_trigger_event_ch4(struct gb_core *gb)
 {
-    length_trigger(apu, (void *)apu->ch4);
-    uint8_t nr43 = apu->cpu->membus[NR43];
+    length_trigger(&gb->apu, (void *)&gb->apu.ch4);
+    uint8_t nr43 = gb->membus[NR43];
     unsigned int shift = NOISE_CLOCK_SHIFT(nr43);
     unsigned int divisor_code = NOISE_CLOCK_DIVIDER_CODE(nr43);
-    apu->ch4->frequency_timer = ch4_divisors[divisor_code] << shift;
-    envelope_trigger(apu, (void *)apu->ch4, 4);
+    gb->apu.ch4.frequency_timer = ch4_divisors[divisor_code] << shift;
+    envelope_trigger(gb, (void *)&gb->apu.ch4, 4);
 
-    apu->ch4->lfsr = 0x7FFF;
-    if (is_dac_on(apu, 4))
-        turn_channel_on(apu, 4);
+    gb->apu.ch4.lfsr = 0x7FFF;
+    if (is_dac_on(gb, 4))
+        turn_channel_on(gb, 4);
     else
-        turn_channel_off(apu, 4);
+        turn_channel_off(gb, 4);
 }
 
-void enable_timer(struct apu *apu, uint8_t ch_number)
+void enable_timer(struct gb_core *gb, uint8_t ch_number)
 {
     struct ch_generic *ch = NULL;
     unsigned int val = 64;
@@ -207,39 +190,39 @@ void enable_timer(struct apu *apu, uint8_t ch_number)
     switch (ch_number)
     {
     case 1:
-        ch = (void *)apu->ch1;
+        ch = (void *)&gb->apu.ch1;
         break;
     case 2:
-        ch = (void *)apu->ch2;
+        ch = (void *)&gb->apu.ch2;
         break;
     case 3:
-        ch = (void *)apu->ch3;
+        ch = (void *)&gb->apu.ch3;
         val = 256;
         init_len_mask = 0xFF;
         break;
     case 4:
-        ch = (void *)apu->ch4;
+        ch = (void *)&gb->apu.ch4;
         break;
     }
-    unsigned int initial_length = apu->cpu->membus[NRXY(ch_number, 1)] & init_len_mask;
+    unsigned int initial_length = gb->membus[NRXY(ch_number, 1)] & init_len_mask;
 
     ch->length_timer = val - initial_length;
 }
 
-static void length_clock(struct apu *apu, struct ch_generic *ch, uint8_t number)
+static void length_clock(struct gb_core *gb, struct ch_generic *ch, uint8_t number)
 {
-    uint8_t nrx4 = apu->cpu->membus[NRXY(number, 4)];
+    uint8_t nrx4 = gb->membus[NRXY(number, 4)];
     if (!LENGTH_ENABLE(nrx4))
         return;
 
     --ch->length_timer;
     if (ch->length_timer == 0)
-        turn_channel_off(apu, number);
+        turn_channel_off(gb, number);
 }
 
-static void volume_env_clock(struct apu *apu, struct ch_generic *ch, uint8_t number)
+static void volume_env_clock(struct gb_core *gb, struct ch_generic *ch, uint8_t number)
 {
-    if (!is_channel_on(apu, number) || !is_dac_on(apu, number))
+    if (!is_channel_on(gb, number) || !is_dac_on(gb, number))
         return;
 
     if (ch->env_period == 0)
@@ -259,9 +242,9 @@ static void volume_env_clock(struct apu *apu, struct ch_generic *ch, uint8_t num
     }
 }
 
-static unsigned int calculate_frequency(struct apu *apu, uint8_t sweep_shift, uint8_t dir)
+static unsigned int calculate_frequency(struct gb_core *gb, uint8_t sweep_shift, uint8_t dir)
 {
-    struct ch1 *ch1 = apu->ch1;
+    struct ch1 *ch1 = &gb->apu.ch1;
     unsigned int new_frequency = ch1->shadow_frequency >> sweep_shift;
 
     if (dir == SWEEP_DIR_DECREMENT)
@@ -270,16 +253,16 @@ static unsigned int calculate_frequency(struct apu *apu, uint8_t sweep_shift, ui
         new_frequency = ch1->shadow_frequency + new_frequency;
 
     if (new_frequency > 2047)
-        turn_channel_off(apu, 1);
+        turn_channel_off(gb, 1);
 
     return new_frequency;
 }
 
-static void frequency_sweep_clock(struct apu *apu)
+static void frequency_sweep_clock(struct gb_core *gb)
 {
-    struct ch1 *ch1 = apu->ch1;
+    struct ch1 *ch1 = &gb->apu.ch1;
 
-    uint8_t nr10 = apu->cpu->membus[NR10];
+    uint8_t nr10 = gb->membus[NR10];
 
     uint8_t period = SWEEP_PERIOD(nr10);
     uint8_t dir = SWEEP_DIR(nr10);
@@ -298,176 +281,175 @@ static void frequency_sweep_clock(struct apu *apu)
 
     if (ch1->sweep_enabled && period != 0)
     {
-        unsigned int new_frequency = calculate_frequency(apu, shift, dir);
+        unsigned int new_frequency = calculate_frequency(gb, shift, dir);
         if (new_frequency < 2048 && shift != 0)
         {
-            apu->cpu->membus[NR13] = new_frequency & 0xFF;
-            apu->cpu->membus[NR14] &= ~(0x07);
-            apu->cpu->membus[NR14] |= (new_frequency >> 8);
+            gb->membus[NR13] = new_frequency & 0xFF;
+            gb->membus[NR14] &= ~(0x07);
+            gb->membus[NR14] |= (new_frequency >> 8);
             ch1->shadow_frequency = new_frequency;
 
-            calculate_frequency(apu, shift, dir);
+            calculate_frequency(gb, shift, dir);
         }
     }
 }
 
-static void frame_sequencer_step(struct apu *apu)
+static void frame_sequencer_step(struct gb_core *gb)
 {
     /* Length Counter tick */
-    if (apu->fs_pos % 2 == 0)
+    if (gb->apu.fs_pos % 2 == 0)
     {
-        length_clock(apu, (struct ch_generic *)apu->ch1, 1);
-        length_clock(apu, (struct ch_generic *)apu->ch2, 2);
-        length_clock(apu, (struct ch_generic *)apu->ch3, 3);
-        length_clock(apu, (struct ch_generic *)apu->ch4, 4);
+        length_clock(gb, (struct ch_generic *)&gb->apu.ch1, 1);
+        length_clock(gb, (struct ch_generic *)&gb->apu.ch2, 2);
+        length_clock(gb, (struct ch_generic *)&gb->apu.ch3, 3);
+        length_clock(gb, (struct ch_generic *)&gb->apu.ch4, 4);
     }
 
     /* Volume Envelope tick */
-    if (apu->fs_pos == 7)
+    if (gb->apu.fs_pos == 7)
     {
         // CH3 doesn't have an envelope functionality
-        volume_env_clock(apu, (struct ch_generic *)apu->ch1, 1);
-        volume_env_clock(apu, (struct ch_generic *)apu->ch2, 2);
-        volume_env_clock(apu, (struct ch_generic *)apu->ch4, 4);
+        volume_env_clock(gb, (struct ch_generic *)&gb->apu.ch1, 1);
+        volume_env_clock(gb, (struct ch_generic *)&gb->apu.ch2, 2);
+        volume_env_clock(gb, (struct ch_generic *)&gb->apu.ch4, 4);
     }
 
     /* Frequency Sweep tick */
-    if (apu->fs_pos == 2 || apu->fs_pos == 6)
+    if (gb->apu.fs_pos == 2 || gb->apu.fs_pos == 6)
     {
         // Only CH1 has a sweep functionality
-        frequency_sweep_clock(apu);
+        frequency_sweep_clock(gb);
     }
 
-    apu->fs_pos = (apu->fs_pos + 1) % 8;
+    gb->apu.fs_pos = (gb->apu.fs_pos + 1) % 8;
 }
 
-static void ch1_tick(struct apu *apu)
+static void ch1_tick(struct gb_core *gb)
 {
-    if (!is_channel_on(apu, 1) || !is_dac_on(apu, 1))
+    if (!is_channel_on(gb, 1) || !is_dac_on(gb, 1))
         return;
 
-    apu->ch1->frequency_timer -= 1;
-    if (apu->ch1->frequency_timer == 0)
+    gb->apu.ch1.frequency_timer -= 1;
+    if (gb->apu.ch1.frequency_timer == 0)
     {
-        apu->ch1->frequency_timer = (2048 - FREQUENCY(1)) * 4;
-        apu->ch1->duty_pos = (apu->ch1->duty_pos + 1) % 8;
-    }
-}
-
-static void ch2_tick(struct apu *apu)
-{
-    if (!is_channel_on(apu, 2) || !is_dac_on(apu, 2))
-        return;
-
-    apu->ch2->frequency_timer -= 1;
-    if (apu->ch2->frequency_timer == 0)
-    {
-        apu->ch2->frequency_timer = (2048 - FREQUENCY(2)) * 4;
-        apu->ch2->duty_pos = (apu->ch2->duty_pos + 1) % 8;
+        gb->apu.ch1.frequency_timer = (2048 - FREQUENCY(1)) * 4;
+        gb->apu.ch1.duty_pos = (gb->apu.ch1.duty_pos + 1) % 8;
     }
 }
 
-static void ch3_tick(struct apu *apu)
+static void ch2_tick(struct gb_core *gb)
 {
-    if (!is_channel_on(apu, 3) || !is_dac_on(apu, 3))
+    if (!is_channel_on(gb, 2) || !is_dac_on(gb, 2))
         return;
 
-    apu->ch3->frequency_timer -= 1;
-    if (apu->ch3->frequency_timer == 0)
+    gb->apu.ch2.frequency_timer -= 1;
+    if (gb->apu.ch2.frequency_timer == 0)
     {
-        apu->ch3->frequency_timer = (2048 - FREQUENCY(3)) * 2;
-        apu->ch3->wave_pos = (apu->ch3->wave_pos + 1) % 32;
+        gb->apu.ch2.frequency_timer = (2048 - FREQUENCY(2)) * 4;
+        gb->apu.ch2.duty_pos = (gb->apu.ch2.duty_pos + 1) % 8;
+    }
+}
 
-        unsigned int sample = apu->cpu->membus[WAVE_RAM + (apu->ch3->wave_pos / 2)];
+static void ch3_tick(struct gb_core *gb)
+{
+    if (!is_channel_on(gb, 3) || !is_dac_on(gb, 3))
+        return;
+
+    gb->apu.ch3.frequency_timer -= 1;
+    if (gb->apu.ch3.frequency_timer == 0)
+    {
+        gb->apu.ch3.frequency_timer = (2048 - FREQUENCY(3)) * 2;
+        gb->apu.ch3.wave_pos = (gb->apu.ch3.wave_pos + 1) % 32;
+
+        unsigned int sample = gb->membus[WAVE_RAM + (gb->apu.ch3.wave_pos / 2)];
         // Each byte has two 4-bit samples
-        if (apu->ch3->wave_pos % 2 == 0)
+        if (gb->apu.ch3.wave_pos % 2 == 0)
             sample >>= 4;
         else
             sample &= 0x0F;
 
-        apu->ch3->sample_buffer = sample;
+        gb->apu.ch3.sample_buffer = sample;
     }
 }
 
-static void ch4_tick(struct apu *apu)
+static void ch4_tick(struct gb_core *gb)
 {
-    if (!is_channel_on(apu, 4) || !is_dac_on(apu, 4))
+    if (!is_channel_on(gb, 4) || !is_dac_on(gb, 4))
         return;
 
-    uint8_t nr43 = apu->cpu->membus[NR43];
+    uint8_t nr43 = gb->membus[NR43];
     unsigned int shift = NOISE_CLOCK_SHIFT(nr43);
     unsigned int divisor_code = NOISE_CLOCK_DIVIDER_CODE(nr43);
 
-    apu->ch4->frequency_timer -= 1;
-    if (apu->ch4->frequency_timer == 0)
+    gb->apu.ch4.frequency_timer -= 1;
+    if (gb->apu.ch4.frequency_timer == 0)
     {
-        apu->ch4->frequency_timer = ch4_divisors[divisor_code] << shift;
+        gb->apu.ch4.frequency_timer = ch4_divisors[divisor_code] << shift;
 
-        uint8_t xor_res = ((apu->ch4->lfsr >> 1) & 0x01) ^ (apu->ch4->lfsr & 0x01);
-        apu->ch4->lfsr = (apu->ch4->lfsr >> 1) | (xor_res << 14);
+        uint8_t xor_res = ((gb->apu.ch4.lfsr >> 1) & 0x01) ^ (gb->apu.ch4.lfsr & 0x01);
+        gb->apu.ch4.lfsr = (gb->apu.ch4.lfsr >> 1) | (xor_res << 14);
 
         if (NOISE_LFSR_WIDTH(nr43))
-            apu->ch4->lfsr = (apu->ch4->lfsr & ~(1 << 6)) | (xor_res << 6);
+            gb->apu.ch4.lfsr = (gb->apu.ch4.lfsr & ~(1 << 6)) | (xor_res << 6);
     }
 }
 
-static unsigned int get_channel_amplitude(struct apu *apu, uint8_t number, uint8_t panning)
+static unsigned int get_channel_amplitude(struct gb_core *gb, uint8_t number, uint8_t panning)
 {
-    if (!is_dac_on(apu, number) || !is_channel_on(apu, number))
+    if (!is_dac_on(gb, number) || !is_channel_on(gb, number))
         return 0;
 
     unsigned int panning_mask = 1 << (number - 1);
     if (panning == PANNING_LEFT)
         panning_mask <<= 4;
 
-    if (!(apu->cpu->membus[NR51] & panning_mask))
+    if (!(gb->membus[NR51] & panning_mask))
         return 0;
 
     if (number == 1)
     {
-        unsigned int wave_duty = WAVE_DUTY(apu->cpu->membus[NR11]);
-        unsigned int duty_pos = apu->ch1->duty_pos;
-        return duty_table[wave_duty][duty_pos] * apu->ch1->current_volume;
+        unsigned int wave_duty = WAVE_DUTY(gb->membus[NR11]);
+        unsigned int duty_pos = gb->apu.ch1.duty_pos;
+        return duty_table[wave_duty][duty_pos] * gb->apu.ch1.current_volume;
     }
 
     if (number == 2)
     {
-        unsigned int wave_duty = WAVE_DUTY(apu->cpu->membus[NR21]);
-        unsigned int duty_pos = apu->ch2->duty_pos;
-        return duty_table[wave_duty][duty_pos] * apu->ch2->current_volume;
+        unsigned int wave_duty = WAVE_DUTY(gb->membus[NR21]);
+        unsigned int duty_pos = gb->apu.ch2.duty_pos;
+        return duty_table[wave_duty][duty_pos] * gb->apu.ch2.current_volume;
     }
 
     if (number == 3)
     {
-        unsigned int wave_output = WAVE_OUTPUT(apu->cpu->membus[NR32]);
-        return apu->ch3->sample_buffer >> ch3_shifts[wave_output];
+        unsigned int wave_output = WAVE_OUTPUT(gb->membus[NR32]);
+        return gb->apu.ch3.sample_buffer >> ch3_shifts[wave_output];
     }
 
-    return ((~apu->ch4->lfsr) & 0x1) * apu->ch4->current_volume;
+    return ((~gb->apu.ch4.lfsr) & 0x1) * gb->apu.ch4.current_volume;
 }
 
-static float mix_channels(struct apu *apu, uint8_t panning)
+static float mix_channels(struct gb_core *gb, uint8_t panning)
 {
     float sum = 0.0f;
     for (size_t i = 1; i < 5; ++i)
     {
-        sum += dac_output(get_channel_amplitude(apu, i, panning));
+        sum += dac_output(get_channel_amplitude(gb, i, panning));
     }
     return sum / 4.0f;
 }
 
-static void queue_audio_sample(struct apu *apu)
+static void queue_audio_sample(struct gb_core *gb)
 {
     // If we have more than 0.125s of lag, skip this sample
-    if (SDL_GetAudioStreamQueued(apu->audio_stream) / sizeof(union audio_sample) > SAMPLING_RATE / 8)
+    if (gb->callbacks.get_queued_audio_sample_count() / sizeof(union audio_sample) > SAMPLING_RATE / 8)
         return;
 
-    uint8_t nr50 = apu->cpu->membus[NR50];
+    uint8_t nr50 = gb->membus[NR50];
 
-    float left_sample =
-        mix_channels(apu, PANNING_LEFT) * (float)LEFT_MASTER_VOLUME(nr50) / 8.0f * EMULATOR_SOUND_VOLUME;
+    float left_sample = mix_channels(gb, PANNING_LEFT) * (float)LEFT_MASTER_VOLUME(nr50) / 8.0f * EMULATOR_SOUND_VOLUME;
     float right_sample =
-        mix_channels(apu, PANNING_RIGHT) * (float)RIGHT_MASTER_VOLUME(nr50) / 8.0f * EMULATOR_SOUND_VOLUME;
+        mix_channels(gb, PANNING_RIGHT) * (float)RIGHT_MASTER_VOLUME(nr50) / 8.0f * EMULATOR_SOUND_VOLUME;
 
     union audio_sample sample = {
         .stereo_sample =
@@ -480,36 +462,36 @@ static void queue_audio_sample(struct apu *apu)
     audio_buffer[audio_buffer_len++] = sample;
     if (audio_buffer_len == AUDIO_BUFFER_SIZE)
     {
-        SDL_PutAudioStreamData(apu->audio_stream, audio_buffer, AUDIO_BUFFER_SIZE * sizeof(union audio_sample));
+        gb->callbacks.queue_audio(audio_buffer);
         audio_buffer_len = 0;
     }
 }
 
-void apu_tick_m(struct apu *apu)
+void apu_tick_m(struct gb_core *gb)
 {
-    if (!is_apu_on(apu))
+    if (!is_apu_on(gb))
         return;
 
     for (size_t i = 0; i < 4; ++i)
     {
-        uint16_t div = apu->previous_div + 1;
+        uint16_t div = gb->previous_div + 1;
 
         // DIV bit 4 falling edge detection
-        if ((apu->previous_div & DIV_APU_MASK) && !(div & DIV_APU_MASK))
-            frame_sequencer_step(apu);
+        if ((gb->previous_div & DIV_APU_MASK) && !(div & DIV_APU_MASK))
+            frame_sequencer_step(gb);
 
-        ch1_tick(apu);
-        ch2_tick(apu);
-        ch3_tick(apu);
-        ch4_tick(apu);
+        ch1_tick(gb);
+        ch2_tick(gb);
+        ch3_tick(gb);
+        ch4_tick(gb);
 
-        apu->sampling_counter += SAMPLING_RATE;
-        if (apu->sampling_counter >= CPU_FREQUENCY)
+        gb->apu.sampling_counter += SAMPLING_RATE;
+        if (gb->apu.sampling_counter >= CPU_FREQUENCY)
         {
-            queue_audio_sample(apu);
-            apu->sampling_counter -= CPU_FREQUENCY;
+            queue_audio_sample(gb);
+            gb->apu.sampling_counter -= CPU_FREQUENCY;
         }
 
-        apu->previous_div += 1;
+        gb->apu.previous_div += 1;
     }
 }

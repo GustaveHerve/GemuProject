@@ -1,8 +1,8 @@
-#ifndef TIMERS_H
-#define TIMERS_H
+#ifndef CORE_TIMERS_H
+#define CORE_TIMERS_H
 
-struct cpu;
+struct gb_core;
 
-void update_timers(struct cpu *cpu);
+void update_timers(struct gb_core *gb);
 
 #endif

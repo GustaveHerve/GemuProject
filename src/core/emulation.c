@@ -10,7 +10,6 @@
 #include "disassembler.h"
 #include "display.h"
 #include "gb_core.h"
-#include "interrupts.h"
 #include "mbc_base.h"
 #include "serial.h"
 #include "sync.h"
@@ -77,7 +76,7 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
     // Init MBC / cartridge info and fill rom in buffer
     set_mbc(&gb->mbc, rom, rom_path);
 
-    lcd_off();
+    lcd_off(gb);
 
     if (!boot_rom_path)
         init_gb_core_post_boot(gb, checksum);
@@ -89,13 +88,13 @@ void tick_m(struct gb_core *gb)
 {
     gb->tcycles_since_sync += 4;
 
-    if (gb->ime == 2)
-        gb->ime = 1;
+    if (gb->cpu.ime == 2)
+        gb->cpu.ime = 1;
 
-    apu_tick_m(&gb->apu);
+    apu_tick_m(gb);
 
-    update_timers(&gb->cpu);
-    update_serial(&gb->cpu);
+    update_timers(gb);
+    update_serial(gb);
 
     if (get_lcdc(gb->membus, LCDC_LCD_PPU_ENABLE))
         ppu_tick_m(gb);

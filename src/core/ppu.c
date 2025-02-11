@@ -309,7 +309,7 @@ void ppu_reset(struct gb_core *gb)
     fetcher_reset(&gb->ppu.bg_fetcher);
     fetcher_reset(&gb->ppu.obj_fetcher);
 
-    lcd_off();
+    lcd_off(gb);
 }
 
 // Mode 2
@@ -526,8 +526,8 @@ static uint8_t mode0_handler(struct gb_core *gb)
     {
         clear_stat(gb->membus, 1);
         clear_stat(gb->membus, 0);
-        if (get_stat(gb->membus, 3) && !get_if(&gb->cpu, INTERRUPT_LCD))
-            set_if(&gb->cpu, INTERRUPT_LCD);
+        if (get_stat(gb->membus, 3) && !get_if(gb, INTERRUPT_LCD))
+            set_if(gb, INTERRUPT_LCD);
     }
 
     gb->ppu.obj_fetcher.obj_index = -1;
@@ -553,7 +553,7 @@ static uint8_t mode0_handler(struct gb_core *gb)
     set_stat(gb->membus, 1);
     clear_stat(gb->membus, 0);
     if (get_stat(gb->membus, 5) && !get_stat(gb->membus, 4))
-        set_if(&gb->cpu, INTERRUPT_LCD);
+        set_if(gb, INTERRUPT_LCD);
 
     // Start VBlank
     if (gb->membus[LY] > 143)
@@ -572,9 +572,9 @@ static uint8_t mode1_handler(struct gb_core *gb)
     {
         clear_stat(gb->membus, 1);
         set_stat(gb->membus, 0);
-        set_if(&gb->cpu, INTERRUPT_VBLANK);                      // VBlank Interrupt
+        set_if(gb, INTERRUPT_VBLANK);                            // VBlank Interrupt
         if (get_stat(gb->membus, 4) && !get_stat(gb->membus, 3)) // STAT VBlank Interrupt
-            set_if(&gb->cpu, INTERRUPT_LCD);
+            set_if(gb, INTERRUPT_LCD);
     }
 
     check_lyc(gb, gb->ppu.mode1_153th);

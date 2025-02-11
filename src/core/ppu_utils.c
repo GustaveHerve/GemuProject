@@ -139,9 +139,9 @@ void check_lyc(struct gb_core *gb, int line_153)
     {
         set_stat(gb->membus, STAT_LYC_EQUAL_LY);
         if (line_153 && gb->ppu.line_dot_count == 12 && get_stat(gb->membus, 6))
-            set_if(&gb->cpu, INTERRUPT_LCD);
+            set_if(gb, INTERRUPT_LCD);
         else if (gb->ppu.line_dot_count == 4 && get_stat(gb->membus, 6)) //&& !get_if(ppu->cpu, INTERRUPT_LCD))
-            set_if(&gb->cpu, INTERRUPT_LCD);
+            set_if(gb, INTERRUPT_LCD);
     }
     else
         clear_stat(gb->membus, 2);

@@ -1,24 +1,24 @@
-#ifndef JUMP_H
-#define JUMP_H
+#ifndef CORE_JUMP_H
+#define CORE_JUMP_H
 
 #include <stdint.h>
 
-struct cpu;
+struct gb_core;
 
-int jr_e8(struct cpu *cpu);
-int jr_cc_e8(struct cpu *cpu, int cc);
+int jr_e8(struct gb_core *gb);
+int jr_cc_e8(struct gb_core *gb, int cc);
 
-int ret(struct cpu *cpu);
-int ret_cc(struct cpu *cpu, int cc);
-int reti(struct cpu *cpu);
+int ret(struct gb_core *gb);
+int ret_cc(struct gb_core *gb, int cc);
+int reti(struct gb_core *gb);
 
-int jp_hl(struct cpu *cpu);
-int jp_nn(struct cpu *cpu);
-int jp_cc_nn(struct cpu *cpu, int cc);
+int jp_hl(struct gb_core *gb);
+int jp_nn(struct gb_core *gb);
+int jp_cc_nn(struct gb_core *gb, int cc);
 
-int call_nn(struct cpu *cpu);
-int call_cc_nn(struct cpu *cpu, int cc);
+int call_nn(struct gb_core *gb);
+int call_cc_nn(struct gb_core *gb, int cc);
 
-int rst(struct cpu *cpu, uint8_t vec);
+int rst(struct gb_core *gb, uint8_t vec);
 
 #endif

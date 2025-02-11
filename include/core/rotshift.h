@@ -1,11 +1,11 @@
-#ifndef ROTSHIFT_H
-#define ROTSHIFT_H
+#ifndef CORE_ROTSHIFT_H
+#define CORE_ROTSHIFT_H
 
-struct cpu;
+struct gb_core;
 
-int rlca(struct cpu *cpu);
-int rla(struct cpu *cpu);
-int rrca(struct cpu *cpu);
-int rra(struct cpu *cpu);
+int rlca(struct gb_core *gb);
+int rla(struct gb_core *gb);
+int rrca(struct gb_core *gb);
+int rra(struct gb_core *gb);
 
 #endif

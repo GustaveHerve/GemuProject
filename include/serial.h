@@ -1,20 +1,20 @@
-#ifndef SERIAL_H
-#define SERIAL_H
+#ifndef CORE_SERIAL_H
+#define CORE_SERIAL_H
 
-#include "cpu.h"
+#include "gb_core.h"
 
-static inline uint8_t get_clock_select(struct cpu *cpu)
+static inline uint8_t get_clock_select(struct gb_core *gb)
 {
-    return *cpu->sc & 0x01;
+    return gb->membus[SC] & 0x01;
 }
 
-static inline uint8_t get_transfer_enable(struct cpu *cpu)
+static inline uint8_t get_transfer_enable(struct gb_core *gb)
 {
-    return (*cpu->sc >> 7) & 0x01;
+    return (gb->membus[SC] >> 7) & 0x01;
 }
 
-void serial_transfer(struct cpu *cpu);
+void serial_transfer(struct gb_core *gb);
 
-void update_serial(struct cpu *cpu);
+void update_serial(struct gb_core *gb);
 
 #endif

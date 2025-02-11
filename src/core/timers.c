@@ -1,4 +1,4 @@
-#include "cpu.h"
+#include "gb_core.h"
 #include "interrupts.h"
 
 #define TAC_TIMER_ENABLED (0x1 << 2)
@@ -6,41 +6,41 @@
 
 static unsigned int clock_masks[] = {1 << 9, 1 << 3, 1 << 5, 1 << 7};
 
-void update_timers(struct cpu *cpu)
+void update_timers(struct gb_core *gb)
 {
-    if (cpu->schedule_tima_overflow)
+    if (gb->schedule_tima_overflow)
     {
-        set_if(cpu, INTERRUPT_TIMER);
-        *cpu->tima = *cpu->tma;
-        cpu->schedule_tima_overflow = 0;
+        set_if(gb, INTERRUPT_TIMER);
+        gb->membus[TIMA] = gb->membus[TMA];
+        gb->schedule_tima_overflow = 0;
     }
 
-    if (!cpu->stop)
+    if (!gb->stop)
     {
-        cpu->internal_div += 4;
-        *cpu->div = cpu->internal_div >> 8;
+        gb->internal_div += 4;
+        gb->membus[DIV] = gb->internal_div >> 8;
     }
 
-    uint8_t previous_tima = *cpu->tima;
-    unsigned int selected_clock = *cpu->tac & TAC_CLOCK_SELECT;
+    uint8_t previous_tima = gb->membus[TIMA];
+    unsigned int selected_clock = gb->membus[TAC] & TAC_CLOCK_SELECT;
     unsigned int clock_mask = clock_masks[selected_clock];
-    if (*cpu->tac & TAC_TIMER_ENABLED || cpu->disabling_timer)
+    if (gb->membus[TAC] & TAC_TIMER_ENABLED || gb->disabling_timer)
     {
         /* Increase TIMA on falling edge */
-        if (cpu->disabling_timer)
+        if (gb->disabling_timer)
         {
             /* Handle TIMA increment quirk when disabling timer in TAC */
-            if (cpu->previous_div & clock_mask)
-                ++(*cpu->tima);
-            cpu->disabling_timer = 0;
+            if (gb->previous_div & clock_mask)
+                ++gb->membus[TIMA];
+            gb->disabling_timer = 0;
         }
-        else if ((cpu->previous_div & clock_mask) && !(cpu->internal_div & clock_mask))
-            ++(*cpu->tima);
+        else if ((gb->previous_div & clock_mask) && !(gb->internal_div & clock_mask))
+            ++gb->membus[TIMA];
 
         /* TIMA Overflow */
-        if (previous_tima > *cpu->tima)
-            cpu->schedule_tima_overflow = 1; /* Schedule an interrupt for next Mcycle */
+        if (previous_tima > gb->membus[TIMA])
+            gb->schedule_tima_overflow = 1; /* Schedule an interrupt for next Mcycle */
     }
 
-    cpu->previous_div = cpu->internal_div;
+    gb->previous_div = gb->internal_div;
 }

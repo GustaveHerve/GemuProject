@@ -1,5 +1,5 @@
-#ifndef MEMORY_H
-#define MEMORY_H
+#ifndef CORE_MEMORY_H
+#define CORE_MEMORY_H
 
 #include <stdint.h>
 struct gb_core;

@@ -5,32 +5,33 @@
 
 #include "cpu.h"
 #include "emulation.h"
+#include "gb_core.h"
 #include "memory.h"
 #include "utils.h"
 
-int check_interrupt(struct cpu *cpu)
+int check_interrupt(struct gb_core *gb)
 {
-    if (!cpu->halt && !cpu->ime)
+    if (!gb->halt && !gb->cpu.ime)
         return 0;
 
     // Joypad check
-    if (((cpu->membus[0xFF00] >> 5 & 0x01) == 0x00) || (cpu->membus[0xFF00] >> 4 & 0x01) == 0x00)
+    if (((gb->membus[0xFF00] >> 5 & 0x01) == 0x00) || (gb->membus[0xFF00] >> 4 & 0x01) == 0x00)
     {
         for (size_t i = 0; i < 4; ++i)
         {
-            if (((cpu->membus[0xFF00] >> i) & 0x01) == 0x00)
-                set_if(cpu, INTERRUPT_JOYPAD);
+            if (((gb->membus[0xFF00] >> i) & 0x01) == 0x00)
+                set_if(gb, INTERRUPT_JOYPAD);
         }
     }
 
     for (int i = 0; i < 5; ++i)
     {
-        if (get_if(cpu, i) && get_ie(cpu, i))
+        if (get_if(gb, i) && get_ie(gb, i))
         {
-            cpu->halt = 0;
-            if (!cpu->ime) // Wake up from halt with IME = 0
+            gb->halt = 0;
+            if (!gb->cpu.ime) // Wake up from halt with IME = 0
                 return 0;
-            handle_interrupt(cpu, i);
+            handle_interrupt(gb, i);
         }
     }
     return 1;
@@ -39,21 +40,21 @@ int check_interrupt(struct cpu *cpu)
 /* VBlank, LCD STAT, Timer, Serial, Joypad */
 static unsigned int handlers_vector[] = {0x40, 0x48, 0x50, 0x58, 0x60};
 
-int handle_interrupt(struct cpu *cpu, unsigned int bit)
+int handle_interrupt(struct gb_core *gb, unsigned int bit)
 {
     assert(bit < sizeof(handlers_vector) / sizeof(unsigned int));
-    clear_if(cpu, bit);
-    cpu->ime = 0;
-    tick_m(cpu);
-    tick_m(cpu);
-    uint8_t lo = regist_lo(&cpu->regist->pc);
-    uint8_t hi = regist_hi(&cpu->regist->pc);
-    --cpu->regist->sp;
-    write_mem(cpu, cpu->regist->sp, hi);
-    --cpu->regist->sp;
-    write_mem(cpu, cpu->regist->sp, lo);
+    clear_if(gb, bit);
+    gb->cpu.ime = 0;
+    tick_m(gb);
+    tick_m(gb);
+    uint8_t lo = regist_lo(&gb->cpu.pc);
+    uint8_t hi = regist_hi(&gb->cpu.pc);
+    --gb->cpu.sp;
+    write_mem(gb, gb->cpu.sp, hi);
+    --gb->cpu.sp;
+    write_mem(gb, gb->cpu.sp, lo);
     uint16_t handler = handlers_vector[bit];
-    cpu->regist->pc = handler;
-    tick_m(cpu);
+    gb->cpu.pc = handler;
+    tick_m(gb);
     return 1;
 }

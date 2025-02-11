@@ -17,6 +17,8 @@ struct cpu
 
     uint16_t sp;
     uint16_t pc;
+
+    int ime;
 };
 
 void cpu_start(struct cpu *cpu);

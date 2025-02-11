@@ -75,8 +75,6 @@ void init_gb_core(struct gb_core *gb)
 
     gb->membus = calloc(MEMBUS_SIZE, sizeof(uint8_t));
 
-    gb->ime = 0;
-
     gb->halt = 0;
     gb->stop = 0;
 

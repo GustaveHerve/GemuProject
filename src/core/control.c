@@ -1,6 +1,6 @@
 #include <err.h>
 
-#include "cpu.h"
+#include "gb_core.h"
 #include "utils.h"
 
 // nop
@@ -12,55 +12,55 @@ int nop(void)
 
 // stop
 // x10	1 MCycle
-int stop(struct cpu *cpu)
+int stop(struct gb_core *gb)
 {
-    cpu->stop = 1;
+    gb->stop = 1;
     /* Reset DIV Timer */
-    *cpu->div = 0;
-    cpu->internal_div = 0;
+    gb->membus[DIV] = 0;
+    gb->internal_div = 0;
     return 1;
 }
 
 // halt
-int halt(struct cpu *cpu)
+int halt(struct gb_core *gb)
 {
-    cpu->halt = 1;
+    gb->halt = 1;
     return 1;
 }
 
 // ccf
 // x3F	1 MCycle
-int ccf(struct cpu *cpu)
+int ccf(struct gb_core *gb)
 {
-    set_n(cpu->regist, 0);
-    set_h(cpu->regist, 0);
-    cpu->regist->f ^= 0x10;
+    set_n(&gb->cpu, 0);
+    set_h(&gb->cpu, 0);
+    gb->cpu.f ^= 0x10;
     return 1;
 }
 
 // scf
 // x37	1 MCycle
-int scf(struct cpu *cpu)
+int scf(struct gb_core *gb)
 {
-    set_c(cpu->regist, 1);
-    set_n(cpu->regist, 0);
-    set_h(cpu->regist, 0);
+    set_c(&gb->cpu, 1);
+    set_n(&gb->cpu, 0);
+    set_h(&gb->cpu, 0);
     return 1;
 }
 
 // di
 // xF3  1 MCycle
-int di(struct cpu *cpu)
+int di(struct gb_core *gb)
 {
-    cpu->ime = 0;
+    gb->cpu.ime = 0;
     return 1;
 }
 
 // ei
 // xFB 1 MCycle
-int ei(struct cpu *cpu)
+int ei(struct gb_core *gb)
 {
     // Schedule a IME enable
-    cpu->ime = 2;
+    gb->cpu.ime = 2;
     return 1;
 }

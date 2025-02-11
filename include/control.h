@@ -1,14 +1,14 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
-struct cpu;
+struct gb_core;
 
 int nop(void);
-int stop(struct cpu *cpu);
-int halt(struct cpu *cpu);
-int ccf(struct cpu *cpu);
-int scf(struct cpu *cpu);
-int di(struct cpu *cpu);
-int ei(struct cpu *cpu);
+int stop(struct gb_core *gb);
+int halt(struct gb_core *gb);
+int ccf(struct gb_core *gb);
+int scf(struct gb_core *gb);
+int di(struct gb_core *gb);
+int ei(struct gb_core *gb);
 
 #endif

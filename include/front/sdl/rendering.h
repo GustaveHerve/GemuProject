@@ -5,7 +5,7 @@ void set_window_title(const char *title);
 
 int set_vsync(int val);
 
-void render_frame_callback(void);
+int render_frame_callback(void);
 
 int init_rendering(void);
 

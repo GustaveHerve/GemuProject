@@ -1,4 +1,5 @@
 target_sources(gemu PUBLIC
+    gb_core.c
     control.c
     cpu.c
     interrupts.c

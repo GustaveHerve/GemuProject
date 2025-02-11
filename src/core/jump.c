@@ -1,30 +1,30 @@
 #include <err.h>
 
-#include "cpu.h"
 #include "emulation.h"
+#include "gb_core.h"
 #include "memory.h"
 #include "utils.h"
 
 // jr e (signed 8 bit)
 // x18	3 MCycle
-int jr_e8(struct cpu *cpu)
+int jr_e8(struct gb_core *gb)
 {
-    int8_t e = read_mem_tick(cpu, cpu->regist->pc);
-    ++cpu->regist->pc;
-    tick_m(cpu);
-    cpu->regist->pc = cpu->regist->pc + e;
+    int8_t e = read_mem_tick(gb, gb->cpu.pc);
+    ++gb->cpu.pc;
+    tick_m(gb);
+    gb->cpu.pc = gb->cpu.pc + e;
     return 3;
 }
 
 // jr cc e (signed 8 bit)
-int jr_cc_e8(struct cpu *cpu, int cc)
+int jr_cc_e8(struct gb_core *gb, int cc)
 {
-    int8_t e = read_mem_tick(cpu, cpu->regist->pc);
-    ++cpu->regist->pc;
+    int8_t e = read_mem_tick(gb, gb->cpu.pc);
+    ++gb->cpu.pc;
     if (cc)
     {
-        tick_m(cpu);
-        cpu->regist->pc += e;
+        tick_m(gb);
+        gb->cpu.pc += e;
         return 3;
     }
     return 2;
@@ -32,30 +32,30 @@ int jr_cc_e8(struct cpu *cpu, int cc)
 
 // ret
 // xC9   4 MCycles
-int ret(struct cpu *cpu)
+int ret(struct gb_core *gb)
 {
-    uint8_t lo = read_mem_tick(cpu, cpu->regist->sp);
-    ++cpu->regist->sp;
-    uint8_t hi = read_mem_tick(cpu, cpu->regist->sp);
-    ++cpu->regist->sp;
-    tick_m(cpu);
-    cpu->regist->pc = convert_8to16(&hi, &lo);
+    uint8_t lo = read_mem_tick(gb, gb->cpu.sp);
+    ++gb->cpu.sp;
+    uint8_t hi = read_mem_tick(gb, gb->cpu.sp);
+    ++gb->cpu.sp;
+    tick_m(gb);
+    gb->cpu.pc = convert_8to16(&hi, &lo);
     return 4;
 }
 
 // ret cc
 //
-int ret_cc(struct cpu *cpu, int cc)
+int ret_cc(struct gb_core *gb, int cc)
 {
-    tick_m(cpu);
+    tick_m(gb);
     if (cc)
     {
-        uint8_t lo = read_mem_tick(cpu, cpu->regist->sp);
-        ++cpu->regist->sp;
-        uint8_t hi = read_mem_tick(cpu, cpu->regist->sp);
-        ++cpu->regist->sp;
-        tick_m(cpu);
-        cpu->regist->pc = convert_8to16(&hi, &lo);
+        uint8_t lo = read_mem_tick(gb, gb->cpu.sp);
+        ++gb->cpu.sp;
+        uint8_t hi = read_mem_tick(gb, gb->cpu.sp);
+        ++gb->cpu.sp;
+        tick_m(gb);
+        gb->cpu.pc = convert_8to16(&hi, &lo);
         return 5;
     }
     return 2;
@@ -63,94 +63,94 @@ int ret_cc(struct cpu *cpu, int cc)
 
 // reti
 // xD9   4 MCycle
-int reti(struct cpu *cpu)
+int reti(struct gb_core *gb)
 {
-    ret(cpu);
-    cpu->ime = 1;
+    ret(gb);
+    gb->cpu.ime = 1;
     return 4;
 }
 
 // jp HL
 // 0xE9 1 MCycle
-int jp_hl(struct cpu *cpu)
+int jp_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&cpu->regist->h, &cpu->regist->l);
-    cpu->regist->pc = address;
+    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    gb->cpu.pc = address;
     return 1;
 }
 
-int jp_nn(struct cpu *cpu)
+int jp_nn(struct gb_core *gb)
 {
-    uint8_t lo = read_mem_tick(cpu, cpu->regist->pc);
-    ++cpu->regist->pc;
-    uint8_t hi = read_mem_tick(cpu, cpu->regist->pc);
+    uint8_t lo = read_mem_tick(gb, gb->cpu.pc);
+    ++gb->cpu.pc;
+    uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
     uint16_t address = convert_8to16(&hi, &lo);
-    tick_m(cpu);
-    cpu->regist->pc = address;
+    tick_m(gb);
+    gb->cpu.pc = address;
     return 4;
 }
 
-int jp_cc_nn(struct cpu *cpu, int cc)
+int jp_cc_nn(struct gb_core *gb, int cc)
 {
-    uint8_t lo = read_mem_tick(cpu, cpu->regist->pc);
-    ++cpu->regist->pc;
-    uint8_t hi = read_mem_tick(cpu, cpu->regist->pc);
-    ++cpu->regist->pc;
+    uint8_t lo = read_mem_tick(gb, gb->cpu.pc);
+    ++gb->cpu.pc;
+    uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
+    ++gb->cpu.pc;
     uint16_t address = convert_8to16(&hi, &lo);
     if (cc)
     {
-        tick_m(cpu);
-        cpu->regist->pc = address;
+        tick_m(gb);
+        gb->cpu.pc = address;
         return 4;
     }
     return 3;
 }
 
-int call_nn(struct cpu *cpu)
+int call_nn(struct gb_core *gb)
 {
-    uint8_t lo = read_mem_tick(cpu, cpu->regist->pc);
-    ++cpu->regist->pc;
-    uint8_t hi = read_mem_tick(cpu, cpu->regist->pc);
+    uint8_t lo = read_mem_tick(gb, gb->cpu.pc);
+    ++gb->cpu.pc;
+    uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
     uint16_t nn = convert_8to16(&hi, &lo);
-    ++cpu->regist->pc;
-    tick_m(cpu);
-    --cpu->regist->sp;
-    write_mem(cpu, cpu->regist->sp, regist_hi(&cpu->regist->pc));
-    --cpu->regist->sp;
-    write_mem(cpu, cpu->regist->sp, regist_lo(&cpu->regist->pc));
-    cpu->regist->pc = nn;
+    ++gb->cpu.pc;
+    tick_m(gb);
+    --gb->cpu.sp;
+    write_mem(gb, gb->cpu.sp, regist_hi(&gb->cpu.pc));
+    --gb->cpu.sp;
+    write_mem(gb, gb->cpu.sp, regist_lo(&gb->cpu.pc));
+    gb->cpu.pc = nn;
     return 6;
 }
 
-int call_cc_nn(struct cpu *cpu, int cc)
+int call_cc_nn(struct gb_core *gb, int cc)
 {
-    uint8_t lo = read_mem_tick(cpu, cpu->regist->pc);
-    ++cpu->regist->pc;
-    uint8_t hi = read_mem_tick(cpu, cpu->regist->pc);
+    uint8_t lo = read_mem_tick(gb, gb->cpu.pc);
+    ++gb->cpu.pc;
+    uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
     uint16_t nn = convert_8to16(&hi, &lo);
-    ++cpu->regist->pc;
+    ++gb->cpu.pc;
     if (cc)
     {
-        tick_m(cpu);
-        --cpu->regist->sp;
-        write_mem(cpu, cpu->regist->sp, regist_hi(&cpu->regist->pc));
-        --cpu->regist->sp;
-        write_mem(cpu, cpu->regist->sp, regist_lo(&cpu->regist->pc));
-        cpu->regist->pc = nn;
+        tick_m(gb);
+        --gb->cpu.sp;
+        write_mem(gb, gb->cpu.sp, regist_hi(&gb->cpu.pc));
+        --gb->cpu.sp;
+        write_mem(gb, gb->cpu.sp, regist_lo(&gb->cpu.pc));
+        gb->cpu.pc = nn;
         return 6;
     }
     return 3;
 }
 
-int rst(struct cpu *cpu, uint8_t vec)
+int rst(struct gb_core *gb, uint8_t vec)
 {
-    tick_m(cpu);
-    --cpu->regist->sp;
-    write_mem(cpu, cpu->regist->sp, regist_hi(&cpu->regist->pc));
-    --cpu->regist->sp;
-    write_mem(cpu, cpu->regist->sp, regist_lo(&cpu->regist->pc));
+    tick_m(gb);
+    --gb->cpu.sp;
+    write_mem(gb, gb->cpu.sp, regist_hi(&gb->cpu.pc));
+    --gb->cpu.sp;
+    write_mem(gb, gb->cpu.sp, regist_lo(&gb->cpu.pc));
     uint8_t lo = 0x00;
     uint16_t newpc = convert_8to16(&lo, &vec);
-    cpu->regist->pc = newpc;
+    gb->cpu.pc = newpc;
     return 4;
 }
