@@ -22,6 +22,32 @@ struct global_settings *get_global_settings(void)
     return &settings;
 }
 
+void reset_gb(struct gb_core *gb)
+{
+    ppu_init(gb);
+    apu_init(&gb->apu);
+
+    gb->halt = 0;
+    gb->stop = 0;
+
+    gb->previous_div = 0;
+    gb->internal_div = 0;
+
+    gb->serial_clock = 0;
+    gb->serial_acc = 0;
+
+    gb->joyp_a = 0xF;
+    gb->joyp_d = 0xF;
+
+    gb->disabling_timer = 0;
+    gb->schedule_tima_overflow = 0;
+
+    gb->tcycles_since_sync = 0;
+    gb->last_sync_timestamp = get_nanoseconds();
+
+    init_gb_core_post_boot(gb, gb->mbc->rom[0x014d]);
+}
+
 static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
 {
     if (!gb)

@@ -57,15 +57,11 @@ void handle_events(struct gb_core *gb)
                 set_vsync(0);
                 break;
             }
-#if 0
             case SDLK_R:
             {
-                ppu_reset(cpu->ppu);
-                cpu_set_registers_post_boot(cpu, 1);
-                set_memory_post_boot(cpu);
+                reset_gb(gb);
                 break;
             }
-#endif
             }
 
             break;
