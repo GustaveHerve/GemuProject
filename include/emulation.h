@@ -11,6 +11,7 @@ struct global_settings
     bool quit_signal;
     bool paused;
     bool turbo;
+    bool reset_signal;
 };
 
 void reset_gb(struct gb_core *gb);

@@ -7,6 +7,7 @@
 void handle_events(struct gb_core *gb)
 {
     SDL_Event event;
+    struct global_settings *settings = get_global_settings();
     while (SDL_PollEvent(&event))
     {
         switch (event.type)
@@ -41,27 +42,19 @@ void handle_events(struct gb_core *gb)
                 gb->joyp_a &= ~(0x08);
                 break;
             case SDLK_P:
-            {
-                struct global_settings *settings = get_global_settings();
                 settings->paused = !settings->paused;
                 if (settings->paused)
                     set_window_title("GemuProject - Paused");
                 else
                     set_window_title("GemuProject");
                 break;
-            }
             case SDLK_T:
-            {
-                struct global_settings *settings = get_global_settings();
                 settings->turbo = true;
                 set_vsync(0);
                 break;
-            }
             case SDLK_R:
-            {
-                reset_gb(gb);
+                settings->reset_signal = true;
                 break;
-            }
             }
 
             break;

@@ -94,6 +94,12 @@ void main_loop(void)
             continue;
         }
 
+        if (settings->reset_signal)
+        {
+            reset_gb(&gb);
+            settings->reset_signal = false;
+        }
+
         if (!gb.halt)
             next_op(&gb);
         else
