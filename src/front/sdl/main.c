@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 
     SDL_CHECK_ERROR(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS));
 
-    if (init_rendering())
+    if (init_rendering() || init_audio())
         return EXIT_FAILURE;
 
     init_gb_callbacks(&gb);
@@ -125,6 +125,8 @@ int main(int argc, char **argv)
     free_gb_core(&gb);
 
     free_rendering();
+
+    free_audio();
 
     SDL_Quit();
     return 0;
