@@ -4,12 +4,9 @@
 #include <SDL3/SDL_audio.h>
 #include <stdint.h>
 
-#include "common.h"
-
 struct gb_core;
 
 #define SAMPLING_RATE 44100
-#define SAMPLING_TCYCLES_INTERVAL (CPU_FREQUENCY / SAMPLING_RATE)
 #define AUDIO_BUFFER_SIZE 512
 
 /* Default GB audio samples are WAY too loud by default, scale them back */
@@ -104,7 +101,7 @@ struct apu
 
     unsigned int sampling_counter;
 
-    uint16_t previous_div;
+    uint16_t previous_div_apu;
 };
 
 void apu_init(struct apu *apu);
@@ -120,7 +117,7 @@ void apu_tick_m(struct gb_core *gb);
 
 static inline float dac_output(unsigned int amplitude)
 {
-    return (amplitude / 7.5f) - 1.f;
+    return (amplitude / 7.5f) - 1.0f;
 }
 
 #endif

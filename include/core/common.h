@@ -3,9 +3,8 @@
 // clang-format off
 
 /* CPU */
-#define CPU_FREQUENCY           4194304
-#define CPU_FREQUENCY_MCYCLE    (4194304 / 4)
-#define MEMBUS_SIZE             65536
+#define CPU_FREQUENCY   4194304
+#define MEMBUS_SIZE     65536
 
 /* Memory */
 #define BANK0       0x0000
@@ -21,9 +20,9 @@
 #define HRAM        0xFF80
 
 /* Display */
-#define SCREEN_WIDTH    160
-#define SCREEN_HEIGHT   144
-#define SCREEN_RESOLUTION (SCREEN_WIDTH * SCREEN_HEIGHT)
+#define SCREEN_WIDTH        160
+#define SCREEN_HEIGHT       144
+#define SCREEN_RESOLUTION   (SCREEN_WIDTH * SCREEN_HEIGHT)
 
 /* I/O Registers */
 #define JOYP        0xFF00

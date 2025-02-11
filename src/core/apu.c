@@ -84,9 +84,13 @@ struct ch_generic
 void apu_init(struct apu *apu)
 {
     memset(apu, 0, sizeof(struct apu));
+    memset(&apu->ch1, 0, sizeof(struct ch1));
+    memset(&apu->ch2, 0, sizeof(struct ch2));
+    memset(&apu->ch3, 0, sizeof(struct ch3));
+    memset(&apu->ch4, 0, sizeof(struct ch4));
     apu->fs_pos = 0;
     apu->sampling_counter = 0;
-    apu->previous_div = 0;
+    apu->previous_div_apu = 0;
 }
 
 static void length_trigger(struct apu *apu, struct ch_generic *ch)
@@ -442,7 +446,7 @@ static float mix_channels(struct gb_core *gb, uint8_t panning)
 static void queue_audio_sample(struct gb_core *gb)
 {
     // If we have more than 0.125s of lag, skip this sample
-    if (gb->callbacks.get_queued_audio_sample_count() / sizeof(union audio_sample) > SAMPLING_RATE / 8)
+    if (gb->callbacks.get_queued_audio_sample_count() > SAMPLING_RATE / 8)
         return;
 
     uint8_t nr50 = gb->membus[NR50];
@@ -474,10 +478,10 @@ void apu_tick_m(struct gb_core *gb)
 
     for (size_t i = 0; i < 4; ++i)
     {
-        uint16_t div = gb->previous_div + 1;
+        uint16_t div = gb->apu.previous_div_apu + 1;
 
         // DIV bit 4 falling edge detection
-        if ((gb->previous_div & DIV_APU_MASK) && !(div & DIV_APU_MASK))
+        if ((gb->apu.previous_div_apu & DIV_APU_MASK) && !(div & DIV_APU_MASK))
             frame_sequencer_step(gb);
 
         ch1_tick(gb);
@@ -492,6 +496,6 @@ void apu_tick_m(struct gb_core *gb)
             gb->apu.sampling_counter -= CPU_FREQUENCY;
         }
 
-        gb->apu.previous_div += 1;
+        gb->apu.previous_div_apu += 1;
     }
 }

@@ -80,10 +80,10 @@ void init_gb_core_post_boot(struct gb_core *gb, int checksum)
 void init_gb_core(struct gb_core *gb)
 {
     memset(&gb->cpu, 0, sizeof(struct cpu));
-    memset(&gb->ppu, 0, sizeof(struct ppu));
-    memset(&gb->apu, 0, sizeof(struct apu));
-
     gb->membus = calloc(MEMBUS_SIZE, sizeof(uint8_t));
+
+    ppu_init(gb);
+    apu_init(&gb->apu);
 
     gb->halt = 0;
     gb->stop = 0;

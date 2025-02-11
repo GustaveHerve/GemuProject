@@ -34,7 +34,7 @@ int free_audio(void)
 
 int get_queued_sample_count(void)
 {
-    return SDL_GetAudioStreamQueued(audio_stream);
+    return SDL_GetAudioStreamQueued(audio_stream) / sizeof(union audio_sample);
 }
 
 int queue_audio(void *audio_buffer)
