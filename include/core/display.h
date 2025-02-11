@@ -1,5 +1,5 @@
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#ifndef CORE_DISPLAY_H
+#define CORE_DISPLAY_H
 
 struct gb_core;
 struct pixel;

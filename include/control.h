@@ -1,5 +1,5 @@
-#ifndef CONTROL_H
-#define CONTROL_H
+#ifndef CORE_CONTROL_H
+#define CORE_CONTROL_H
 
 struct gb_core;
 

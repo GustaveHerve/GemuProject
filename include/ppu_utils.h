@@ -1,5 +1,5 @@
-#ifndef PPU_UTILS_H
-#define PPU_UTILS_H
+#ifndef CORE_PPU_UTILS_H
+#define CORE_PPU_UTILS_H
 
 #include <stdint.h>
 

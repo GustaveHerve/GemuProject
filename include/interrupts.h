@@ -1,5 +1,5 @@
-#ifndef INTERRUPTS_H
-#define INTERRUPTS_H
+#ifndef CORE_INTERRUPTS_H
+#define CORE_INTERRUPTS_H
 
 #include "gb_core.h"
 

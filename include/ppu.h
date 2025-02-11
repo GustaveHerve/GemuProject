@@ -1,5 +1,5 @@
-#ifndef PPU_H
-#define PPU_H
+#ifndef CORE_PPU_H
+#define CORE_PPU_H
 
 #include <stdint.h>
 

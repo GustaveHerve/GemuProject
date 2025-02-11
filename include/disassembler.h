@@ -1,5 +1,5 @@
-#ifndef DISASSEMBLER_H
-#define DISASSEMBLER_H
+#ifndef CORE_DISASSEMBLER_H
+#define CORE_DISASSEMBLER_H
 
 struct gb_core;
 

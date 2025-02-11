@@ -1,5 +1,5 @@
-#ifndef LOGIC_H
-#define LOGIC_H
+#ifndef CORE_LOGIC_H
+#define CORE_LOGIC_H
 
 #include <stdint.h>
 

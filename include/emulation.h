@@ -1,5 +1,5 @@
-#ifndef EMULATION_H
-#define EMULATION_H
+#ifndef CORE_EMULATION_H
+#define CORE_EMULATION_H
 
 #include <SDL3/SDL_stdinc.h>
 
