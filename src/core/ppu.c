@@ -250,7 +250,6 @@ static int obj_fetcher_step(struct gb_core *gb)
 
 void ppu_init(struct gb_core *gb)
 {
-    // TODO set bit 7 of stat to 1 (unused bit)
     gb->ppu.lx = 0;
     gb->ppu.obj_count = 0;
 

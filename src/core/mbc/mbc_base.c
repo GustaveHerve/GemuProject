@@ -3,12 +3,18 @@
 #include <err.h>
 #include <stdlib.h>
 
-#include "cpu.h"
 #include "mbc1.h"
 #include "mbc3.h"
 #include "mbc5.h"
 #include "no_mbc.h"
 #include "save.h"
+
+void mbc_reset(struct mbc_base *mbc)
+{
+    if (!mbc)
+        return;
+    mbc->_mbc_reset(mbc);
+}
 
 void mbc_free(struct mbc_base *mbc)
 {

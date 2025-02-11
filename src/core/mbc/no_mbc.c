@@ -4,6 +4,12 @@
 
 #include "mbc_base.h"
 
+static void _mbc_reset(struct mbc_base *mbc)
+{
+    (void)mbc;
+    /* Nothing to do */
+}
+
 static void _mbc_free(struct mbc_base *mbc)
 {
     (void)mbc;
@@ -48,13 +54,16 @@ struct mbc_base *make_no_mbc(void)
 
     mbc->type = NO_MBC;
 
-    mbc->_mbc_free = &_mbc_free;
+    mbc->_mbc_reset = mbc_reset;
+    mbc->_mbc_free = _mbc_free;
 
-    mbc->_read_mbc_rom = &_read_mbc_rom;
-    mbc->_write_mbc_rom = &_write_mbc_rom;
+    mbc->_read_mbc_rom = _read_mbc_rom;
+    mbc->_write_mbc_rom = _write_mbc_rom;
 
-    mbc->_read_mbc_ram = &_read_mbc_ram;
-    mbc->_write_mbc_ram = &_write_mbc_ram;
+    mbc->_read_mbc_ram = _read_mbc_ram;
+    mbc->_write_mbc_ram = _write_mbc_ram;
+
+    _mbc_reset(mbc);
 
     return mbc;
 }

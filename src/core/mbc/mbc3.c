@@ -17,6 +17,24 @@
 #define RTC_DAY_UPPER_MASK  0xC1
 // clang-format on
 
+static void _mbc_reset(struct mbc_base *mbc)
+{
+    struct mbc3 *mbc3 = (struct mbc3 *)mbc;
+
+    mbc3->bank1 = 1;
+    mbc3->bank2 = 0;
+    mbc3->ram_rtc_registers_enabled = 0;
+
+    // Set to 0xFFFF (purposefully impossible value) and not 0 to handle the first write to it
+    mbc3->latch_last_write = -1;
+
+    mbc3->rtc_clock.s = 0;
+    mbc3->rtc_clock.m = 0;
+    mbc3->rtc_clock.h = 0;
+    mbc3->rtc_clock.dl = 0;
+    mbc3->rtc_clock.dh = 0;
+}
+
 static void _mbc_free(struct mbc_base *mbc)
 {
     (void)mbc;
@@ -189,30 +207,19 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
 struct mbc_base *make_mbc3(void)
 {
     struct mbc_base *mbc = calloc(1, sizeof(struct mbc3));
-    struct mbc3 *mbc3 = (struct mbc3 *)mbc;
 
     mbc->type = MBC3;
 
-    mbc->_mbc_free = &_mbc_free;
+    mbc->_mbc_reset = _mbc_reset;
+    mbc->_mbc_free = _mbc_free;
 
-    mbc->_read_mbc_rom = &_read_mbc_rom;
-    mbc->_write_mbc_rom = &_write_mbc_rom;
+    mbc->_read_mbc_rom = _read_mbc_rom;
+    mbc->_write_mbc_rom = _write_mbc_rom;
 
-    mbc->_read_mbc_ram = &_read_mbc_ram;
-    mbc->_write_mbc_ram = &_write_mbc_ram;
+    mbc->_read_mbc_ram = _read_mbc_ram;
+    mbc->_write_mbc_ram = _write_mbc_ram;
 
-    mbc3->bank1 = 1;
-    mbc3->bank2 = 0;
-    mbc3->ram_rtc_registers_enabled = 0;
-
-    // Set to 0xFFFF (purposefully impossible value) and not 0 to handle the first write to it
-    mbc3->latch_last_write = -1;
-
-    mbc3->rtc_clock.s = 0;
-    mbc3->rtc_clock.m = 0;
-    mbc3->rtc_clock.h = 0;
-    mbc3->rtc_clock.dl = 0;
-    mbc3->rtc_clock.dh = 0;
+    _mbc_reset(mbc);
 
     return mbc;
 }

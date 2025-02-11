@@ -24,8 +24,11 @@ struct global_settings *get_global_settings(void)
 
 void reset_gb(struct gb_core *gb)
 {
+    memset(gb->membus, 0, MEMBUS_SIZE * sizeof(uint8_t));
+
     ppu_init(gb);
     apu_init(&gb->apu);
+    mbc_reset(gb->mbc);
 
     gb->halt = 0;
     gb->stop = 0;
