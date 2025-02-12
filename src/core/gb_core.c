@@ -63,7 +63,7 @@ static void init_membus_post_boot(uint8_t *membus)
     membus[OCPS] = 0xFF;
     membus[OCPD] = 0xFF;
     membus[SVBK] = 0xFF;
-    membus[IE] = 0xFF;
+    membus[IE] = 0x00;
 }
 
 void init_gb_core_post_boot(struct gb_core *gb, int checksum)
