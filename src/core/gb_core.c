@@ -1,6 +1,7 @@
 #include "gb_core.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "common.h"
 #include "cpu.h"

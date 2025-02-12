@@ -1,8 +1,7 @@
 #ifndef CORE_EMULATION_H
 #define CORE_EMULATION_H
 
-#include <SDL3/SDL_stdinc.h>
-
+#include <stdbool.h>
 struct gb_core;
 struct cpu;
 

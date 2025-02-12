@@ -1,15 +1,10 @@
 #include "emulation.h"
 
-#include <SDL3/SDL_events.h>
-#include <SDL3/SDL_stdinc.h>
-#include <err.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common.h"
-#include "disassembler.h"
 #include "display.h"
-#include "gb_core.h"
 #include "mbc_base.h"
 #include "serial.h"
 #include "sync.h"

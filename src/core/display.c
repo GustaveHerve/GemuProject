@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "common.h"
@@ -7,14 +8,14 @@
 
 struct color
 {
-    Uint8 r;
-    Uint8 g;
-    Uint8 b;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
 };
 
 struct pixel_data
 {
-    Uint8 _unused;
+    uint8_t _unused;
     struct color values;
 };
 
@@ -35,7 +36,6 @@ void draw_pixel(struct gb_core *gb, struct pixel p)
     frame_buffer[gb->membus[LY] * SCREEN_WIDTH + (gb->ppu.lx - 8)] =
         (struct pixel_data){._unused = 0, .values = color_palette[color_index]};
 
-    // uint32_t pixel = SDL_MapRGB(rend->format, NULL, color->r, color->g, color->b);
     //  A whole frame is ready, render it, handle inputs, synchronize
     if (gb->membus[LY] == SCREEN_HEIGHT - 1 && gb->ppu.lx == SCREEN_WIDTH + 7)
     {

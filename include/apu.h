@@ -1,7 +1,6 @@
 #ifndef CORE_APU_H
 #define CORE_APU_H
 
-#include <SDL3/SDL_audio.h>
 #include <stdint.h>
 
 struct gb_core;

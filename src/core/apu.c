@@ -1,6 +1,7 @@
 #include "apu.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "gb_core.h"
 
