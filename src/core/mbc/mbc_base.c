@@ -170,3 +170,13 @@ void write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
 {
     mbc->_write_mbc_ram(mbc, address, val);
 }
+
+void mbc_serialize(struct mbc_base *mbc, FILE *stream)
+{
+    mbc->_mbc_serialize(mbc, stream);
+}
+
+void mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
+{
+    mbc->_mbc_load_from_stream(mbc, stream);
+}

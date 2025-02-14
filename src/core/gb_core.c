@@ -125,7 +125,12 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(&gb->ppu, sizeof(uint8_t), sizeof(struct apu), file);
     fwrite(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
 
-    fwrite(gb->membus, sizeof(uint8_t), MEMBUS_SIZE, file);
+    // fwrite(gb->membus, sizeof(uint8_t), MEMBUS_SIZE, file);
+    fwrite(gb->membus, sizeof(uint8_t), 0x100, file);
+    fwrite(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
+    fwrite(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
+    fwrite(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
+
     fwrite(&gb->previous_div, sizeof(uint16_t), 2, file);
     fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
@@ -134,11 +139,11 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(gb->mbc->ram, sizeof(uint8_t), gb->mbc->ram_total_size, file);
     // TODO: each MBC type needs to have its own serialize routine
 
-    fwrite(&gb->joyp_a, sizeof(uint8_t), 2, file);
-
     fwrite(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
 
     fwrite(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
+
+    mbc_serialize(gb->mbc, file);
 
     fclose(file);
 
@@ -156,7 +161,13 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     fread(&gb->ppu, sizeof(uint8_t), sizeof(struct apu), file);
     fread(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
 
-    fread(gb->membus, sizeof(uint8_t), MEMBUS_SIZE, file);
+    // fread(gb->membus, sizeof(uint8_t), MEMBUS_SIZE, file);
+
+    fread(gb->membus, sizeof(uint8_t), 0x100, file);
+    fread(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
+    fread(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
+    fread(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
+
     fread(&gb->previous_div, sizeof(uint16_t), 2, file);
     fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
@@ -164,11 +175,13 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
 
     fread(gb->mbc->ram, sizeof(uint8_t), gb->mbc->ram_total_size, file);
 
-    fread(&gb->joyp_a, sizeof(uint8_t), 2, file);
-
     fread(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
 
     fread(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
+
+    mbc_load_from_stream(gb->mbc, file);
+
+    fclose(file);
 
     return EXIT_SUCCESS;
 }

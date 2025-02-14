@@ -115,20 +115,27 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
         save_ram_to_file(mbc);
 }
 
+static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
+{
+    struct mbc1 *mbc1 = (struct mbc1 *)mbc;
+
+    fwrite(&mbc1->bank1, sizeof(uint8_t), 4, stream);
+}
+
+static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
+{
+    struct mbc1 *mbc1 = (struct mbc1 *)mbc;
+
+    fread(&mbc1->bank1, sizeof(uint8_t), 4, stream);
+}
+
 struct mbc_base *make_mbc1(void)
 {
     struct mbc_base *mbc = calloc(1, sizeof(struct mbc1));
 
     mbc->type = MBC1;
 
-    mbc->_mbc_reset = _mbc_reset;
-    mbc->_mbc_free = _mbc_free;
-
-    mbc->_read_mbc_rom = _read_mbc_rom;
-    mbc->_write_mbc_rom = _write_mbc_rom;
-
-    mbc->_read_mbc_ram = _read_mbc_ram;
-    mbc->_write_mbc_ram = _write_mbc_ram;
+    MBC_SET_VTABLE;
 
     _mbc_reset(mbc);
 

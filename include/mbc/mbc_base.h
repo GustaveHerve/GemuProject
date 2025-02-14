@@ -6,6 +6,19 @@
 
 struct cpu;
 
+#define MBC_SET_VTABLE                                                                                                 \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        mbc->_mbc_reset = _mbc_reset;                                                                                  \
+        mbc->_mbc_free = _mbc_free;                                                                                    \
+        mbc->_read_mbc_rom = _read_mbc_rom;                                                                            \
+        mbc->_write_mbc_rom = _write_mbc_rom;                                                                          \
+        mbc->_read_mbc_ram = _read_mbc_ram;                                                                            \
+        mbc->_write_mbc_ram = _write_mbc_ram;                                                                          \
+        mbc->_mbc_serialize = _mbc_serialize;                                                                          \
+        mbc->_mbc_load_from_stream = _mbc_load_from_stream;                                                            \
+    } while (0)
+
 enum MBC_TYPE
 {
     NO_MBC = 0,
@@ -43,6 +56,9 @@ struct mbc_base
 
     uint8_t (*_read_mbc_ram)(struct mbc_base *mbc, uint16_t address);
     void (*_write_mbc_ram)(struct mbc_base *mbc, uint16_t address, uint8_t val);
+
+    void (*_mbc_serialize)(struct mbc_base *mbc, FILE *stream);
+    void (*_mbc_load_from_stream)(struct mbc_base *mbc, FILE *stream);
 };
 
 void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path);
@@ -55,5 +71,8 @@ void write_mbc_rom(struct mbc_base *mbc, uint16_t address, uint8_t val);
 
 uint8_t read_mbc_ram(struct mbc_base *mbc, uint16_t address);
 void write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val);
+
+void mbc_serialize(struct mbc_base *mbc, FILE *stream);
+void mbc_load_from_stream(struct mbc_base *mbc, FILE *stream);
 
 #endif

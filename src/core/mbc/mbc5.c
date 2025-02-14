@@ -5,7 +5,9 @@
 #include <string.h>
 #include <time.h>
 
+#include "mbc_base.h"
 #include "save.h"
+#include "serialization.h"
 
 static void _mbc_reset(struct mbc_base *mbc)
 {
@@ -104,20 +106,31 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
         save_ram_to_file(mbc);
 }
 
+static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
+{
+    struct mbc5 *mbc5 = (struct mbc5 *)mbc;
+
+    fwrite_le_16(stream, mbc5->bank1);
+
+    fwrite(&mbc5->bank2, sizeof(uint8_t), 2, stream);
+}
+
+static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
+{
+    struct mbc5 *mbc5 = (struct mbc5 *)mbc;
+
+    fread_le_16(stream, &mbc5->bank1);
+
+    fread(&mbc5->bank2, sizeof(uint8_t), 2, stream);
+}
+
 struct mbc_base *make_mbc5(void)
 {
     struct mbc_base *mbc = calloc(1, sizeof(struct mbc5));
 
     mbc->type = MBC5;
 
-    mbc->_mbc_reset = _mbc_reset;
-    mbc->_mbc_free = _mbc_free;
-
-    mbc->_read_mbc_rom = _read_mbc_rom;
-    mbc->_write_mbc_rom = _write_mbc_rom;
-
-    mbc->_read_mbc_ram = _read_mbc_ram;
-    mbc->_write_mbc_ram = _write_mbc_ram;
+    MBC_SET_VTABLE;
 
     _mbc_reset(mbc);
 

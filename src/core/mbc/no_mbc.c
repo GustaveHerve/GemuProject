@@ -48,20 +48,27 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
     return;
 }
 
+static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
+{
+    (void)mbc;
+    (void)stream;
+    /* Nothing to serialize */
+}
+
+static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
+{
+    (void)mbc;
+    (void)stream;
+    /* Nothing to load */
+}
+
 struct mbc_base *make_no_mbc(void)
 {
     struct mbc_base *mbc = malloc(sizeof(struct no_mbc));
 
     mbc->type = NO_MBC;
 
-    mbc->_mbc_reset = _mbc_reset;
-    mbc->_mbc_free = _mbc_free;
-
-    mbc->_read_mbc_rom = _read_mbc_rom;
-    mbc->_write_mbc_rom = _write_mbc_rom;
-
-    mbc->_read_mbc_ram = _read_mbc_ram;
-    mbc->_write_mbc_ram = _write_mbc_ram;
+    MBC_SET_VTABLE;
 
     _mbc_reset(mbc);
 
