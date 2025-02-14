@@ -10,7 +10,7 @@ struct ppu;
 
 typedef struct pixel
 {
-    int obj;
+    int8_t obj;
     uint8_t color;
     uint8_t palette;
     uint8_t priority;

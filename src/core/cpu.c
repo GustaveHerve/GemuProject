@@ -1,6 +1,10 @@
 #include "cpu.h"
 
+#include <endian.h>
+#include <stdio.h>
+
 #include "emulation.h"
+#include "serialization.h"
 #include "utils.h"
 
 #define MEMBUS_SIZE 65536
@@ -30,4 +34,24 @@ void cpu_set_registers_post_boot(struct cpu *cpu, int checksum)
     cpu->sp = 0xFFFE;
 
     cpu->ime = 0;
+}
+
+void serialize_cpu_to_stream(FILE *stream, struct cpu *cpu)
+{
+    fwrite(&cpu->a, sizeof(uint8_t), 8, stream);
+
+    fwrite_le_16(stream, cpu->sp);
+    fwrite_le_16(stream, cpu->pc);
+
+    fwrite(&cpu->ime, sizeof(uint8_t), 1, stream);
+}
+
+void load_cpu_from_stream(FILE *stream, struct cpu *cpu)
+{
+    fread(&cpu->a, sizeof(uint8_t), 8, stream);
+
+    fread_le_16(stream, &cpu->sp);
+    fread_le_16(stream, &cpu->pc);
+
+    fread(&cpu->ime, sizeof(uint8_t), 1, stream);
 }

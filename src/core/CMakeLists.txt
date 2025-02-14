@@ -24,4 +24,5 @@ target_sources(gemu PUBLIC
     memory.c
     sync.c
     display.c
+    serialization.c
 )

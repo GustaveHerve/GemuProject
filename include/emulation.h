@@ -11,6 +11,9 @@ struct global_settings
     bool paused;
     bool turbo;
     bool reset_signal;
+    bool save_state_signal;
+    bool load_state_signal;
+    float audio_volume;
 };
 
 void reset_gb(struct gb_core *gb);

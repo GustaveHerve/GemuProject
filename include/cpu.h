@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 struct cpu
 {
@@ -18,11 +19,13 @@ struct cpu
     uint16_t sp;
     uint16_t pc;
 
-    int ime;
+    uint8_t ime;
 };
 
-void cpu_start(struct cpu *cpu);
-
 void cpu_set_registers_post_boot(struct cpu *cpu, int checksum);
+
+void serialize_cpu_to_stream(FILE *stream, struct cpu *cpu);
+
+void load_cpu_from_stream(FILE *stream, struct cpu *cpu);
 
 #endif

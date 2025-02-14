@@ -26,8 +26,8 @@
 
 struct fetcher
 {
-    int obj_index; // Used if PPU in OBJ mode
-    int bottom_part;
+    int8_t obj_index; // Used if PPU in OBJ mode
+    uint8_t bottom_part;
 
     uint8_t attributes;
     uint8_t tileid; // Variables to Save state between dots
@@ -63,7 +63,7 @@ struct ppu
     uint8_t dma_acc;
     uint8_t dma_source;
 
-    int line_dot_count; // Dot count for current scanline
+    uint16_t line_dot_count; // Dot count for current scanline
     uint8_t mode1_153th;
     uint8_t first_tile;
     uint8_t current_mode;

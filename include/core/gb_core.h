@@ -22,8 +22,8 @@ struct gb_core
     uint8_t disabling_timer;
     uint8_t schedule_tima_overflow;
 
-    int halt;
-    int stop;
+    uint8_t halt;
+    uint8_t stop;
 
     uint8_t serial_clock;
     uint8_t serial_acc;
@@ -79,5 +79,9 @@ void init_gb_core(struct gb_core *gb);
 void init_gb_core_post_boot(struct gb_core *gb, int checksum);
 
 void free_gb_core(struct gb_core *gb);
+
+int serialize_gb_to_file(char *output_path, struct gb_core *gb);
+
+int load_gb_from_file(char *input_path, struct gb_core *gb);
 
 #endif

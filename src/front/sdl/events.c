@@ -42,6 +42,11 @@ void handle_events(struct gb_core *gb)
                 gb->joyp_a &= ~(0x08);
                 break;
             case SDLK_P:
+                if (settings->turbo)
+                {
+                    settings->turbo = false;
+                    set_vsync(1);
+                }
                 settings->paused = !settings->paused;
                 if (settings->paused)
                     set_window_title("GemuProject - Paused");
@@ -53,7 +58,8 @@ void handle_events(struct gb_core *gb)
                 set_vsync(0);
                 break;
             case SDLK_R:
-                settings->reset_signal = true;
+                if (!settings->paused)
+                    settings->reset_signal = true;
                 break;
             }
 
@@ -93,6 +99,18 @@ void handle_events(struct gb_core *gb)
                 struct global_settings *settings = get_global_settings();
                 settings->turbo = false;
                 set_vsync(1);
+                break;
+            }
+            case SDLK_1:
+            {
+                struct global_settings *settings = get_global_settings();
+                settings->save_state_signal = true;
+                break;
+            }
+            case SDLK_2:
+            {
+                struct global_settings *settings = get_global_settings();
+                settings->load_state_signal = true;
                 break;
             }
             }

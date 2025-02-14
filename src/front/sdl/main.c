@@ -17,6 +17,7 @@
 #include "interrupts.h"
 #include "rendering.h"
 #include "sdl_utils.h"
+#include "serialization.h"
 #include "sync.h"
 
 struct gb_core gb;
@@ -98,6 +99,18 @@ void main_loop(void)
         {
             reset_gb(&gb);
             settings->reset_signal = false;
+        }
+
+        else if (settings->save_state_signal)
+        {
+            serialize_gb_to_file("savestate", &gb);
+            settings->save_state_signal = false;
+        }
+
+        else if (settings->load_state_signal)
+        {
+            load_gb_from_file("savestate", &gb);
+            settings->load_state_signal = false;
         }
 
         if (!gb.halt)

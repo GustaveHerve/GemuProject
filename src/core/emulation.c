@@ -10,7 +10,7 @@
 #include "sync.h"
 #include "timers.h"
 
-struct global_settings settings = {0};
+struct global_settings settings = {.audio_volume = 0.4f};
 
 struct global_settings *get_global_settings(void)
 {

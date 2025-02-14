@@ -8,9 +8,6 @@ struct gb_core;
 #define SAMPLING_RATE 44100
 #define AUDIO_BUFFER_SIZE 512
 
-/* Default GB audio samples are WAY too loud by default, scale them back */
-#define EMULATOR_SOUND_VOLUME 0.4f;
-
 #define NRx4_TRIGGER_MASK (1 << 7)
 #define NRx4_LENGTH_ENABLE (1 << 6)
 #define NRx4_UNUSED_PART (0x7 << 3)

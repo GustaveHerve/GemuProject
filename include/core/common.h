@@ -98,6 +98,8 @@
 #define OCPS        0xFF6A
 #define OCPD        0xFF6B
 #define SVBK        0xFF70
+#define PCM12       0xFF76
+#define PCM34       0xFF77
 
 // clang-format on
 #endif

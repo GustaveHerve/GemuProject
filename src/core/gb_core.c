@@ -112,3 +112,63 @@ void free_gb_core(struct gb_core *gb)
     free(gb->membus);
     mbc_free(gb->mbc);
 }
+
+int serialize_gb_to_file(char *output_path, struct gb_core *gb)
+{
+    FILE *file;
+    if ((file = fopen(output_path, "wb")) == NULL)
+        return EXIT_FAILURE;
+
+    fwrite(&gb->cpu, sizeof(uint8_t), sizeof(struct cpu), file);
+    // serialize_cpu_to_stream(file, &gb->cpu);
+
+    fwrite(&gb->ppu, sizeof(uint8_t), sizeof(struct apu), file);
+    fwrite(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
+
+    fwrite(gb->membus, sizeof(uint8_t), MEMBUS_SIZE, file);
+    fwrite(&gb->previous_div, sizeof(uint16_t), 2, file);
+    fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
+
+    fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
+
+    fwrite(gb->mbc->ram, sizeof(uint8_t), gb->mbc->ram_total_size, file);
+    // TODO: each MBC type needs to have its own serialize routine
+
+    fwrite(&gb->joyp_a, sizeof(uint8_t), 2, file);
+
+    fwrite(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
+
+    fwrite(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
+
+    fclose(file);
+
+    return EXIT_SUCCESS;
+}
+
+int load_gb_from_file(char *input_path, struct gb_core *gb)
+{
+    FILE *file;
+    if ((file = fopen(input_path, "rb")) == NULL)
+        return EXIT_FAILURE;
+
+    fread(&gb->cpu, sizeof(uint8_t), sizeof(struct cpu), file);
+    // load_cpu_from_stream(file, &gb->cpu);
+    fread(&gb->ppu, sizeof(uint8_t), sizeof(struct apu), file);
+    fread(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
+
+    fread(gb->membus, sizeof(uint8_t), MEMBUS_SIZE, file);
+    fread(&gb->previous_div, sizeof(uint16_t), 2, file);
+    fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
+
+    fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
+
+    fread(gb->mbc->ram, sizeof(uint8_t), gb->mbc->ram_total_size, file);
+
+    fread(&gb->joyp_a, sizeof(uint8_t), 2, file);
+
+    fread(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
+
+    fread(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
+
+    return EXIT_SUCCESS;
+}

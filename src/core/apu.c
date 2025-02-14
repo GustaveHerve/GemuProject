@@ -454,9 +454,8 @@ static void queue_audio_sample(struct gb_core *gb)
 
     uint8_t nr50 = gb->membus[NR50];
 
-    float left_sample = mix_channels(gb, PANNING_LEFT) * (float)LEFT_MASTER_VOLUME(nr50) / 8.0f * EMULATOR_SOUND_VOLUME;
-    float right_sample =
-        mix_channels(gb, PANNING_RIGHT) * (float)RIGHT_MASTER_VOLUME(nr50) / 8.0f * EMULATOR_SOUND_VOLUME;
+    float left_sample = mix_channels(gb, PANNING_LEFT) * (float)LEFT_MASTER_VOLUME(nr50) / 8.0f;
+    float right_sample = mix_channels(gb, PANNING_RIGHT) * (float)RIGHT_MASTER_VOLUME(nr50) / 8.0f;
 
     union audio_sample sample = {
         .stereo_sample =

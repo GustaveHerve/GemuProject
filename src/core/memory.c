@@ -63,6 +63,14 @@ uint8_t read_mem_tick(struct gb_core *gb, uint16_t address)
     return res;
 }
 
+// static void test(struct gb_core *gb)
+// {
+//     (void)gb;
+//     return;
+// }
+//
+// void (*write_jmp_table[4])(struct gb_core *) = {test, test, test, test};
+
 void write_mem(struct gb_core *gb, uint16_t address, uint8_t val)
 {
     uint8_t write = 1;
