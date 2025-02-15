@@ -102,7 +102,11 @@ void main_loop(void)
         {
             size_t len = strlen(gb.mbc->rom_path) + 11 + 1;
             char *save_path = malloc(len);
+#ifdef _MACOS
+            sprintf(save_path, "%s.savestate%d", gb.mbc->rom_path, settings->save_state);
+#else
             snprintf(save_path, len, "%s.savestate%d", gb.mbc->rom_path, settings->save_state);
+#endif
             serialize_gb_to_file(save_path, &gb);
             free(save_path);
             settings->save_state = 0;

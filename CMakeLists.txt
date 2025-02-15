@@ -14,6 +14,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_link_options(-fsanitize=address)
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    add_compile_definitions("_MACOS")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    add_compile_definitions("_WIN32")
+endif()
+
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 
 add_executable(gemu)

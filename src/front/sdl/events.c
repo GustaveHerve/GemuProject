@@ -113,7 +113,11 @@ void handle_events(struct gb_core *gb)
             {
                 struct global_settings *settings = get_global_settings();
                 unsigned char key = event.key.key - SDLK_1 + 1;
+#ifdef _MACOS
+                if (event.key.mod & SDL_KMOD_LGUI)
+#else
                 if (event.key.mod & SDL_KMOD_CTRL)
+#endif
                     settings->load_state = key;
                 else
                     settings->save_state = key;
