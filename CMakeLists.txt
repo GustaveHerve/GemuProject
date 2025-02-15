@@ -31,11 +31,11 @@ add_subdirectory(src)
 target_include_directories(gemu PUBLIC
     "include"
     "include/core"
-    "include/memory"
-    "include/opcodes"
+    "include/core/mbc"
+    "include/core/memory"
+    "include/core/opcodes"
     "include/front"
     "include/front/sdl"
-    "include/mbc"
 )
 
 target_link_libraries(gemu PRIVATE SDL3::SDL3)

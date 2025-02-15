@@ -2,6 +2,11 @@
 #define CORE_COMMON_H
 // clang-format off
 
+/* Display */
+#define SCREEN_WIDTH        160
+#define SCREEN_HEIGHT       144
+#define SCREEN_RESOLUTION   (SCREEN_WIDTH * SCREEN_HEIGHT)
+
 /* CPU */
 #define CPU_FREQUENCY   4194304
 #define MEMBUS_SIZE     65536
@@ -16,13 +21,19 @@
 #define ECHO_RAM    0xE000
 #define OAM         0xFE00
 #define NOT_USABLE  0xFEA0
-#define IO_REG      0xFF00
+#define IO          0xFF00
 #define HRAM        0xFF80
 
-/* Display */
-#define SCREEN_WIDTH        160
-#define SCREEN_HEIGHT       144
-#define SCREEN_RESOLUTION   (SCREEN_WIDTH * SCREEN_HEIGHT)
+/* Memory sizes */
+#define BANK0_SIZE      0x4000
+#define BANK1_SIZE      0x4000
+#define VRAM_SIZE       0x2000
+#define EXRAM_SIZE      0x2000
+#define WRAM_SIZE       0x2000
+#define OAM_SIZE        0xA0
+#define NOT_USABLE_SIZE 0x70
+#define IO_SIZE         0x80
+#define HRAM_SIZE       0x7F
 
 /* I/O Registers */
 #define JOYP        0xFF00
@@ -100,6 +111,14 @@
 #define SVBK        0xFF70
 #define PCM12       0xFF76
 #define PCM34       0xFF77
+
+/* Macros helpers for converting an absolute address to the offest value for its memory area */
+#define VRAM_OFFSET(ADDR)               (ADDR & 0x1FFF)
+#define WRAM_OFFSET(ADDR)               (ADDR & 0x1FFF)
+#define OAM_OFFSET(ADDR)                (ADDR & 0xFF)
+#define UNUSABLE_MEM_OFFSET(ADDR)       (ADDR - NOT_USABLE)
+#define IO_OFFSET(ADDR)                 (ADDR & 0x7F)
+#define HRAM_OFFSET(ADDR)               (ADDR & 0x7F)
 
 // clang-format on
 #endif

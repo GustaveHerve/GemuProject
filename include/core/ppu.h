@@ -47,7 +47,14 @@ struct ppu
 {
     uint8_t lx;
 
-    struct obj obj_slots[10];
+    struct obj
+    {
+        uint8_t y;
+        uint8_t x;
+        uint8_t *oam_address;
+        uint8_t done;
+    } obj_slots[10];
+
     int8_t obj_count;
 
     RING_BUFFER(pixel) bg_fifo;
@@ -77,24 +84,24 @@ struct ppu
     uint8_t obj_mode;
 };
 
-static inline int get_lcdc(uint8_t *membus, int bit)
+static inline int get_lcdc(uint8_t *io, int bit)
 {
-    return membus[LCDC] >> bit & 0x01;
+    return io[IO_OFFSET(LCDC)] >> bit & 0x01;
 }
 
-static inline void set_stat(uint8_t *membus, int bit)
+static inline void set_stat(uint8_t *io, int bit)
 {
-    membus[STAT] |= 0x01 << bit;
+    io[IO_OFFSET(STAT)] |= 0x01 << bit;
 }
 
-static inline int get_stat(uint8_t *membus, int bit)
+static inline int get_stat(uint8_t *io, int bit)
 {
-    return (membus[STAT] >> bit) & 0x01;
+    return (io[IO_OFFSET(STAT)] >> bit) & 0x01;
 }
 
-static inline void clear_stat(uint8_t *membus, int bit)
+static inline void clear_stat(uint8_t *io, int bit)
 {
-    membus[STAT] &= ~(0x01 << bit);
+    io[IO_OFFSET(STAT)] &= ~(0x01 << bit);
 }
 
 struct gb_core;

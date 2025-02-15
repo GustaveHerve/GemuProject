@@ -40,7 +40,7 @@ uint8_t slice_xflip(uint8_t slice)
 int on_window(struct gb_core *gb)
 {
     return get_lcdc(gb->membus, LCDC_BG_WINDOW_ENABLE) && get_lcdc(gb->membus, LCDC_WINDOW_ENABLE) &&
-           gb->ppu.wy_trigger && gb->ppu.lx == gb->membus[WX] + 1;
+           gb->ppu.wy_trigger && gb->ppu.lx == gb->memory.io[IO_OFFSET(WX)] + 1;
 }
 
 int on_object(struct gb_core *gb, int *bottom_part)

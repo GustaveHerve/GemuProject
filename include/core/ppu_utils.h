@@ -16,14 +16,6 @@ typedef struct pixel
     uint8_t priority;
 } pixel;
 
-struct obj
-{
-    uint8_t y;
-    uint8_t x;
-    uint8_t *oam_address;
-    uint8_t done;
-};
-
 DEFINE_RING_BUFFER(pixel, 8)
 
 // on_window: read LX and LY and check if drawing in Window or BG

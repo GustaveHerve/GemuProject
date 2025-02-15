@@ -31,14 +31,14 @@ static uint8_t get_tileid(struct gb_core *gb, int obj_index, int bottom_part)
         }
         else
         {
-            x_part = ((uint8_t)(gb->ppu.bg_fetcher.lx_save + gb->membus[SCX])) / 8;
-            y_part = ((uint8_t)(gb->membus[LY] + gb->membus[SCY])) / 8;
+            x_part = ((uint8_t)(gb->ppu.bg_fetcher.lx_save + gb->memory.io[IO_OFFSET(SCX)])) / 8;
+            y_part = ((uint8_t)(gb->memory.io[IO_OFFSET(LY)] + gb->memory.io[IO_OFFSET(SCY)])) / 8;
             bit = LCDC_BG_TILE_MAP;
         }
 
-        uint16_t address = (0x13 << 11) | (get_lcdc(gb->membus, bit) << 10) | (y_part << 5) | x_part;
+        uint16_t address = (0x13 << 11) | (get_lcdc(gb->memory.io, bit) << 10) | (y_part << 5) | x_part;
 
-        tileid = gb->membus[address];
+        tileid = gb->memory.vram[VRAM_OFFSET(address)];
     }
 
     else
@@ -54,7 +54,7 @@ static uint8_t get_tileid(struct gb_core *gb, int obj_index, int bottom_part)
             gb->ppu.obj_fetcher.attributes = *(gb->ppu.obj_slots[obj_index].oam_address + 3);
         }
 
-        if (get_lcdc(gb->membus, LCDC_OBJ_SIZE))
+        if (get_lcdc(gb->memory.io, LCDC_OBJ_SIZE))
         {
             uint8_t cond = !bottom_part;
             if ((gb->ppu.obj_fetcher.attributes >> 6) & 0x01)
@@ -77,7 +77,7 @@ static uint8_t get_tile_lo(struct gb_core *gb, uint8_t tileid, int obj_index)
     uint8_t attributes = gb->ppu.obj_fetcher.attributes;
     if (obj_index != -1)
     {
-        y_part = (gb->membus[LY] - (gb->ppu.obj_slots[obj_index].y - 16)) % 8;
+        y_part = (gb->memory.io[IO_OFFSET(LY)] - (gb->ppu.obj_slots[obj_index].y - 16)) % 8;
         // Y flip
         if ((attributes >> 6) & 0x01)
         {
@@ -88,17 +88,17 @@ static uint8_t get_tile_lo(struct gb_core *gb, uint8_t tileid, int obj_index)
     else if (gb->ppu.win_mode)
     {
         y_part = gb->ppu.win_ly % 8;
-        bit_12 = !(get_lcdc(gb->membus, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
+        bit_12 = !(get_lcdc(gb->memory.io, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
     }
     else
     {
-        y_part = (uint8_t)(((gb->membus[LY] + gb->membus[SCY])) % 8);
-        bit_12 = !(get_lcdc(gb->membus, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
+        y_part = (uint8_t)(((gb->memory.io[IO_OFFSET(LY)] + gb->memory.io[IO_OFFSET(SCY)])) % 8);
+        bit_12 = !(get_lcdc(gb->memory.io, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
     }
 
     uint16_t address_low = (0x4 << 13) | (bit_12 << 12) | (tileid << 4) | (y_part << 1) | 0;
 
-    uint8_t slice_low = gb->membus[address_low];
+    uint8_t slice_low = gb->memory.vram[VRAM_OFFSET(address_low)];
 
     if (obj_index != -1)
     {
@@ -118,7 +118,7 @@ static uint8_t get_tile_hi(struct gb_core *gb, uint8_t tileid, int obj_index)
     uint8_t attributes = gb->ppu.obj_fetcher.attributes;
     if (obj_index != -1)
     {
-        y_part = (gb->membus[LY] - (gb->ppu.obj_slots[obj_index].y - 16)) % 8;
+        y_part = (gb->memory.io[IO_OFFSET(LY)] - (gb->ppu.obj_slots[obj_index].y - 16)) % 8;
         /* Y flip */
         if ((attributes >> 6) & 0x01)
             y_part = (~y_part) & 0x07;
@@ -126,17 +126,17 @@ static uint8_t get_tile_hi(struct gb_core *gb, uint8_t tileid, int obj_index)
     else if (gb->ppu.win_mode)
     {
         y_part = gb->ppu.win_ly % 8;
-        bit_12 = !(get_lcdc(gb->membus, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
+        bit_12 = !(get_lcdc(gb->memory.io, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
     }
     else
     {
-        y_part = (uint8_t)(((gb->membus[LY] + gb->membus[SCY])) % 8);
-        bit_12 = !(get_lcdc(gb->membus, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
+        y_part = (uint8_t)(((gb->memory.io[IO_OFFSET(LY)] + gb->memory.io[IO_OFFSET(SCY)])) % 8);
+        bit_12 = !(get_lcdc(gb->memory.io, LCDC_BG_WINDOW_TILES) | (tileid & 0x80));
     }
 
     uint16_t address_high = (0x4 << 13) | (bit_12 << 12) | (tileid << 4) | (y_part << 1) | 1;
 
-    uint8_t slice_high = gb->membus[address_high];
+    uint8_t slice_high = gb->memory.vram[VRAM_OFFSET(address_high)];
 
     if (obj_index != -1)
     {
@@ -281,23 +281,23 @@ void ppu_init(struct gb_core *gb)
 
     gb->ppu.obj_mode = 0;
 
-    gb->membus[LCDC] = 0x00;
-    gb->membus[STAT] = 0x84;
-    gb->membus[SCY] = 0x00;
-    gb->membus[SCX] = 0x00;
-    gb->membus[LY] = 0x00;
-    gb->membus[LYC] = 0x00;
-    gb->membus[BGP] = 0xFC;
-    gb->membus[OBP0] = 0xFF;
-    gb->membus[OBP1] = 0xFF;
-    gb->membus[WX] = 0x00;
-    gb->membus[WY] = 0x00;
+    gb->memory.io[IO_OFFSET(LCDC)] = 0x00;
+    gb->memory.io[IO_OFFSET(STAT)] = 0x84;
+    gb->memory.io[IO_OFFSET(SCY)] = 0x00;
+    gb->memory.io[IO_OFFSET(SCX)] = 0x00;
+    gb->memory.io[IO_OFFSET(LY)] = 0x00;
+    gb->memory.io[IO_OFFSET(LYC)] = 0x00;
+    gb->memory.io[IO_OFFSET(BGP)] = 0xFC;
+    gb->memory.io[IO_OFFSET(OBP0)] = 0xFF;
+    gb->memory.io[IO_OFFSET(OBP1)] = 0xFF;
+    gb->memory.io[IO_OFFSET(WX)] = 0x00;
+    gb->memory.io[IO_OFFSET(WY)] = 0x00;
 }
 
 // Sets back PPU to default state when turned off
 void ppu_reset(struct gb_core *gb)
 {
-    gb->membus[LY] = 0;
+    gb->memory.io[IO_OFFSET(LY)] = 0;
     gb->ppu.lx = 0;
     gb->ppu.current_mode = 0;
     gb->ppu.mode1_153th = 0;
@@ -306,7 +306,7 @@ void ppu_reset(struct gb_core *gb)
     gb->ppu.oam_locked = 0;
     gb->ppu.vram_locked = 0;
 
-    gb->membus[STAT] &= ~0x03;
+    gb->memory.io[IO_OFFSET(STAT)] &= ~0x03;
     check_lyc(gb, 0);
 
     fetcher_reset(&gb->ppu.bg_fetcher);
@@ -321,13 +321,14 @@ static int oam_scan(struct gb_core *gb)
     gb->ppu.oam_locked = 1;
     gb->ppu.vram_locked = 0;
 
-    uint8_t *obj_y = &gb->membus[OAM] + 2 * (gb->ppu.line_dot_count);
+    uint8_t *obj_y = &gb->memory.oam[0] + 2 * (gb->ppu.line_dot_count);
     if (gb->ppu.obj_count < 10)
     {
         // 8x16 (LCDC bit 2 = 1) or 8x8 (LCDC bit 2 = 0)
         // TODO: obj_y + 1 != 0 condition is weird ? check this
-        int y_max_offset = get_lcdc(gb->membus, LCDC_OBJ_SIZE) ? 16 : 8;
-        if (*(obj_y + 1) != 0 && gb->membus[LY] + 16 >= *obj_y && gb->membus[LY] + 16 < *obj_y + y_max_offset)
+        int y_max_offset = get_lcdc(gb->memory.io, LCDC_OBJ_SIZE) ? 16 : 8;
+        if (*(obj_y + 1) != 0 && gb->memory.io[IO_OFFSET(LY)] + 16 >= *obj_y &&
+            gb->memory.io[IO_OFFSET(LY)] + 16 < *obj_y + y_max_offset)
         {
             gb->ppu.obj_slots[gb->ppu.obj_count].y = *obj_y;
             gb->ppu.obj_slots[gb->ppu.obj_count].x = *(obj_y + 1);
@@ -354,10 +355,10 @@ static uint8_t mode2_handler(struct gb_core *gb)
 {
     if (gb->ppu.line_dot_count == 0)
     {
-        set_stat(gb->membus, 1);
-        clear_stat(gb->membus, 0);
+        set_stat(gb->memory.io, 1);
+        clear_stat(gb->memory.io, 0);
         // Check the WY trigger
-        if (gb->membus[LY] == gb->membus[WY])
+        if (gb->memory.io[IO_OFFSET(LY)] == gb->memory.io[IO_OFFSET(WY)])
             gb->ppu.wy_trigger = 1;
     }
 
@@ -404,7 +405,7 @@ static uint8_t send_pixel(struct gb_core *gb)
     // Don't draw BG prefetch + shift SCX for first BG tile
     if (!gb->ppu.win_mode && gb->ppu.first_tile && gb->ppu.lx > 7)
     {
-        size_t discard = gb->membus[SCX] % 8;
+        size_t discard = gb->memory.io[IO_OFFSET(SCX)] % 8;
         if (RING_BUFFER_GET_COUNT(pixel, &gb->ppu.bg_fifo) <= 8 - discard)
         {
             struct pixel p = select_pixel(gb);
@@ -446,8 +447,8 @@ static uint8_t mode3_handler(struct gb_core *gb)
     // Start of mode 3
     if (gb->ppu.line_dot_count == 80)
     {
-        set_stat(gb->membus, 1);
-        set_stat(gb->membus, 0);
+        set_stat(gb->memory.io, 1);
+        set_stat(gb->memory.io, 0);
 
         // Lock OAM and VRAM read (return FF)
         gb->ppu.oam_locked = 1;
@@ -474,7 +475,7 @@ static uint8_t mode3_handler(struct gb_core *gb)
     // Check for object if we are not already treating one
     int obj = -1;
     int bottom_part = 0;
-    if (gb->ppu.obj_fetcher.obj_index == -1 && get_lcdc(gb->membus, LCDC_OBJ_ENABLE))
+    if (gb->ppu.obj_fetcher.obj_index == -1 && get_lcdc(gb->memory.io, LCDC_OBJ_ENABLE))
     {
         obj = on_object(gb, &bottom_part);
         if (obj > -1)
@@ -525,11 +526,11 @@ static uint8_t mode3_handler(struct gb_core *gb)
 // Mode 0
 static uint8_t mode0_handler(struct gb_core *gb)
 {
-    if (get_stat(gb->membus, 1) || get_stat(gb->membus, 0))
+    if (get_stat(gb->memory.io, 1) || get_stat(gb->memory.io, 0))
     {
-        clear_stat(gb->membus, 1);
-        clear_stat(gb->membus, 0);
-        if (get_stat(gb->membus, 3) && !get_if(gb, INTERRUPT_LCD))
+        clear_stat(gb->memory.io, 1);
+        clear_stat(gb->memory.io, 0);
+        if (get_stat(gb->memory.io, 3) && !get_if(gb, INTERRUPT_LCD))
             set_if(gb, INTERRUPT_LCD);
     }
 
@@ -545,7 +546,7 @@ static uint8_t mode0_handler(struct gb_core *gb)
 
     // Exit HBlank
     gb->ppu.lx = 0;
-    gb->membus[LY] += 1;
+    gb->memory.io[IO_OFFSET(LY)] += 1;
 
     gb->ppu.win_mode = 0;
 
@@ -553,13 +554,13 @@ static uint8_t mode0_handler(struct gb_core *gb)
     gb->ppu.current_mode = 2;
     gb->ppu.obj_count = 0;
 
-    set_stat(gb->membus, 1);
-    clear_stat(gb->membus, 0);
-    if (get_stat(gb->membus, 5) && !get_stat(gb->membus, 4))
+    set_stat(gb->memory.io, 1);
+    clear_stat(gb->memory.io, 0);
+    if (get_stat(gb->memory.io, 5) && !get_stat(gb->memory.io, 4))
         set_if(gb, INTERRUPT_LCD);
 
     // Start VBlank
-    if (gb->membus[LY] > 143)
+    if (gb->memory.io[IO_OFFSET(LY)] > 143)
     {
         gb->ppu.wy_trigger = 0;
         gb->ppu.current_mode = 1;
@@ -571,12 +572,12 @@ static uint8_t mode0_handler(struct gb_core *gb)
 
 static uint8_t mode1_handler(struct gb_core *gb)
 {
-    if (gb->membus[LY] == 144 && gb->ppu.line_dot_count == 0)
+    if (gb->memory.io[IO_OFFSET(LY)] == 144 && gb->ppu.line_dot_count == 0)
     {
-        clear_stat(gb->membus, 1);
-        set_stat(gb->membus, 0);
-        set_if(gb, INTERRUPT_VBLANK);                            // VBlank Interrupt
-        if (get_stat(gb->membus, 4) && !get_stat(gb->membus, 3)) // STAT VBlank Interrupt
+        clear_stat(gb->memory.io, 1);
+        set_stat(gb->memory.io, 0);
+        set_if(gb, INTERRUPT_VBLANK);                                  // VBlank Interrupt
+        if (get_stat(gb->memory.io, 4) && !get_stat(gb->memory.io, 3)) // STAT VBlank Interrupt
             set_if(gb, INTERRUPT_LCD);
     }
 
@@ -585,18 +586,18 @@ static uint8_t mode1_handler(struct gb_core *gb)
     if (gb->ppu.line_dot_count < 456)
     {
         // LY = 153, special case with LY = 0 after 1 MCycle
-        if (gb->membus[LY] == 153 && !gb->ppu.mode1_153th && gb->ppu.line_dot_count >= 4)
+        if (gb->memory.io[IO_OFFSET(LY)] == 153 && !gb->ppu.mode1_153th && gb->ppu.line_dot_count >= 4)
         {
-            gb->membus[LY] = 0;
+            gb->memory.io[IO_OFFSET(LY)] = 0;
             gb->ppu.mode1_153th = 1;
         }
         ++gb->ppu.line_dot_count;
         return 1;
     }
 
-    if (!gb->ppu.mode1_153th && gb->membus[LY]) // Go to next VBlank line
+    if (!gb->ppu.mode1_153th && gb->memory.io[IO_OFFSET(LY)]) // Go to next VBlank line
     {
-        ++gb->membus[LY];
+        ++gb->memory.io[IO_OFFSET(LY)];
         gb->ppu.line_dot_count = 0;
         return 0;
     }
@@ -605,7 +606,7 @@ static uint8_t mode1_handler(struct gb_core *gb)
     gb->ppu.line_dot_count = 0;
     gb->ppu.mode1_153th = 0;
     gb->ppu.current_mode = 2;
-    gb->membus[LY] = 0;
+    gb->memory.io[IO_OFFSET(LY)] = 0;
     gb->ppu.win_ly = 0;
     gb->ppu.win_lx = 7;
     return 0;
@@ -637,7 +638,7 @@ void ppu_tick_m(struct gb_core *gb)
         gb->ppu.dma = 1;
     else if (gb->ppu.dma == 1)
     {
-        gb->membus[OAM + gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
+        gb->memory.oam[gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
         ++gb->ppu.dma_acc;
         if (gb->ppu.dma_acc >= 160)
             gb->ppu.dma = 0;

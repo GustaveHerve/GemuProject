@@ -7,7 +7,7 @@
 
 static void transfer_complete(struct gb_core *gb)
 {
-    gb->membus[SC] &= ~0x80;
+    gb->memory.io[IO_OFFSET(SC)] &= ~0x80;
 }
 
 void update_serial(struct gb_core *gb)
@@ -19,8 +19,8 @@ void update_serial(struct gb_core *gb)
     {
         if (get_clock_select(gb))
         {
-            gb->membus[SB] <<= 1; /* Shift bit out */
-            gb->membus[SB] |= 1;  /* Simulate no slave GameBoy connected, receiving $FF */
+            gb->memory.io[IO_OFFSET(SB)] <<= 1; /* Shift bit out */
+            gb->memory.io[IO_OFFSET(SB)] |= 1;  /* Simulate no slave GameBoy connected, receiving $FF */
             ++gb->serial_acc;
         }
     }

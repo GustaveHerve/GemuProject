@@ -54,7 +54,7 @@ static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
         return EXIT_SUCCESS;
 
     // Enable bootrom
-    gb->membus[BOOT] = 0xFE;
+    gb->memory.io[IO_OFFSET(BOOT)] = 0xFE;
 
     // Open BOOTROM
     FILE *fptr = fopen(boot_rom_path, "rb");

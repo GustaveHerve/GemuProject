@@ -15,6 +15,18 @@ struct gb_core
 
     uint8_t *membus;
 
+    struct memory_map
+    {
+        uint8_t *boot_rom;
+        uint8_t *vram;
+        uint8_t *wram;
+        uint8_t oam[160];
+        uint8_t *unusable_mem;
+        uint8_t io[128];
+        uint8_t hram[127];
+        uint8_t ie;
+    } memory;
+
     // Internal registers
     uint16_t previous_div;
     uint16_t internal_div;

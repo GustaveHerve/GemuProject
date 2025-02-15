@@ -8,6 +8,65 @@
 #include "mbc_base.h"
 #include "sync.h"
 
+static void init_io_post_boot(struct memory_map *mem)
+{
+    mem->io[IO_OFFSET(JOYP)] = 0xCF;
+    mem->io[IO_OFFSET(SB)] = 0x00;
+    mem->io[IO_OFFSET(SC)] = 0x7E;
+    mem->io[IO_OFFSET(DIV)] = 0xAB;
+    mem->io[IO_OFFSET(TIMA)] = 0x00;
+    mem->io[IO_OFFSET(TMA)] = 0x00;
+    mem->io[IO_OFFSET(TAC)] = 0xF8;
+    mem->io[IO_OFFSET(IF)] = 0xE1;
+    mem->io[IO_OFFSET(NR10)] = 0x80;
+    mem->io[IO_OFFSET(NR11)] = 0xBF;
+    mem->io[IO_OFFSET(NR12)] = 0xF3;
+    mem->io[IO_OFFSET(NR13)] = 0xFF;
+    mem->io[IO_OFFSET(NR14)] = 0xBF;
+    mem->io[IO_OFFSET(NR21)] = 0x3F;
+    mem->io[IO_OFFSET(NR22)] = 0x00;
+    mem->io[IO_OFFSET(NR23)] = 0xFF;
+    mem->io[IO_OFFSET(NR24)] = 0xBF;
+    mem->io[IO_OFFSET(NR30)] = 0x7F;
+    mem->io[IO_OFFSET(NR31)] = 0xFF;
+    mem->io[IO_OFFSET(NR32)] = 0x9F;
+    mem->io[IO_OFFSET(NR33)] = 0xFF;
+    mem->io[IO_OFFSET(NR34)] = 0xBF;
+    mem->io[IO_OFFSET(NR41)] = 0xFF;
+    mem->io[IO_OFFSET(NR42)] = 0x00;
+    mem->io[IO_OFFSET(NR43)] = 0x00;
+    mem->io[IO_OFFSET(NR44)] = 0xBF;
+    mem->io[IO_OFFSET(NR50)] = 0x77;
+    mem->io[IO_OFFSET(NR51)] = 0xF3;
+    mem->io[IO_OFFSET(NR52)] = 0xF1;
+    mem->io[IO_OFFSET(LCDC)] = 0x91;
+    mem->io[IO_OFFSET(STAT)] = 0x85;
+    mem->io[IO_OFFSET(SCY)] = 0x00;
+    mem->io[IO_OFFSET(SCX)] = 0x00;
+    mem->io[IO_OFFSET(LY)] = 0x00;
+    mem->io[IO_OFFSET(LYC)] = 0x00;
+    mem->io[IO_OFFSET(DMA)] = 0xFF;
+    mem->io[IO_OFFSET(BGP)] = 0xFC;
+    mem->io[IO_OFFSET(OBP0)] = 0xFF;
+    mem->io[IO_OFFSET(OBP1)] = 0xFF;
+    mem->io[IO_OFFSET(WY)] = 0x00;
+    mem->io[IO_OFFSET(WX)] = 0x00;
+    mem->io[IO_OFFSET(BOOT)] = 0xFF;
+    mem->io[IO_OFFSET(HDMA1)] = 0xFF;
+    mem->io[IO_OFFSET(HDMA2)] = 0xFF;
+    mem->io[IO_OFFSET(HDMA3)] = 0xFF;
+    mem->io[IO_OFFSET(HDMA4)] = 0xFF;
+    mem->io[IO_OFFSET(HDMA5)] = 0xFF;
+    mem->io[IO_OFFSET(RP)] = 0xFF;
+    mem->io[IO_OFFSET(BCPS)] = 0xFF;
+    mem->io[IO_OFFSET(BCPD)] = 0xFF;
+    mem->io[IO_OFFSET(OCPS)] = 0xFF;
+    mem->io[IO_OFFSET(OCPD)] = 0xFF;
+    mem->io[IO_OFFSET(SVBK)] = 0xFF;
+
+    mem->ie = 0x00;
+}
+
 static void init_membus_post_boot(uint8_t *membus)
 {
     membus[JOYP] = 0xCF;
@@ -69,7 +128,8 @@ static void init_membus_post_boot(uint8_t *membus)
 void init_gb_core_post_boot(struct gb_core *gb, int checksum)
 {
     cpu_set_registers_post_boot(&gb->cpu, checksum);
-    init_membus_post_boot(gb->membus);
+    // init_membus_post_boot(gb->membus);
+    init_io_post_boot(&gb->memory);
 
     gb->internal_div = 0xAB00;
 
@@ -82,6 +142,10 @@ void init_gb_core(struct gb_core *gb)
 {
     memset(&gb->cpu, 0, sizeof(struct cpu));
     gb->membus = calloc(MEMBUS_SIZE, sizeof(uint8_t));
+
+    gb->memory.vram = malloc(VRAM_SIZE * sizeof(uint8_t));
+    gb->memory.wram = malloc(WRAM_SIZE * sizeof(uint8_t));
+    gb->memory.unusable_mem = malloc(NOT_USABLE_SIZE * sizeof(uint8_t));
 
     ppu_init(gb);
     apu_init(&gb->apu);
@@ -110,6 +174,9 @@ void init_gb_core(struct gb_core *gb)
 void free_gb_core(struct gb_core *gb)
 {
     free(gb->membus);
+    free(gb->memory.vram);
+    free(gb->memory.wram);
+    free(gb->memory.unusable_mem);
     mbc_free(gb->mbc);
 }
 

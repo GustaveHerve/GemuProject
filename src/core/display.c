@@ -31,13 +31,13 @@ void *get_frame_buffer(void)
 void draw_pixel(struct gb_core *gb, struct pixel p)
 {
     unsigned int palette_address = p.obj > -1 ? (p.palette ? OBP1 : OBP0) : BGP;
-    unsigned int color_index = (gb->membus[palette_address] >> (p.color * 2)) & 0x03;
+    unsigned int color_index = (gb->memory.io[IO_OFFSET(palette_address)] >> (p.color * 2)) & 0x03;
 
-    frame_buffer[gb->membus[LY] * SCREEN_WIDTH + (gb->ppu.lx - 8)] =
+    frame_buffer[gb->memory.io[IO_OFFSET(LY)] * SCREEN_WIDTH + (gb->ppu.lx - 8)] =
         (struct pixel_data){._unused = 0, .values = color_palette[color_index]};
 
     //  A whole frame is ready, render it, handle inputs, synchronize
-    if (gb->membus[LY] == SCREEN_HEIGHT - 1 && gb->ppu.lx == SCREEN_WIDTH + 7)
+    if (gb->memory.io[IO_OFFSET(LY)] == SCREEN_HEIGHT - 1 && gb->ppu.lx == SCREEN_WIDTH + 7)
     {
         gb->callbacks.handle_events(gb);
         gb->callbacks.render_frame();

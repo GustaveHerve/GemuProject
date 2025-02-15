@@ -6,8 +6,8 @@
 
 static uint8_t _rom(struct gb_core *gb, uint16_t address)
 {
-    if (!(gb->membus[BOOT] & 0x01) && address <= 0x00FF)
-        return gb->membus[address];
+    if (!(gb->memory.io[IO_OFFSET(BOOT)] & 0x01) && address <= 0x00FF)
+        return gb->memory.boot_rom[address];
     return read_mbc_rom(gb->mbc, address);
 }
 
@@ -15,7 +15,7 @@ static uint8_t _vram(struct gb_core *gb, uint16_t address)
 {
     if (gb->ppu.vram_locked)
         return 0xFF;
-    return gb->membus[address];
+    return gb->memory.vram[VRAM_OFFSET(address)];
 }
 
 static uint8_t _ex_ram(struct gb_core *gb, uint16_t address)
@@ -25,12 +25,12 @@ static uint8_t _ex_ram(struct gb_core *gb, uint16_t address)
 
 static uint8_t _wram(struct gb_core *gb, uint16_t address)
 {
-    return gb->membus[address];
+    return gb->memory.wram[WRAM_OFFSET(address)];
 }
 
 static uint8_t _echo_ram(struct gb_core *gb, uint16_t address)
 {
-    return gb->membus[address - 0x2000];
+    return gb->memory.wram[WRAM_OFFSET(address)];
 }
 
 static uint8_t _oam(struct gb_core *gb, uint16_t address)
@@ -41,32 +41,31 @@ static uint8_t _oam(struct gb_core *gb, uint16_t address)
     }
     if (gb->ppu.oam_locked)
         return 0xFF;
-    return gb->membus[address];
+    return gb->memory.oam[OAM_OFFSET(address)];
 }
 
 static uint8_t _io(struct gb_core *gb, uint16_t address)
 {
-    // TODO: io handling
     // JOYP
-    if (address == 0xFF00)
+    if (address == JOYP)
     {
         // TODO: redo this
         // Neither directions nor actions buttons selected, low nibble = 0xF
-        if ((gb->membus[address] & 0x30) == 0x30)
-            return gb->membus[address] | 0xF;
+        if ((gb->memory.io[IO_OFFSET(JOYP)] & 0x30) == 0x30)
+            return gb->memory.io[IO_OFFSET(JOYP)] | 0xF;
     }
-    return gb->membus[address];
+    return gb->memory.io[IO_OFFSET(address)];
 }
 
 static uint8_t _hram(struct gb_core *gb, uint16_t address)
 {
-    return gb->membus[address];
+    return gb->memory.hram[HRAM_OFFSET(address)];
 }
 
 static uint8_t _ie(struct gb_core *gb, uint16_t address)
 {
     (void)address;
-    return gb->membus[IE];
+    return gb->memory.ie;
 }
 
 static uint8_t _read_jmp_level_4(struct gb_core *gb, uint16_t address)
