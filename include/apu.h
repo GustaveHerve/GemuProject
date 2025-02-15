@@ -26,64 +26,64 @@ union audio_sample
 struct ch1
 {
     /* Length */
-    unsigned int length_timer;
+    uint32_t length_timer; // 8 bits
 
     /* Envelope */
-    unsigned int period_timer;
-    unsigned int current_volume;
-    unsigned int env_dir;
-    unsigned int env_period;
+    uint32_t period_timer;   // 3 bits
+    uint32_t current_volume; // 4 bits
+    uint32_t env_dir;        // 1 bit
+    uint32_t env_period;     // 3 bits
 
-    unsigned int frequency_timer;
-    unsigned int duty_pos;
+    uint32_t frequency_timer; // 16 bits
+    uint32_t duty_pos;        // 8 bits
 
     /* Sweep */
-    unsigned int sweep_enabled;
-    unsigned int shadow_frequency;
-    unsigned int sweep_timer;
+    uint32_t sweep_enabled;    // 1 bit
+    uint32_t shadow_frequency; // 16 bits
+    uint32_t sweep_timer;      // 3 bits
 };
 
 struct ch2
 {
     /* Length */
-    unsigned int length_timer;
+    uint32_t length_timer;
 
     /* Envelope */
-    unsigned int period_timer;
-    unsigned int current_volume;
-    unsigned int env_dir;
-    unsigned int env_period;
+    uint32_t period_timer;
+    uint32_t current_volume;
+    uint32_t env_dir;
+    uint32_t env_period;
 
-    unsigned int frequency_timer;
-    unsigned int duty_pos;
+    uint32_t frequency_timer;
+    uint32_t duty_pos;
 };
 
 struct ch3
 {
     /* Length */
-    unsigned int length_timer;
+    uint32_t length_timer;
 
-    unsigned int frequency_timer;
+    uint32_t frequency_timer;
 
-    unsigned int wave_pos;
-    unsigned int sample_buffer;
+    uint32_t wave_pos;
+    uint32_t sample_buffer;
 };
 
 struct ch4
 {
     /* Length */
-    unsigned int length_timer;
+    uint32_t length_timer;
 
     /* Envelope */
-    unsigned int period_timer;
-    unsigned int current_volume;
-    unsigned int env_dir;
-    unsigned int env_period;
+    uint32_t period_timer;
+    uint32_t current_volume;
+    uint32_t env_dir;
+    uint32_t env_period;
 
-    unsigned int frequency_timer;
+    uint32_t frequency_timer;
 
-    unsigned int lfsr;
-    unsigned int polynomial_counter;
+    uint32_t lfsr;
+    uint32_t polynomial_counter;
 };
 
 struct apu
@@ -95,7 +95,7 @@ struct apu
 
     uint8_t fs_pos;
 
-    unsigned int sampling_counter;
+    uint32_t sampling_counter;
 
     uint16_t previous_div_apu;
 };
@@ -111,7 +111,7 @@ void enable_timer(struct gb_core *gb, uint8_t ch_number);
 
 void apu_tick_m(struct gb_core *gb);
 
-static inline float dac_output(unsigned int amplitude)
+static inline float dac_output(uint32_t amplitude)
 {
     return (amplitude / 7.5f) - 1.0f;
 }

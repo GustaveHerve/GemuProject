@@ -1,5 +1,5 @@
-#ifndef MBC1_H
-#define MBC1_H
+#ifndef CORE_MBC1_H
+#define CORE_MBC1_H
 
 #include "mbc_base.h"
 

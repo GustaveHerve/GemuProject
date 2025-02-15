@@ -1,6 +1,7 @@
 #include "mbc_base.h"
 
 #include <err.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "mbc1.h"
@@ -173,10 +174,12 @@ void write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
 
 void mbc_serialize(struct mbc_base *mbc, FILE *stream)
 {
+    fwrite(mbc->ram, sizeof(uint8_t), mbc->ram_total_size, stream);
     mbc->_mbc_serialize(mbc, stream);
 }
 
 void mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 {
+    fread(mbc->ram, sizeof(uint8_t), mbc->ram_total_size, stream);
     mbc->_mbc_load_from_stream(mbc, stream);
 }

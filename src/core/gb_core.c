@@ -119,13 +119,11 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     if ((file = fopen(output_path, "wb")) == NULL)
         return EXIT_FAILURE;
 
-    fwrite(&gb->cpu, sizeof(uint8_t), sizeof(struct cpu), file);
-    // serialize_cpu_to_stream(file, &gb->cpu);
+    serialize_cpu_to_stream(file, &gb->cpu);
 
-    fwrite(&gb->ppu, sizeof(uint8_t), sizeof(struct apu), file);
+    fwrite(&gb->ppu, sizeof(uint8_t), sizeof(struct ppu), file);
     fwrite(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
 
-    // fwrite(gb->membus, sizeof(uint8_t), MEMBUS_SIZE, file);
     fwrite(gb->membus, sizeof(uint8_t), 0x100, file);
     fwrite(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
     fwrite(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
@@ -135,9 +133,6 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
     fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
-
-    fwrite(gb->mbc->ram, sizeof(uint8_t), gb->mbc->ram_total_size, file);
-    // TODO: each MBC type needs to have its own serialize routine
 
     fwrite(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
 
@@ -156,12 +151,10 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     if ((file = fopen(input_path, "rb")) == NULL)
         return EXIT_FAILURE;
 
-    fread(&gb->cpu, sizeof(uint8_t), sizeof(struct cpu), file);
-    // load_cpu_from_stream(file, &gb->cpu);
-    fread(&gb->ppu, sizeof(uint8_t), sizeof(struct apu), file);
-    fread(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
+    load_cpu_from_stream(file, &gb->cpu);
 
-    // fread(gb->membus, sizeof(uint8_t), MEMBUS_SIZE, file);
+    fread(&gb->ppu, sizeof(uint8_t), sizeof(struct ppu), file);
+    fread(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
 
     fread(gb->membus, sizeof(uint8_t), 0x100, file);
     fread(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
@@ -172,8 +165,6 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
     fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
-
-    fread(gb->mbc->ram, sizeof(uint8_t), gb->mbc->ram_total_size, file);
 
     fread(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
 

@@ -1,5 +1,5 @@
-#ifndef MBC_BASE_H
-#define MBC_BASE_H
+#ifndef CORE_MBC_BASE_H
+#define CORE_MBC_BASE_H
 
 #include <stdint.h>
 #include <stdio.h>

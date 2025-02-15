@@ -1,5 +1,5 @@
-#ifndef NO_MBC_H
-#define NO_MBC_H
+#ifndef CORE_NO_MBC_H
+#define CORE_NO_MBC_H
 
 #include "mbc_base.h"
 

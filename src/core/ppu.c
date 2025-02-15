@@ -1,6 +1,7 @@
 #include "ppu.h"
 
 #include <err.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -10,6 +11,7 @@
 #include "gb_core.h"
 #include "interrupts.h"
 #include "memory.h"
+#include "serialization.h"
 
 static uint8_t get_tileid(struct gb_core *gb, int obj_index, int bottom_part)
 {
@@ -635,9 +637,29 @@ void ppu_tick_m(struct gb_core *gb)
         gb->ppu.dma = 1;
     else if (gb->ppu.dma == 1)
     {
-        gb->membus[OAM + gb->ppu.dma_acc] = read_mem(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
+        gb->membus[OAM + gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
         ++gb->ppu.dma_acc;
         if (gb->ppu.dma_acc >= 160)
             gb->ppu.dma = 0;
     }
+}
+
+void serialize_ppu_to_stream(FILE *stream, struct ppu *ppu)
+{
+    fwrite(&ppu->lx, sizeof(uint8_t), 1, stream);
+    fwrite(ppu->obj_slots, sizeof(struct obj), 10, stream);
+
+    fwrite(&ppu->obj_count, sizeof(uint8_t), 1, stream);
+
+    // fwrite_le_16(stream, cpu->pc);
+}
+
+void load_ppu_from_stream(FILE *stream, struct cpu *cpu)
+{
+    fread(&cpu->a, sizeof(uint8_t), 8, stream);
+
+    fread_le_16(stream, &cpu->sp);
+    fread_le_16(stream, &cpu->pc);
+
+    fread(&cpu->ime, sizeof(uint8_t), 1, stream);
 }

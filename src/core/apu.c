@@ -1,9 +1,11 @@
 #include "apu.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "gb_core.h"
+#include "serialization.h"
 
 // clang-format off
 static unsigned int duty_table[][8] = {
@@ -74,12 +76,12 @@ static size_t audio_buffer_len = 0;
 
 struct ch_generic
 {
-    unsigned int length_timer;
+    uint32_t length_timer;
 
-    unsigned int period_timer;
-    unsigned int current_volume;
-    unsigned int env_dir;
-    unsigned int env_period;
+    uint32_t period_timer;
+    uint32_t current_volume;
+    uint32_t env_dir;
+    uint32_t env_period;
 };
 
 void apu_init(struct apu *apu)
@@ -500,4 +502,10 @@ void apu_tick_m(struct gb_core *gb)
 
         gb->apu.previous_div_apu += 1;
     }
+}
+
+void serialize_apu_to_stream(FILE *stream, struct apu *apu)
+{
+    // fwrite(apu->lx, sizeof(unsigned int), 1, stream);
+    // fwrite(ppu->obj_slots, sizeof(struct obj), 10, stream);
 }
