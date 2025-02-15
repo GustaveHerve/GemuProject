@@ -18,6 +18,8 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     add_compile_definitions("_MACOS")
 elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     add_compile_definitions("_WIN32")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    add_compile_definitions("_LINUX")
 endif()
 
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)

@@ -1,4 +1,6 @@
+#ifdef _LINUX
 #define _POSIX_C_SOURCE 2
+#endif
 
 #include <SDL3/SDL_main.h>
 #include <stdio.h>
@@ -102,11 +104,7 @@ void main_loop(void)
         {
             size_t len = strlen(gb.mbc->rom_path) + 11 + 1;
             char *save_path = malloc(len);
-#ifdef _MACOS
-            sprintf(save_path, "%s.savestate%d", gb.mbc->rom_path, settings->save_state);
-#else
             snprintf(save_path, len, "%s.savestate%d", gb.mbc->rom_path, settings->save_state);
-#endif
             serialize_gb_to_file(save_path, &gb);
             free(save_path);
             settings->save_state = 0;
@@ -116,11 +114,7 @@ void main_loop(void)
         {
             size_t len = strlen(gb.mbc->rom_path) + 11 + 1;
             char *load_path = malloc(len);
-#ifdef _MACOS
-            sprintf(load_path, "%s.savestate%d", gb.mbc->rom_path, settings->load_state);
-#else
             snprintf(load_path, len, "%s.savestate%d", gb.mbc->rom_path, settings->load_state);
-#endif
             load_gb_from_file(load_path, &gb);
             free(load_path);
             settings->load_state = 0;
