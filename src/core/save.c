@@ -6,7 +6,7 @@
 
 FILE *open_save_file(struct mbc_base *mbc)
 {
-    size_t len = strlen(mbc->rom_path) + 5;
+    size_t len = strlen(mbc->rom_path) + 4 + 1;
     char *save_path = malloc(len);
     snprintf(save_path, len, "%s.sav", mbc->rom_path);
 

@@ -33,6 +33,7 @@ struct mbc_base
     enum MBC_TYPE type;
 
     char *rom_path;
+    char *rom_basename;
     FILE *save_file;
 
     uint8_t *rom;

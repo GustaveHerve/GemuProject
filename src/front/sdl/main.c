@@ -1,20 +1,17 @@
-#include "audio.h"
 #define _POSIX_C_SOURCE 2
 
-#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <SDL3/SDL_pixels.h>
-#include <SDL3/SDL_render.h>
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "audio.h"
 #include "disassembler.h"
 #include "emulation.h"
 #include "events.h"
 #include "gb_core.h"
 #include "interrupts.h"
+#include "mbc_base.h"
 #include "rendering.h"
 #include "sdl_utils.h"
 #include "serialization.h"
@@ -101,16 +98,24 @@ void main_loop(void)
             settings->reset_signal = false;
         }
 
-        else if (settings->save_state_signal)
+        else if (settings->save_state)
         {
-            serialize_gb_to_file("savestate", &gb);
-            settings->save_state_signal = false;
+            size_t len = strlen(gb.mbc->rom_path) + 11 + 1;
+            char *save_path = malloc(len);
+            snprintf(save_path, len, "%s.savestate%d", gb.mbc->rom_path, settings->save_state);
+            serialize_gb_to_file(save_path, &gb);
+            free(save_path);
+            settings->save_state = 0;
         }
 
-        else if (settings->load_state_signal)
+        else if (settings->load_state)
         {
-            load_gb_from_file("savestate", &gb);
-            settings->load_state_signal = false;
+            size_t len = strlen(gb.mbc->rom_path) + 11 + 1;
+            char *load_path = malloc(len);
+            snprintf(load_path, len, "%s.savestate%d", gb.mbc->rom_path, settings->load_state);
+            load_gb_from_file(load_path, &gb);
+            free(load_path);
+            settings->load_state = 0;
         }
 
         if (!gb.halt)

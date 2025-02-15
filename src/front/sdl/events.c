@@ -102,15 +102,21 @@ void handle_events(struct gb_core *gb)
                 break;
             }
             case SDLK_1:
-            {
-                struct global_settings *settings = get_global_settings();
-                settings->save_state_signal = true;
-                break;
-            }
             case SDLK_2:
+            case SDLK_3:
+            case SDLK_4:
+            case SDLK_5:
+            case SDLK_6:
+            case SDLK_7:
+            case SDLK_8:
+            case SDLK_9:
             {
                 struct global_settings *settings = get_global_settings();
-                settings->load_state_signal = true;
+                unsigned char key = event.key.key - SDLK_1 + 1;
+                if (event.key.mod & SDL_KMOD_CTRL)
+                    settings->load_state = key;
+                else
+                    settings->save_state = key;
                 break;
             }
             }

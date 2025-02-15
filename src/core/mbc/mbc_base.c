@@ -1,6 +1,7 @@
 #include "mbc_base.h"
 
 #include <err.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -106,6 +107,7 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
         errx(-3, "ERROR: Provided rom file uses an unsupported MBC type");
 
     mbc->rom_path = rom_path;
+    mbc->rom_basename = basename(rom_path);
 
     mbc->rom = rom;
 
