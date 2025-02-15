@@ -116,7 +116,11 @@ void main_loop(void)
         {
             size_t len = strlen(gb.mbc->rom_path) + 11 + 1;
             char *load_path = malloc(len);
+#ifdef _MACOS
+            sprintf(load_path, "%s.savestate%d", gb.mbc->rom_path, settings->load_state);
+#else
             snprintf(load_path, len, "%s.savestate%d", gb.mbc->rom_path, settings->load_state);
+#endif
             load_gb_from_file(load_path, &gb);
             free(load_path);
             settings->load_state = 0;
