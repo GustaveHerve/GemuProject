@@ -1,14 +1,14 @@
 target_sources(gemu PUBLIC
     gb_core.c
-    control.c
+    opcodes/control.c
     cpu.c
     interrupts.c
     timers.c
     disassembler.c
     emulation.c
-    jump.c
-    load.c
-    logic.c
+    opcodes/jump.c
+    opcodes/load.c
+    opcodes/logic.c
     mbc/mbc_base.c
     mbc/mbc1.c
     mbc/mbc3.c
@@ -16,12 +16,13 @@ target_sources(gemu PUBLIC
     mbc/no_mbc.c
     ppu_utils.c
     ppu.c
-    prefix.c
-    rotshift.c
+    opcodes/prefix.c
+    opcodes/rotshift.c
     save.c
     serial.c
     apu.c
-    memory.c
+    memory/read.c
+    memory/write.c
     sync.c
     display.c
     serialization.c

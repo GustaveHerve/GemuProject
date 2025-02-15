@@ -23,6 +23,8 @@ add_subdirectory(src)
 target_include_directories(gemu PUBLIC
     "include"
     "include/core"
+    "include/memory"
+    "include/opcodes"
     "include/front"
     "include/front/sdl"
     "include/mbc"
