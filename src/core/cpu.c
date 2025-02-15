@@ -1,6 +1,5 @@
 #include "cpu.h"
 
-#include <endian.h>
 #include <stdio.h>
 
 #include "emulation.h"

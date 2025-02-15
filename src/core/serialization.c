@@ -1,5 +1,3 @@
-#define _DEFAULT_SOURCE
-#include <endian.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -11,7 +9,10 @@ unsigned long fwrite_le_16(FILE *stream, uint16_t val)
 
 unsigned long fread_le_16(FILE *stream, uint16_t *output)
 {
-    int res = fread(output, sizeof(uint8_t), 2, stream);
-    *output = le16toh(*output);
+    uint8_t lo;
+    uint8_t hi;
+    int res = fread(&lo, sizeof(uint8_t), 1, stream);
+    res += fread(&hi, sizeof(uint8_t), 1, stream);
+    *output = hi << 8 | lo;
     return res;
 }
