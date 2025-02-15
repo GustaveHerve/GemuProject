@@ -9,14 +9,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 add_compile_options(-Wall -Wextra -pedantic)
 
 # Check if the build type is Debug
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     add_compile_definitions("_MACOS")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     add_compile_definitions("_WIN32")
 endif()
 
