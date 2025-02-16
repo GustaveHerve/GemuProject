@@ -21,8 +21,6 @@ struct global_settings *get_global_settings(void)
 
 void reset_gb(struct gb_core *gb)
 {
-    // memset(gb->membus, 0, MEMBUS_SIZE * sizeof(uint8_t));
-
     memset(gb->memory.vram, 0, VRAM_SIZE * sizeof(uint8_t));
     memset(gb->memory.wram, 0, WRAM_SIZE * sizeof(uint8_t));
     memset(gb->memory.oam, 0, OAM_SIZE * sizeof(uint8_t));

@@ -13,8 +13,6 @@ struct gb_core
     struct ppu ppu;
     struct apu apu;
 
-    // uint8_t *membus;
-
     struct memory_map
     {
         uint32_t boot_rom_size;

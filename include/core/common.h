@@ -23,6 +23,14 @@
 #define IO              0xFF00
 #define HRAM            0xFF80
 
+/* Macros helpers for converting an absolute address to the offest value for its memory area */
+#define VRAM_OFFSET(ADDR)               ((ADDR) & 0x1FFF)
+#define WRAM_OFFSET(ADDR)               ((ADDR) & 0x1FFF)
+#define OAM_OFFSET(ADDR)                ((ADDR) & 0xFF)
+#define UNUSABLE_MEM_OFFSET(ADDR)       ((ADDR) - NOT_USABLE)
+#define IO_OFFSET(ADDR)                 ((ADDR) & 0x7F)
+#define HRAM_OFFSET(ADDR)               ((ADDR) & 0x7F)
+
 /* Memory sizes */
 #define BANK0_SIZE      0x4000
 #define BANK1_SIZE      0x4000
@@ -110,14 +118,6 @@
 #define SVBK            0xFF70
 #define PCM12           0xFF76
 #define PCM34           0xFF77
-
-/* Macros helpers for converting an absolute address to the offest value for its memory area */
-#define VRAM_OFFSET(ADDR)               ((ADDR) & 0x1FFF)
-#define WRAM_OFFSET(ADDR)               ((ADDR) & 0x1FFF)
-#define OAM_OFFSET(ADDR)                ((ADDR) & 0xFF)
-#define UNUSABLE_MEM_OFFSET(ADDR)       ((ADDR) - NOT_USABLE)
-#define IO_OFFSET(ADDR)                 ((ADDR) & 0x7F)
-#define HRAM_OFFSET(ADDR)               ((ADDR) & 0x7F)
 
 // clang-format on
 #endif

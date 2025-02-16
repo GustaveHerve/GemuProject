@@ -71,7 +71,6 @@ static void init_io_post_boot(struct memory_map *mem)
 void init_gb_core_post_boot(struct gb_core *gb, int checksum)
 {
     cpu_set_registers_post_boot(&gb->cpu, checksum);
-    // init_membus_post_boot(gb->membus);
     init_io_post_boot(&gb->memory);
 
     gb->internal_div = 0xAB00;
@@ -84,7 +83,6 @@ void init_gb_core_post_boot(struct gb_core *gb, int checksum)
 void init_gb_core(struct gb_core *gb)
 {
     memset(&gb->cpu, 0, sizeof(struct cpu));
-    // gb->membus = calloc(MEMBUS_SIZE, sizeof(uint8_t));
 
     gb->memory.boot_rom_size = 0;
     gb->memory.boot_rom = NULL;
@@ -118,7 +116,6 @@ void init_gb_core(struct gb_core *gb)
 
 void free_gb_core(struct gb_core *gb)
 {
-    // free(gb->membus);
     free(gb->memory.vram);
     free(gb->memory.wram);
     free(gb->memory.unusable_mem);
