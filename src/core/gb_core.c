@@ -136,14 +136,11 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(&gb->ppu, sizeof(uint8_t), sizeof(struct ppu), file);
     fwrite(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
 
-    // fwrite(gb->membus, sizeof(uint8_t), 0x100, file);
-    // fwrite(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
-    // fwrite(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
-    // fwrite(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
-
     fwrite_le_32(file, gb->memory.boot_rom_size);
 
-    fwrite(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
+    if (gb->memory.boot_rom_size > 0)
+        fwrite(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
+
     fwrite(gb->memory.vram, sizeof(uint8_t), VRAM_SIZE, file);
     fwrite(gb->memory.wram, sizeof(uint8_t), WRAM_SIZE, file);
     fwrite(gb->memory.oam, sizeof(uint8_t), OAM_SIZE, file);
@@ -152,7 +149,6 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(gb->memory.hram, sizeof(uint8_t), HRAM_SIZE, file);
     fwrite(&gb->memory.ie, sizeof(uint8_t), 1, file);
 
-    // fwrite(&gb->previous_div, sizeof(uint16_t), 2, file);
     fwrite_le_16(file, gb->previous_div);
 
     fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
@@ -162,7 +158,6 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
 
     fwrite_le_64(file, gb->last_sync_timestamp);
-    // fwrite(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
 
     mbc_serialize(gb->mbc, file);
 
@@ -182,13 +177,16 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     fread(&gb->ppu, sizeof(uint8_t), sizeof(struct ppu), file);
     fread(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
 
-    // fread(gb->membus, sizeof(uint8_t), 0x100, file);
-    // fread(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
-    // fread(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
-    // fread(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
-
     fread_le_32(file, &gb->memory.boot_rom_size);
-    fread(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
+    if (gb->memory.boot_rom_size > 0)
+    {
+        if (!(gb->memory.boot_rom = realloc(gb->memory.boot_rom, gb->memory.boot_rom_size)))
+        {
+            fclose(file);
+            return EXIT_FAILURE;
+        }
+        fread(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
+    }
     fread(gb->memory.vram, sizeof(uint8_t), VRAM_SIZE, file);
     fread(gb->memory.wram, sizeof(uint8_t), WRAM_SIZE, file);
     fread(gb->memory.oam, sizeof(uint8_t), OAM_SIZE, file);
@@ -198,7 +196,7 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     fread(&gb->memory.ie, sizeof(uint8_t), 1, file);
 
     fread_le_16(file, &gb->previous_div);
-    // fread(&gb->previous_div, sizeof(uint16_t), 2, file);
+
     fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
     fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
@@ -206,7 +204,6 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     fread(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
 
     fread_le_64(file, (void *)&gb->last_sync_timestamp);
-    // fread(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
 
     mbc_load_from_stream(gb->mbc, file);
 
