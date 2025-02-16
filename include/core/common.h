@@ -2,6 +2,8 @@
 #define CORE_COMMON_H
 // clang-format off
 
+#include "stdint.h"
+
 /* Display */
 #define SCREEN_WIDTH        160
 #define SCREEN_HEIGHT       144
@@ -103,6 +105,7 @@
 #define IE              0xFFFF
 
 // CGB-only registers
+#define KEY0            0xFF4C
 #define KEY1            0xFF4D
 #define VBK             0xFF4F
 #define HDMA1           0xFF51
@@ -115,9 +118,45 @@
 #define BCPD            0xFF69
 #define OCPS            0xFF6A
 #define OCPD            0xFF6B
+#define OPRI            0xFF6C
 #define SVBK            0xFF70
 #define PCM12           0xFF76
+#define UNK1            0xFF72
+#define UNK2            0xFF73
+#define UNK3            0xFF74
+#define UNK4            0xFF75
 #define PCM34           0xFF77
 
+
+#define _IO(ADDR)     IO_OFFSET(ADDR)
+#define W(N)         WAVE_RAM + (N)
+
 // clang-format on
+static inline uint8_t io_read(uint8_t *io, uint8_t address)
+{
+    // These masks are only correct for DMG !
+    static uint8_t masks[] = {
+        [_IO(JOYP)] = 0x3F,  [_IO(SB)] = 0xFF,    [_IO(SC)] = 0x83,    [_IO(DIV)] = 0xFF,   [_IO(TIMA)] = 0xFF,
+        [_IO(TMA)] = 0xFF,   [_IO(TAC)] = 0x07,   [_IO(IF)] = 0x1F,    [_IO(NR10)] = 0x7F,  [_IO(NR11)] = 0xFF,
+        [_IO(NR12)] = 0xFF,  [_IO(NR13)] = 0xFF,  [_IO(NR14)] = 0xC7,  [_IO(NR21)] = 0xFF,  [_IO(NR22)] = 0xFF,
+        [_IO(NR23)] = 0xFF,  [_IO(NR24)] = 0xC7,  [_IO(NR30)] = 0x80,  [_IO(NR31)] = 0xFF,  [_IO(NR32)] = 0x60,
+        [_IO(NR33)] = 0xFF,  [_IO(NR34)] = 0xC7,  [_IO(NR41)] = 0x3F,  [_IO(NR42)] = 0xFF,  [_IO(NR43)] = 0xFF,
+        [_IO(NR44)] = 0xC0,  [_IO(NR50)] = 0xFF,  [_IO(NR51)] = 0xFF,  [_IO(NR52)] = 0x8F,  [_IO(W(0))] = 0xFF,
+        [_IO(W(1))] = 0xFF,  [_IO(W(2))] = 0xFF,  [_IO(W(3))] = 0xFF,  [_IO(W(4))] = 0xFF,  [_IO(W(5))] = 0xFF,
+        [_IO(W(6))] = 0xFF,  [_IO(W(7))] = 0xFF,  [_IO(W(8))] = 0xFF,  [_IO(W(9))] = 0xFF,  [_IO(W(10))] = 0xFF,
+        [_IO(W(11))] = 0xFF, [_IO(W(12))] = 0xFF, [_IO(W(13))] = 0xFF, [_IO(W(14))] = 0xFF, [_IO(W(15))] = 0xFF,
+        [_IO(LCDC)] = 0xFF,  [_IO(STAT)] = 0x7F,  [_IO(SCY)] = 0xFF,   [_IO(SCX)] = 0xFF,   [_IO(LY)] = 0xFF,
+        [_IO(LYC)] = 0xFF,   [_IO(DMA)] = 0xFF,   [_IO(BGP)] = 0xFF,   [_IO(OBP0)] = 0xFF,  [_IO(OBP1)] = 0xFF,
+        [_IO(WY)] = 0xFF,    [_IO(WX)] = 0xFF,    [_IO(KEY0)] = 0,     [_IO(KEY1)] = 0,     [_IO(VBK)] = 0,
+        [_IO(BOOT)] = 0xFE,  [_IO(HDMA1)] = 0,    [_IO(HDMA2)] = 0,    [_IO(HDMA3)] = 0,    [_IO(HDMA4)] = 0,
+        [_IO(HDMA5)] = 0,    [_IO(RP)] = 0,       [_IO(BCPS)] = 0,     [_IO(BCPD)] = 0,     [_IO(OCPS)] = 0,
+        [_IO(OCPD)] = 0,     [_IO(OPRI)] = 0,     [_IO(SVBK)] = 0,     [_IO(UNK1)] = 0,     [_IO(UNK2)] = 0,
+        [_IO(UNK3)] = 0,     [_IO(UNK4)] = 0,     [_IO(PCM12)] = 0,    [_IO(PCM34)] = 0,
+    };
+    return io[IO_OFFSET(address)] & masks[IO_OFFSET(address)];
+}
+
+#undef W
+#undef _IO
+
 #endif
