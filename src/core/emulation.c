@@ -17,9 +17,18 @@ struct global_settings *get_global_settings(void)
     return &settings;
 }
 
+#define CHECKSUM_ADDR 0x014D
+
 void reset_gb(struct gb_core *gb)
 {
-    memset(gb->membus, 0, MEMBUS_SIZE * sizeof(uint8_t));
+    // memset(gb->membus, 0, MEMBUS_SIZE * sizeof(uint8_t));
+
+    memset(gb->memory.vram, 0, VRAM_SIZE * sizeof(uint8_t));
+    memset(gb->memory.wram, 0, WRAM_SIZE * sizeof(uint8_t));
+    memset(gb->memory.oam, 0, OAM_SIZE * sizeof(uint8_t));
+    memset(gb->memory.unusable_mem, 0, NOT_USABLE_SIZE * sizeof(uint8_t));
+    memset(gb->memory.io, 0, IO_SIZE * sizeof(uint8_t));
+    memset(gb->memory.hram, 0, HRAM_SIZE * sizeof(uint8_t));
 
     ppu_init(gb);
     apu_init(&gb->apu);
@@ -43,7 +52,7 @@ void reset_gb(struct gb_core *gb)
     gb->tcycles_since_sync = 0;
     gb->last_sync_timestamp = get_nanoseconds();
 
-    init_gb_core_post_boot(gb, gb->mbc->rom[0x014d]);
+    init_gb_core_post_boot(gb, gb->mbc->rom[CHECKSUM_ADDR]);
 }
 
 static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
@@ -56,7 +65,7 @@ static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
     // Enable bootrom
     gb->memory.io[IO_OFFSET(BOOT)] = 0xFE;
 
-    // Open BOOTROM
+    // Load bootrom
     FILE *fptr = fopen(boot_rom_path, "rb");
     if (!fptr)
     {
@@ -68,7 +77,23 @@ static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
     long fsize = ftell(fptr);
     rewind(fptr);
 
-    fread(gb->membus, 1, fsize, fptr);
+    if (fsize == -1)
+    {
+        fprintf(stderr, "Error reading boot rom file, file is empty or damaged: %s\n", boot_rom_path);
+        fclose(fptr);
+        return EXIT_FAILURE;
+    }
+
+    if (fsize > (uint32_t)-1)
+    {
+        fprintf(stderr, "Error reading boot rom file, file is too big: %s\n", boot_rom_path);
+        fclose(fptr);
+        return EXIT_FAILURE;
+    }
+
+    gb->memory.boot_rom_size = fsize;
+    gb->memory.boot_rom = malloc(sizeof(uint8_t) * fsize);
+    fread(gb->memory.boot_rom, 1, fsize, fptr);
     fclose(fptr);
 
     return EXIT_SUCCESS;
@@ -95,7 +120,7 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
     fread(rom, 1, fsize, fptr);
     fclose(fptr);
 
-    uint8_t checksum = rom[0x14d];
+    uint8_t checksum = rom[CHECKSUM_ADDR];
 
     // Init MBC / cartridge info and fill rom in buffer
     set_mbc(&gb->mbc, rom, rom_path);
@@ -120,6 +145,6 @@ void tick_m(struct gb_core *gb)
     update_timers(gb);
     update_serial(gb);
 
-    if (get_lcdc(gb->membus, LCDC_LCD_PPU_ENABLE))
+    if (get_lcdc(gb->memory.io, LCDC_LCD_PPU_ENABLE))
         ppu_tick_m(gb);
 }

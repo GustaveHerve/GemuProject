@@ -111,7 +111,7 @@ static unsigned int calculate_frequency(struct gb_core *gb, uint8_t sweep_shift,
 
 static void frequency_sweep_trigger(struct gb_core *gb, struct ch1 *ch1)
 {
-    uint8_t nr10 = gb->membus[NR10];
+    uint8_t nr10 = gb->memory.io[IO_OFFSET(NR10)];
     unsigned int sweep_shift = SWEEP_SHIFT(nr10);
     unsigned int sweep_period = SWEEP_PERIOD(nr10);
 
@@ -132,7 +132,7 @@ static void frequency_sweep_trigger(struct gb_core *gb, struct ch1 *ch1)
 
 static void envelope_trigger(struct gb_core *gb, struct ch_generic *ch, uint8_t ch_number)
 {
-    uint8_t nrx2 = gb->membus[NRXY(ch_number, 2)];
+    uint8_t nrx2 = gb->memory.io[IO_OFFSET(NRXY(ch_number, 2))];
     ch->current_volume = ENV_INIT_VOLUME(nrx2);
     ch->env_dir = ENV_DIR(nrx2);
     ch->env_period = ENV_SWEEP_PERIOD(nrx2);
@@ -179,7 +179,7 @@ void handle_trigger_event_ch3(struct gb_core *gb)
 void handle_trigger_event_ch4(struct gb_core *gb)
 {
     length_trigger(&gb->apu, (void *)&gb->apu.ch4);
-    uint8_t nr43 = gb->membus[NR43];
+    uint8_t nr43 = gb->memory.io[IO_OFFSET(NR43)];
     unsigned int shift = NOISE_CLOCK_SHIFT(nr43);
     unsigned int divisor_code = NOISE_CLOCK_DIVIDER_CODE(nr43);
     gb->apu.ch4.frequency_timer = ch4_divisors[divisor_code] << shift;
@@ -214,14 +214,14 @@ void enable_timer(struct gb_core *gb, uint8_t ch_number)
         ch = (void *)&gb->apu.ch4;
         break;
     }
-    unsigned int initial_length = gb->membus[NRXY(ch_number, 1)] & init_len_mask;
+    unsigned int initial_length = gb->memory.io[IO_OFFSET(NRXY(ch_number, 1))] & init_len_mask;
 
     ch->length_timer = val - initial_length;
 }
 
 static void length_clock(struct gb_core *gb, struct ch_generic *ch, uint8_t number)
 {
-    uint8_t nrx4 = gb->membus[NRXY(number, 4)];
+    uint8_t nrx4 = gb->memory.io[IO_OFFSET(NRXY(number, 4))];
     if (!LENGTH_ENABLE(nrx4))
         return;
 
@@ -272,7 +272,7 @@ static void frequency_sweep_clock(struct gb_core *gb)
 {
     struct ch1 *ch1 = &gb->apu.ch1;
 
-    uint8_t nr10 = gb->membus[NR10];
+    uint8_t nr10 = gb->memory.io[IO_OFFSET(NR10)];
 
     uint8_t period = SWEEP_PERIOD(nr10);
     uint8_t dir = SWEEP_DIR(nr10);
@@ -294,9 +294,9 @@ static void frequency_sweep_clock(struct gb_core *gb)
         unsigned int new_frequency = calculate_frequency(gb, shift, dir);
         if (new_frequency < 2048 && shift != 0)
         {
-            gb->membus[NR13] = new_frequency & 0xFF;
-            gb->membus[NR14] &= ~(0x07);
-            gb->membus[NR14] |= (new_frequency >> 8);
+            gb->memory.io[IO_OFFSET(NR13)] = new_frequency & 0xFF;
+            gb->memory.io[IO_OFFSET(NR14)] &= ~(0x07);
+            gb->memory.io[IO_OFFSET(NR14)] |= (new_frequency >> 8);
             ch1->shadow_frequency = new_frequency;
 
             calculate_frequency(gb, shift, dir);
@@ -371,7 +371,7 @@ static void ch3_tick(struct gb_core *gb)
         gb->apu.ch3.frequency_timer = (2048 - FREQUENCY(3)) * 2;
         gb->apu.ch3.wave_pos = (gb->apu.ch3.wave_pos + 1) % 32;
 
-        unsigned int sample = gb->membus[WAVE_RAM + (gb->apu.ch3.wave_pos / 2)];
+        unsigned int sample = gb->memory.io[IO_OFFSET(WAVE_RAM + (gb->apu.ch3.wave_pos / 2))];
         // Each byte has two 4-bit samples
         if (gb->apu.ch3.wave_pos % 2 == 0)
             sample >>= 4;
@@ -387,7 +387,7 @@ static void ch4_tick(struct gb_core *gb)
     if (!is_channel_on(gb, 4) || !is_dac_on(gb, 4))
         return;
 
-    uint8_t nr43 = gb->membus[NR43];
+    uint8_t nr43 = gb->memory.io[IO_OFFSET(NR43)];
     unsigned int shift = NOISE_CLOCK_SHIFT(nr43);
     unsigned int divisor_code = NOISE_CLOCK_DIVIDER_CODE(nr43);
 
@@ -413,26 +413,26 @@ static unsigned int get_channel_amplitude(struct gb_core *gb, uint8_t number, ui
     if (panning == PANNING_LEFT)
         panning_mask <<= 4;
 
-    if (!(gb->membus[NR51] & panning_mask))
+    if (!(gb->memory.io[IO_OFFSET(NR51)] & panning_mask))
         return 0;
 
     if (number == 1)
     {
-        unsigned int wave_duty = WAVE_DUTY(gb->membus[NR11]);
+        unsigned int wave_duty = WAVE_DUTY(gb->memory.io[IO_OFFSET(NR11)]);
         unsigned int duty_pos = gb->apu.ch1.duty_pos;
         return duty_table[wave_duty][duty_pos] * gb->apu.ch1.current_volume;
     }
 
     if (number == 2)
     {
-        unsigned int wave_duty = WAVE_DUTY(gb->membus[NR21]);
+        unsigned int wave_duty = WAVE_DUTY(gb->memory.io[IO_OFFSET(NR21)]);
         unsigned int duty_pos = gb->apu.ch2.duty_pos;
         return duty_table[wave_duty][duty_pos] * gb->apu.ch2.current_volume;
     }
 
     if (number == 3)
     {
-        unsigned int wave_output = WAVE_OUTPUT(gb->membus[NR32]);
+        unsigned int wave_output = WAVE_OUTPUT(gb->memory.io[IO_OFFSET(NR32)]);
         return gb->apu.ch3.sample_buffer >> ch3_shifts[wave_output];
     }
 
@@ -455,7 +455,7 @@ static void queue_audio_sample(struct gb_core *gb)
     if (gb->callbacks.get_queued_audio_sample_count() > SAMPLING_RATE / 8)
         return;
 
-    uint8_t nr50 = gb->membus[NR50];
+    uint8_t nr50 = gb->memory.io[IO_OFFSET(NR50)];
 
     float left_sample = mix_channels(gb, PANNING_LEFT) * (float)LEFT_MASTER_VOLUME(nr50) / 8.0f;
     float right_sample = mix_channels(gb, PANNING_RIGHT) * (float)RIGHT_MASTER_VOLUME(nr50) / 8.0f;

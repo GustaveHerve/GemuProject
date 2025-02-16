@@ -1,12 +1,14 @@
 #include "read.h"
 
+#include <assert.h>
+
 #include "emulation.h"
 #include "gb_core.h"
 #include "mbc_base.h"
 
 static uint8_t _rom(struct gb_core *gb, uint16_t address)
 {
-    if (!(gb->memory.io[IO_OFFSET(BOOT)] & 0x01) && address <= 0x00FF)
+    if (!(gb->memory.io[IO_OFFSET(BOOT)] & 0x01) && gb->memory.boot_rom && address < gb->memory.boot_rom_size)
         return gb->memory.boot_rom[address];
     return read_mbc_rom(gb->mbc, address);
 }
@@ -37,7 +39,8 @@ static uint8_t _oam(struct gb_core *gb, uint16_t address)
 {
     if (address >= 0xFEA0 && address <= 0xFEFF)
     {
-        // TODO: forbidden area
+        // TODO: OAM corruption
+        return 0x00;
     }
     if (gb->ppu.oam_locked)
         return 0xFF;

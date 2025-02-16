@@ -32,6 +32,11 @@ static void _echo_ram(struct gb_core *gb, uint16_t address, uint8_t val)
 
 static void _oam(struct gb_core *gb, uint16_t address, uint8_t val)
 {
+    if (address >= 0xFEA0 && address <= 0xFEFF)
+    {
+        // TODO: forbidden area
+        return;
+    }
     if (!gb->ppu.oam_locked)
         gb->memory.oam[OAM_OFFSET(address)] = val;
 }

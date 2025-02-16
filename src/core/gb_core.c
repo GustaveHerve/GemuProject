@@ -6,6 +6,7 @@
 #include "common.h"
 #include "cpu.h"
 #include "mbc_base.h"
+#include "serialization.h"
 #include "sync.h"
 
 static void init_io_post_boot(struct memory_map *mem)
@@ -67,63 +68,63 @@ static void init_io_post_boot(struct memory_map *mem)
     mem->ie = 0x00;
 }
 
-static void init_membus_post_boot(uint8_t *membus)
-{
-    membus[JOYP] = 0xCF;
-    membus[SB] = 0x00;
-    membus[SC] = 0x7E;
-    membus[DIV] = 0xAB;
-    membus[TIMA] = 0x00;
-    membus[TMA] = 0x00;
-    membus[TAC] = 0xF8;
-    membus[IF] = 0xE1;
-    membus[NR10] = 0x80;
-    membus[NR11] = 0xBF;
-    membus[NR12] = 0xF3;
-    membus[NR13] = 0xFF;
-    membus[NR14] = 0xBF;
-    membus[NR21] = 0x3F;
-    membus[NR22] = 0x00;
-    membus[NR23] = 0xFF;
-    membus[NR24] = 0xBF;
-    membus[NR30] = 0x7F;
-    membus[NR31] = 0xFF;
-    membus[NR32] = 0x9F;
-    membus[NR33] = 0xFF;
-    membus[NR34] = 0xBF;
-    membus[NR41] = 0xFF;
-    membus[NR42] = 0x00;
-    membus[NR43] = 0x00;
-    membus[NR44] = 0xBF;
-    membus[NR50] = 0x77;
-    membus[NR51] = 0xF3;
-    membus[NR52] = 0xF1;
-    membus[LCDC] = 0x91;
-    membus[STAT] = 0x85;
-    membus[SCY] = 0x00;
-    membus[SCX] = 0x00;
-    membus[LY] = 0x00;
-    membus[LYC] = 0x00;
-    membus[DMA] = 0xFF;
-    membus[BGP] = 0xFC;
-    membus[OBP0] = 0xFF;
-    membus[OBP1] = 0xFF;
-    membus[WY] = 0x00;
-    membus[WX] = 0x00;
-    membus[BOOT] = 0xFF;
-    membus[HDMA1] = 0xFF;
-    membus[HDMA2] = 0xFF;
-    membus[HDMA3] = 0xFF;
-    membus[HDMA4] = 0xFF;
-    membus[HDMA5] = 0xFF;
-    membus[RP] = 0xFF;
-    membus[BCPS] = 0xFF;
-    membus[BCPD] = 0xFF;
-    membus[OCPS] = 0xFF;
-    membus[OCPD] = 0xFF;
-    membus[SVBK] = 0xFF;
-    membus[IE] = 0x00;
-}
+// static void init_membus_post_boot(uint8_t *membus)
+// {
+//     membus[JOYP] = 0xCF;
+//     membus[SB] = 0x00;
+//     membus[SC] = 0x7E;
+//     membus[DIV] = 0xAB;
+//     membus[TIMA] = 0x00;
+//     membus[TMA] = 0x00;
+//     membus[TAC] = 0xF8;
+//     membus[IF] = 0xE1;
+//     membus[NR10] = 0x80;
+//     membus[NR11] = 0xBF;
+//     membus[NR12] = 0xF3;
+//     membus[NR13] = 0xFF;
+//     membus[NR14] = 0xBF;
+//     membus[NR21] = 0x3F;
+//     membus[NR22] = 0x00;
+//     membus[NR23] = 0xFF;
+//     membus[NR24] = 0xBF;
+//     membus[NR30] = 0x7F;
+//     membus[NR31] = 0xFF;
+//     membus[NR32] = 0x9F;
+//     membus[NR33] = 0xFF;
+//     membus[NR34] = 0xBF;
+//     membus[NR41] = 0xFF;
+//     membus[NR42] = 0x00;
+//     membus[NR43] = 0x00;
+//     membus[NR44] = 0xBF;
+//     membus[NR50] = 0x77;
+//     membus[NR51] = 0xF3;
+//     membus[NR52] = 0xF1;
+//     membus[LCDC] = 0x91;
+//     membus[STAT] = 0x85;
+//     membus[SCY] = 0x00;
+//     membus[SCX] = 0x00;
+//     membus[LY] = 0x00;
+//     membus[LYC] = 0x00;
+//     membus[DMA] = 0xFF;
+//     membus[BGP] = 0xFC;
+//     membus[OBP0] = 0xFF;
+//     membus[OBP1] = 0xFF;
+//     membus[WY] = 0x00;
+//     membus[WX] = 0x00;
+//     membus[BOOT] = 0xFF;
+//     membus[HDMA1] = 0xFF;
+//     membus[HDMA2] = 0xFF;
+//     membus[HDMA3] = 0xFF;
+//     membus[HDMA4] = 0xFF;
+//     membus[HDMA5] = 0xFF;
+//     membus[RP] = 0xFF;
+//     membus[BCPS] = 0xFF;
+//     membus[BCPD] = 0xFF;
+//     membus[OCPS] = 0xFF;
+//     membus[OCPD] = 0xFF;
+//     membus[SVBK] = 0xFF;
+//     membus[IE] = 0x00;
+// }
 
 void init_gb_core_post_boot(struct gb_core *gb, int checksum)
 {
@@ -141,8 +142,10 @@ void init_gb_core_post_boot(struct gb_core *gb, int checksum)
 void init_gb_core(struct gb_core *gb)
 {
     memset(&gb->cpu, 0, sizeof(struct cpu));
-    gb->membus = calloc(MEMBUS_SIZE, sizeof(uint8_t));
+    // gb->membus = calloc(MEMBUS_SIZE, sizeof(uint8_t));
 
+    gb->memory.boot_rom_size = 0;
+    gb->memory.boot_rom = NULL;
     gb->memory.vram = malloc(VRAM_SIZE * sizeof(uint8_t));
     gb->memory.wram = malloc(WRAM_SIZE * sizeof(uint8_t));
     gb->memory.unusable_mem = malloc(NOT_USABLE_SIZE * sizeof(uint8_t));
@@ -173,7 +176,7 @@ void init_gb_core(struct gb_core *gb)
 
 void free_gb_core(struct gb_core *gb)
 {
-    free(gb->membus);
+    // free(gb->membus);
     free(gb->memory.vram);
     free(gb->memory.wram);
     free(gb->memory.unusable_mem);
@@ -191,10 +194,20 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(&gb->ppu, sizeof(uint8_t), sizeof(struct ppu), file);
     fwrite(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
 
-    fwrite(gb->membus, sizeof(uint8_t), 0x100, file);
-    fwrite(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
-    fwrite(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
-    fwrite(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
+    // fwrite(gb->membus, sizeof(uint8_t), 0x100, file);
+    // fwrite(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
+    // fwrite(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
+    // fwrite(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
+
+    fwrite_le_32(file, gb->memory.boot_rom_size);
+    fwrite(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
+    fwrite(gb->memory.vram, sizeof(uint8_t), VRAM_SIZE, file);
+    fwrite(gb->memory.wram, sizeof(uint8_t), WRAM_SIZE, file);
+    fwrite(gb->memory.oam, sizeof(uint8_t), OAM_SIZE, file);
+    fwrite(gb->memory.unusable_mem, sizeof(uint8_t), NOT_USABLE_SIZE, file);
+    fwrite(gb->memory.io, sizeof(uint8_t), IO_SIZE, file);
+    fwrite(gb->memory.hram, sizeof(uint8_t), HRAM_SIZE, file);
+    fwrite(&gb->memory.ie, sizeof(uint8_t), 1, file);
 
     fwrite(&gb->previous_div, sizeof(uint16_t), 2, file);
     fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
@@ -223,19 +236,31 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     fread(&gb->ppu, sizeof(uint8_t), sizeof(struct ppu), file);
     fread(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
 
-    fread(gb->membus, sizeof(uint8_t), 0x100, file);
-    fread(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
-    fread(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
-    fread(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
+    // fread(gb->membus, sizeof(uint8_t), 0x100, file);
+    // fread(gb->membus + 0x8000, sizeof(uint8_t), 0x2000, file);
+    // fread(gb->membus + 0xC000, sizeof(uint8_t), 0x2000, file);
+    // fread(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
 
-    fread(&gb->previous_div, sizeof(uint16_t), 2, file);
+    fread_le_32(file, &gb->memory.boot_rom_size);
+    fread(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
+    fread(gb->memory.vram, sizeof(uint8_t), VRAM_SIZE, file);
+    fread(gb->memory.wram, sizeof(uint8_t), WRAM_SIZE, file);
+    fread(gb->memory.oam, sizeof(uint8_t), OAM_SIZE, file);
+    fread(gb->memory.unusable_mem, sizeof(uint8_t), NOT_USABLE_SIZE, file);
+    fread(gb->memory.io, sizeof(uint8_t), IO_SIZE, file);
+    fread(gb->memory.hram, sizeof(uint8_t), HRAM_SIZE, file);
+    fread(&gb->memory.ie, sizeof(uint8_t), 1, file);
+
+    fread_le_16(file, &gb->previous_div);
+    // fread(&gb->previous_div, sizeof(uint16_t), 2, file);
     fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
     fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
     fread(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
 
-    fread(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
+    fread_le_64(file, (void *)&gb->last_sync_timestamp);
+    // fread(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
 
     mbc_load_from_stream(gb->mbc, file);
 

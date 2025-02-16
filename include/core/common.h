@@ -113,12 +113,12 @@
 #define PCM34       0xFF77
 
 /* Macros helpers for converting an absolute address to the offest value for its memory area */
-#define VRAM_OFFSET(ADDR)               (ADDR & 0x1FFF)
-#define WRAM_OFFSET(ADDR)               (ADDR & 0x1FFF)
-#define OAM_OFFSET(ADDR)                (ADDR & 0xFF)
-#define UNUSABLE_MEM_OFFSET(ADDR)       (ADDR - NOT_USABLE)
-#define IO_OFFSET(ADDR)                 (ADDR & 0x7F)
-#define HRAM_OFFSET(ADDR)               (ADDR & 0x7F)
+#define VRAM_OFFSET(ADDR)               ((ADDR) & 0x1FFF)
+#define WRAM_OFFSET(ADDR)               ((ADDR) & 0x1FFF)
+#define OAM_OFFSET(ADDR)                ((ADDR) & 0xFF)
+#define UNUSABLE_MEM_OFFSET(ADDR)       ((ADDR) - NOT_USABLE)
+#define IO_OFFSET(ADDR)                 ((ADDR) & 0x7F)
+#define HRAM_OFFSET(ADDR)               ((ADDR) & 0x7F)
 
 // clang-format on
 #endif

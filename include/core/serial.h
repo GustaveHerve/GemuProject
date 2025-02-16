@@ -5,12 +5,12 @@
 
 static inline uint8_t get_clock_select(struct gb_core *gb)
 {
-    return gb->membus[SC] & 0x01;
+    return gb->memory.io[IO_OFFSET(SC)] & 0x01;
 }
 
 static inline uint8_t get_transfer_enable(struct gb_core *gb)
 {
-    return (gb->membus[SC] >> 7) & 0x01;
+    return (gb->memory.io[IO_OFFSET(SC)] >> 7) & 0x01;
 }
 
 void serial_transfer(struct gb_core *gb);

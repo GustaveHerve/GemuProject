@@ -39,7 +39,7 @@ uint8_t slice_xflip(uint8_t slice)
 
 int on_window(struct gb_core *gb)
 {
-    return get_lcdc(gb->membus, LCDC_BG_WINDOW_ENABLE) && get_lcdc(gb->membus, LCDC_WINDOW_ENABLE) &&
+    return get_lcdc(gb->memory.io, LCDC_BG_WINDOW_ENABLE) && get_lcdc(gb->memory.io, LCDC_WINDOW_ENABLE) &&
            gb->ppu.wy_trigger && gb->ppu.lx == gb->memory.io[IO_OFFSET(WX)] + 1;
 }
 
@@ -52,11 +52,12 @@ int on_object(struct gb_core *gb, int *bottom_part)
             continue;
 
         // 8x16 (LCDC bit 2 = 1) or 8x8 (LCDC bit 2 = 0)
-        int y_max_offset = get_lcdc(gb->membus, LCDC_OBJ_SIZE) ? 16 : 8;
-        if (gb->ppu.obj_slots[i].x == gb->ppu.lx && gb->membus[LY] + 16 >= gb->ppu.obj_slots[i].y &&
-            gb->membus[LY] + 16 < gb->ppu.obj_slots[i].y + y_max_offset)
+        int y_max_offset = get_lcdc(gb->memory.io, LCDC_OBJ_SIZE) ? 16 : 8;
+        if (gb->ppu.obj_slots[i].x == gb->ppu.lx && gb->memory.io[IO_OFFSET(LY)] + 16 >= gb->ppu.obj_slots[i].y &&
+            gb->memory.io[IO_OFFSET(LY)] + 16 < gb->ppu.obj_slots[i].y + y_max_offset)
         {
-            if (bottom_part != NULL && y_max_offset == 16 && gb->membus[LY] + 16 >= gb->ppu.obj_slots[i].y + 8)
+            if (bottom_part != NULL && y_max_offset == 16 &&
+                gb->memory.io[IO_OFFSET(LY)] + 16 >= gb->ppu.obj_slots[i].y + 8)
                 *bottom_part = 1;
             return i;
         }
@@ -75,9 +76,9 @@ struct pixel select_pixel(struct gb_core *gb)
     struct pixel obj_p;
     RING_BUFFER_DEQUEUE(pixel, &gb->ppu.obj_fifo, &obj_p);
 
-    if (!get_lcdc(gb->membus, LCDC_BG_WINDOW_ENABLE))
+    if (!get_lcdc(gb->memory.io, LCDC_BG_WINDOW_ENABLE))
         return obj_p;
-    if (!get_lcdc(gb->membus, LCDC_OBJ_ENABLE))
+    if (!get_lcdc(gb->memory.io, LCDC_OBJ_ENABLE))
         return bg_p;
     if (obj_p.priority && bg_p.color != 0)
         return bg_p;
@@ -95,7 +96,7 @@ int push_slice(struct gb_core *gb, RING_BUFFER(pixel) * q, uint8_t hi, uint8_t l
     {
         struct pixel p = make_pixel(hi, lo, i, attributes, obj_i);
         // TODO verify this
-        if (!get_lcdc(gb->membus, LCDC_BG_WINDOW_ENABLE))
+        if (!get_lcdc(gb->memory.io, LCDC_BG_WINDOW_ENABLE))
             p.color = 0;
         RING_BUFFER_ENQUEUE(pixel, q, &p);
     }
@@ -135,14 +136,14 @@ int merge_obj(struct gb_core *gb, uint8_t hi, uint8_t lo, int obj_i)
 
 void check_lyc(struct gb_core *gb, int line_153)
 {
-    if (gb->membus[LY] == gb->membus[LYC])
+    if (gb->memory.io[IO_OFFSET(LY)] == gb->memory.io[IO_OFFSET(LYC)])
     {
-        set_stat(gb->membus, STAT_LYC_EQUAL_LY);
-        if (line_153 && gb->ppu.line_dot_count == 12 && get_stat(gb->membus, 6))
+        set_stat(gb->memory.io, STAT_LYC_EQUAL_LY);
+        if (line_153 && gb->ppu.line_dot_count == 12 && get_stat(gb->memory.io, 6))
             set_if(gb, INTERRUPT_LCD);
-        else if (gb->ppu.line_dot_count == 4 && get_stat(gb->membus, 6)) //&& !get_if(ppu->cpu, INTERRUPT_LCD))
+        else if (gb->ppu.line_dot_count == 4 && get_stat(gb->memory.io, 6)) //&& !get_if(ppu->cpu, INTERRUPT_LCD))
             set_if(gb, INTERRUPT_LCD);
     }
     else
-        clear_stat(gb->membus, 2);
+        clear_stat(gb->memory.io, 2);
 }

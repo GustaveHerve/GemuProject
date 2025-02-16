@@ -6,8 +6,6 @@
 #include "serialization.h"
 #include "utils.h"
 
-#define MEMBUS_SIZE 65536
-
 void cpu_set_registers_post_boot(struct cpu *cpu, int checksum)
 {
     cpu->a = 0x01;

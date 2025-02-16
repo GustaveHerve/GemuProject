@@ -13,10 +13,11 @@ struct gb_core
     struct ppu ppu;
     struct apu apu;
 
-    uint8_t *membus;
+    // uint8_t *membus;
 
     struct memory_map
     {
+        uint32_t boot_rom_size;
         uint8_t *boot_rom;
         uint8_t *vram;
         uint8_t *wram;
@@ -60,30 +61,30 @@ struct gb_core
 
 static inline uint8_t is_apu_on(struct gb_core *gb)
 {
-    return gb->membus[NR52] >> 7;
+    return gb->memory.io[IO_OFFSET(NR52)] >> 7;
 }
 
 static inline uint8_t is_dac_on(struct gb_core *gb, uint8_t number)
 {
     if (number == 3)
-        return gb->membus[NR30] >> 7;
+        return gb->memory.io[IO_OFFSET(NR30)] >> 7;
     unsigned int nrx2 = NR12 + ((NR22 - NR12) * (number - 1));
-    return gb->membus[nrx2] & 0xF8;
+    return gb->memory.io[IO_OFFSET(nrx2)] & 0xF8;
 }
 
 static inline uint8_t is_channel_on(struct gb_core *gb, uint8_t number)
 {
-    return (gb->membus[NR52] >> (number - 1)) & 0x01;
+    return (gb->memory.io[IO_OFFSET(NR52)] >> (number - 1)) & 0x01;
 }
 
 static inline void turn_channel_off(struct gb_core *gb, uint8_t number)
 {
-    gb->membus[NR52] &= ~(1 << (number - 1));
+    gb->memory.io[IO_OFFSET(NR52)] &= ~(1 << (number - 1));
 }
 
 static inline void turn_channel_on(struct gb_core *gb, uint8_t number)
 {
-    gb->membus[NR52] |= 1 << (number - 1);
+    gb->memory.io[IO_OFFSET(NR52)] |= 1 << (number - 1);
 }
 
 void init_gb_core(struct gb_core *gb);
