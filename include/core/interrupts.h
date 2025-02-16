@@ -28,17 +28,17 @@ static inline void clear_if(struct gb_core *gb, int bit)
 
 static inline int get_ie(struct gb_core *gb, int bit)
 {
-    return (gb->memory.io[IO_OFFSET(IE)] >> bit) & 0x01;
+    return (gb->memory.ie >> bit) & 0x01;
 }
 
 static inline void set_ie(struct gb_core *gb, int bit)
 {
-    gb->memory.io[IO_OFFSET(IE)] |= (0x01 << bit);
+    gb->memory.ie |= (0x01 << bit);
 }
 
 static inline void clear_ie(struct gb_core *gb, int bit)
 {
-    gb->memory.io[IO_OFFSET(IE)] &= ~(0x01 << bit);
+    gb->memory.ie &= ~(0x01 << bit);
 }
 
 int check_interrupt(struct gb_core *gb);

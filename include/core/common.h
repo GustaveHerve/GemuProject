@@ -9,7 +9,7 @@
 
 /* CPU */
 #define CPU_FREQUENCY   4194304
-#define MEMBUS_SIZE     65536
+//#define MEMBUS_SIZE     65536
 
 /* Memory */
 #define BANK0       0x0000

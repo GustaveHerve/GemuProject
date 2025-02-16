@@ -638,7 +638,8 @@ void ppu_tick_m(struct gb_core *gb)
         gb->ppu.dma = 1;
     else if (gb->ppu.dma == 1)
     {
-        gb->memory.oam[gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
+        gb->memory.oam[OAM_OFFSET(OAM + gb->ppu.dma_acc)] =
+            read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
         ++gb->ppu.dma_acc;
         if (gb->ppu.dma_acc >= 160)
             gb->ppu.dma = 0;

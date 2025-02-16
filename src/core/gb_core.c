@@ -68,64 +68,6 @@ static void init_io_post_boot(struct memory_map *mem)
     mem->ie = 0x00;
 }
 
-// static void init_membus_post_boot(uint8_t *membus)
-// {
-//     membus[JOYP] = 0xCF;
-//     membus[SB] = 0x00;
-//     membus[SC] = 0x7E;
-//     membus[DIV] = 0xAB;
-//     membus[TIMA] = 0x00;
-//     membus[TMA] = 0x00;
-//     membus[TAC] = 0xF8;
-//     membus[IF] = 0xE1;
-//     membus[NR10] = 0x80;
-//     membus[NR11] = 0xBF;
-//     membus[NR12] = 0xF3;
-//     membus[NR13] = 0xFF;
-//     membus[NR14] = 0xBF;
-//     membus[NR21] = 0x3F;
-//     membus[NR22] = 0x00;
-//     membus[NR23] = 0xFF;
-//     membus[NR24] = 0xBF;
-//     membus[NR30] = 0x7F;
-//     membus[NR31] = 0xFF;
-//     membus[NR32] = 0x9F;
-//     membus[NR33] = 0xFF;
-//     membus[NR34] = 0xBF;
-//     membus[NR41] = 0xFF;
-//     membus[NR42] = 0x00;
-//     membus[NR43] = 0x00;
-//     membus[NR44] = 0xBF;
-//     membus[NR50] = 0x77;
-//     membus[NR51] = 0xF3;
-//     membus[NR52] = 0xF1;
-//     membus[LCDC] = 0x91;
-//     membus[STAT] = 0x85;
-//     membus[SCY] = 0x00;
-//     membus[SCX] = 0x00;
-//     membus[LY] = 0x00;
-//     membus[LYC] = 0x00;
-//     membus[DMA] = 0xFF;
-//     membus[BGP] = 0xFC;
-//     membus[OBP0] = 0xFF;
-//     membus[OBP1] = 0xFF;
-//     membus[WY] = 0x00;
-//     membus[WX] = 0x00;
-//     membus[BOOT] = 0xFF;
-//     membus[HDMA1] = 0xFF;
-//     membus[HDMA2] = 0xFF;
-//     membus[HDMA3] = 0xFF;
-//     membus[HDMA4] = 0xFF;
-//     membus[HDMA5] = 0xFF;
-//     membus[RP] = 0xFF;
-//     membus[BCPS] = 0xFF;
-//     membus[BCPD] = 0xFF;
-//     membus[OCPS] = 0xFF;
-//     membus[OCPD] = 0xFF;
-//     membus[SVBK] = 0xFF;
-//     membus[IE] = 0x00;
-// }
-
 void init_gb_core_post_boot(struct gb_core *gb, int checksum)
 {
     cpu_set_registers_post_boot(&gb->cpu, checksum);
@@ -200,6 +142,7 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     // fwrite(gb->membus + 0xFE00, sizeof(uint8_t), 0x200, file);
 
     fwrite_le_32(file, gb->memory.boot_rom_size);
+
     fwrite(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
     fwrite(gb->memory.vram, sizeof(uint8_t), VRAM_SIZE, file);
     fwrite(gb->memory.wram, sizeof(uint8_t), WRAM_SIZE, file);
@@ -209,14 +152,17 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(gb->memory.hram, sizeof(uint8_t), HRAM_SIZE, file);
     fwrite(&gb->memory.ie, sizeof(uint8_t), 1, file);
 
-    fwrite(&gb->previous_div, sizeof(uint16_t), 2, file);
+    // fwrite(&gb->previous_div, sizeof(uint16_t), 2, file);
+    fwrite_le_16(file, gb->previous_div);
+
     fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
     fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
 
     fwrite(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
 
-    fwrite(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
+    fwrite_le_64(file, gb->last_sync_timestamp);
+    // fwrite(&gb->last_sync_timestamp, sizeof(int64_t), 1, file);
 
     mbc_serialize(gb->mbc, file);
 
