@@ -14,7 +14,6 @@ static void init_io_post_boot(struct memory_map *mem)
     mem->io[IO_OFFSET(JOYP)] = 0xCF;
     mem->io[IO_OFFSET(SB)] = 0x00;
     mem->io[IO_OFFSET(SC)] = 0x7E;
-    mem->io[IO_OFFSET(DIV)] = 0xAB;
     mem->io[IO_OFFSET(TIMA)] = 0x00;
     mem->io[IO_OFFSET(TMA)] = 0x00;
     mem->io[IO_OFFSET(TAC)] = 0xF8;
@@ -73,7 +72,7 @@ void init_gb_core_post_boot(struct gb_core *gb, int checksum)
     cpu_set_registers_post_boot(&gb->cpu, checksum);
     init_io_post_boot(&gb->memory);
 
-    gb->internal_div = 0xAB00;
+    gb->internal_div = 0xABCC;
 
     gb->ppu.current_mode = 1;
     gb->ppu.line_dot_count = 400;

@@ -49,15 +49,23 @@ static uint8_t _oam(struct gb_core *gb, uint16_t address)
 
 static uint8_t _io(struct gb_core *gb, uint16_t address)
 {
-    // JOYP
-    if (address == JOYP)
+    switch (address)
     {
-        // TODO: redo this
-        // Neither directions nor actions buttons selected, low nibble = 0xF
-        if ((gb->memory.io[IO_OFFSET(JOYP)] & 0x30) == 0x30)
-            return gb->memory.io[IO_OFFSET(JOYP)] | 0xF;
+    case JOYP:
+    {
+        uint8_t select_bits = (io_read(gb->memory.io, JOYP) >> 4) & 0x03;
+        uint8_t buttons_bits[4] = {
+            gb->joyp_a & gb->joyp_d, // TODO: check this case
+            gb->joyp_a,
+            gb->joyp_d,
+            0xF,
+        };
+        return (gb->memory.io[IO_OFFSET(JOYP)] & 0xF0) | buttons_bits[select_bits];
     }
-    return gb->memory.io[IO_OFFSET(address)];
+    case DIV:
+        return gb->internal_div >> 8;
+    }
+    return io_read(gb->memory.io, address);
 }
 
 static uint8_t _hram(struct gb_core *gb, uint16_t address)

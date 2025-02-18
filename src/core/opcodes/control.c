@@ -16,7 +16,6 @@ int stop(struct gb_core *gb)
 {
     gb->stop = 1;
     /* Reset DIV Timer */
-    gb->memory.io[IO_OFFSET(DIV)] = 0;
     gb->internal_div = 0;
     return 1;
 }

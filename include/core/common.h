@@ -127,16 +127,40 @@
 #define UNK4            0xFF75
 #define PCM34           0xFF77
 
-
-#define _IO(ADDR)     IO_OFFSET(ADDR)
-#define W(N)         WAVE_RAM + (N)
-
 // clang-format on
-static inline uint8_t io_read(uint8_t *io, uint8_t address)
+static inline uint8_t io_read(uint8_t *io, uint16_t address)
+{
+// Shorthand macros for better array lisibility
+#define _IO(ADDR) IO_OFFSET(ADDR)
+#define W(N) WAVE_RAM + (N)
+    // These masks are only correct for DMG !
+    static uint8_t masks[IO_SIZE] = {
+        [_IO(JOYP)] = 0x3F,  [_IO(SB)] = 0xFF,    [_IO(SC)] = 0x81,    [_IO(DIV)] = 0xFF,   [_IO(TIMA)] = 0xFF,
+        [_IO(TMA)] = 0xFF,   [_IO(TAC)] = 0x07,   [_IO(IF)] = 0x1F,    [_IO(NR10)] = 0x7F,  [_IO(NR11)] = 0xC0,
+        [_IO(NR12)] = 0xFF,  [_IO(NR13)] = 0x00,  [_IO(NR14)] = 0x40,  [_IO(NR21)] = 0xC0,  [_IO(NR22)] = 0xFF,
+        [_IO(NR23)] = 0x00,  [_IO(NR24)] = 0x40,  [_IO(NR30)] = 0x80,  [_IO(NR31)] = 0x00,  [_IO(NR32)] = 0x60,
+        [_IO(NR33)] = 0x00,  [_IO(NR34)] = 0x40,  [_IO(NR41)] = 0x00,  [_IO(NR42)] = 0xFF,  [_IO(NR43)] = 0xFF,
+        [_IO(NR44)] = 0x40,  [_IO(NR50)] = 0xFF,  [_IO(NR51)] = 0xFF,  [_IO(NR52)] = 0x8F,  [_IO(W(0))] = 0xFF,
+        [_IO(W(1))] = 0xFF,  [_IO(W(2))] = 0xFF,  [_IO(W(3))] = 0xFF,  [_IO(W(4))] = 0xFF,  [_IO(W(5))] = 0xFF,
+        [_IO(W(6))] = 0xFF,  [_IO(W(7))] = 0xFF,  [_IO(W(8))] = 0xFF,  [_IO(W(9))] = 0xFF,  [_IO(W(10))] = 0xFF,
+        [_IO(W(11))] = 0xFF, [_IO(W(12))] = 0xFF, [_IO(W(13))] = 0xFF, [_IO(W(14))] = 0xFF, [_IO(W(15))] = 0xFF,
+        [_IO(LCDC)] = 0xFF,  [_IO(STAT)] = 0x7F,  [_IO(SCY)] = 0xFF,   [_IO(SCX)] = 0xFF,   [_IO(LY)] = 0xFF,
+        [_IO(LYC)] = 0xFF,   [_IO(DMA)] = 0xFF,   [_IO(BGP)] = 0xFF,   [_IO(OBP0)] = 0xFF,  [_IO(OBP1)] = 0xFF,
+        [_IO(WY)] = 0xFF,    [_IO(WX)] = 0xFF,    [_IO(KEY0)] = 0,     [_IO(KEY1)] = 0,     [_IO(VBK)] = 0,
+        [_IO(BOOT)] = 0x01,  [_IO(HDMA1)] = 0,    [_IO(HDMA2)] = 0,    [_IO(HDMA3)] = 0,    [_IO(HDMA4)] = 0,
+        [_IO(HDMA5)] = 0,    [_IO(RP)] = 0,       [_IO(BCPS)] = 0,     [_IO(BCPD)] = 0,     [_IO(OCPS)] = 0,
+        [_IO(OCPD)] = 0,     [_IO(OPRI)] = 0,     [_IO(SVBK)] = 0,     [_IO(UNK1)] = 0,     [_IO(UNK2)] = 0,
+        [_IO(UNK3)] = 0,     [_IO(UNK4)] = 0,     [_IO(PCM12)] = 0,    [_IO(PCM34)] = 0,
+    };
+    // Unused bits always read as 1
+    return io[_IO(address)] | ~masks[_IO(address)];
+}
+
+static inline void io_write(uint8_t *io, uint16_t address, uint8_t val)
 {
     // These masks are only correct for DMG !
-    static uint8_t masks[] = {
-        [_IO(JOYP)] = 0x3F,  [_IO(SB)] = 0xFF,    [_IO(SC)] = 0x83,    [_IO(DIV)] = 0xFF,   [_IO(TIMA)] = 0xFF,
+    static uint8_t masks[IO_SIZE] = {
+        [_IO(JOYP)] = 0x30,  [_IO(SB)] = 0xFF,    [_IO(SC)] = 0x83,    [_IO(DIV)] = 0,      [_IO(TIMA)] = 0xFF,
         [_IO(TMA)] = 0xFF,   [_IO(TAC)] = 0x07,   [_IO(IF)] = 0x1F,    [_IO(NR10)] = 0x7F,  [_IO(NR11)] = 0xFF,
         [_IO(NR12)] = 0xFF,  [_IO(NR13)] = 0xFF,  [_IO(NR14)] = 0xC7,  [_IO(NR21)] = 0xFF,  [_IO(NR22)] = 0xFF,
         [_IO(NR23)] = 0xFF,  [_IO(NR24)] = 0xC7,  [_IO(NR30)] = 0x80,  [_IO(NR31)] = 0xFF,  [_IO(NR32)] = 0x60,
@@ -145,18 +169,18 @@ static inline uint8_t io_read(uint8_t *io, uint8_t address)
         [_IO(W(1))] = 0xFF,  [_IO(W(2))] = 0xFF,  [_IO(W(3))] = 0xFF,  [_IO(W(4))] = 0xFF,  [_IO(W(5))] = 0xFF,
         [_IO(W(6))] = 0xFF,  [_IO(W(7))] = 0xFF,  [_IO(W(8))] = 0xFF,  [_IO(W(9))] = 0xFF,  [_IO(W(10))] = 0xFF,
         [_IO(W(11))] = 0xFF, [_IO(W(12))] = 0xFF, [_IO(W(13))] = 0xFF, [_IO(W(14))] = 0xFF, [_IO(W(15))] = 0xFF,
-        [_IO(LCDC)] = 0xFF,  [_IO(STAT)] = 0x7F,  [_IO(SCY)] = 0xFF,   [_IO(SCX)] = 0xFF,   [_IO(LY)] = 0xFF,
+        [_IO(LCDC)] = 0xFF,  [_IO(STAT)] = 0x78,  [_IO(SCY)] = 0xFF,   [_IO(SCX)] = 0xFF,   [_IO(LY)] = 0x00,
         [_IO(LYC)] = 0xFF,   [_IO(DMA)] = 0xFF,   [_IO(BGP)] = 0xFF,   [_IO(OBP0)] = 0xFF,  [_IO(OBP1)] = 0xFF,
         [_IO(WY)] = 0xFF,    [_IO(WX)] = 0xFF,    [_IO(KEY0)] = 0,     [_IO(KEY1)] = 0,     [_IO(VBK)] = 0,
-        [_IO(BOOT)] = 0xFE,  [_IO(HDMA1)] = 0,    [_IO(HDMA2)] = 0,    [_IO(HDMA3)] = 0,    [_IO(HDMA4)] = 0,
+        [_IO(BOOT)] = 0x01,  [_IO(HDMA1)] = 0,    [_IO(HDMA2)] = 0,    [_IO(HDMA3)] = 0,    [_IO(HDMA4)] = 0,
         [_IO(HDMA5)] = 0,    [_IO(RP)] = 0,       [_IO(BCPS)] = 0,     [_IO(BCPD)] = 0,     [_IO(OCPS)] = 0,
         [_IO(OCPD)] = 0,     [_IO(OPRI)] = 0,     [_IO(SVBK)] = 0,     [_IO(UNK1)] = 0,     [_IO(UNK2)] = 0,
         [_IO(UNK3)] = 0,     [_IO(UNK4)] = 0,     [_IO(PCM12)] = 0,    [_IO(PCM34)] = 0,
     };
-    return io[IO_OFFSET(address)] & masks[IO_OFFSET(address)];
-}
-
+    // Unused bits always ignore writes
+    io[_IO(address)] = (val & masks[_IO(address)]) | (io[_IO(address)] & ~masks[_IO(address)]);
 #undef W
 #undef _IO
+}
 
 #endif
