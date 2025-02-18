@@ -40,29 +40,6 @@ static void _oam(struct gb_core *gb, uint16_t address, uint8_t val)
 
 static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
 {
-    // if (address == JOYP)
-    // {
-    //     // TODO: redo this
-    //     val &= 0x30; // don't write in bit 3-0 and keep only bit 5-4
-    //     uint8_t low_nibble = 0x00;
-    //     if (((val >> 4) & 0x01) == 0x00)
-    //         low_nibble = gb->joyp_d;
-    //     else if (((val >> 5) & 0x01) == 0x00)
-    //         low_nibble = gb->joyp_a;
-    //     else
-    //         low_nibble = 0xF;
-    //     uint8_t new = low_nibble & 0x0F;
-    //     new |= val;
-    //     new |= (gb->memory.io[IO_OFFSET(JOYP)] & 0xC0); // keep the 7-6 bit
-    //     gb->memory.io[IO_OFFSET(JOYP)] = new;
-    //     return;
-    // }
-    //
-    // if (address == SC)
-    // {
-    //     gb->memory.io[IO_OFFSET(SC)] = 0x7C | (val & 0x81);
-    //     return;
-    // }
     switch (address)
     {
     case DIV:
@@ -78,10 +55,10 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
         if (val & NRx4_TRIGGER_MASK)
         {
             static void (*trigger_handlers[])(struct gb_core *) = {
-                &handle_trigger_event_ch1,
-                &handle_trigger_event_ch2,
-                &handle_trigger_event_ch3,
-                &handle_trigger_event_ch4,
+                handle_trigger_event_ch1,
+                handle_trigger_event_ch2,
+                handle_trigger_event_ch3,
+                handle_trigger_event_ch4,
             };
 
             trigger_handlers[ch_number - 1](gb);
@@ -105,75 +82,7 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
             return;
     }
 
-    // if (address == DIV)
-    // {
-    //     gb->internal_div = 0;
-    //     return;
-    // }
-
-    // if (address == TAC)
-    // {
-    //     gb->memory.io[IO_OFFSET(TAC)] = 0xF8 | (val & 0x7);
-    //     return;
-    // }
-
-    // if (address == IF)
-    // {
-    //     uint8_t temp = (gb->memory.io[IO_OFFSET(IF)] & 0xE0);
-    //     temp |= (val & 0x1F);
-    //     gb->memory.io[IO_OFFSET(IF)] = temp;
-    //     return;
-    // }
-
-    // if (address == NR14 || address == NR24 || address == NR34 || address == NR44)
-    // {
-    //     gb->memory.io[IO_OFFSET(address)] = val & ~(NRx4_UNUSED_PART);
-    //     uint8_t ch_number = ((address - NR14) / (NR24 - NR14)) + 1;
-    //     /* Trigger event */
-    //     if (val & NRx4_TRIGGER_MASK)
-    //     {
-    //         static void (*trigger_handlers[])(struct gb_core *) = {
-    //             &handle_trigger_event_ch1,
-    //             &handle_trigger_event_ch2,
-    //             &handle_trigger_event_ch3,
-    //             &handle_trigger_event_ch4,
-    //         };
-    //
-    //         trigger_handlers[ch_number - 1](gb);
-    //     }
-    //
-    //     if (val & NRx4_LENGTH_ENABLE)
-    //         enable_timer(gb, ch_number);
-    //     return;
-    // }
-
-    // if (address == LCDC)
-    // {
-    //     // LCD off
-    //     if (!(val >> 7))
-    //         ppu_reset(gb);
-    //     gb->memory.io[IO_OFFSET(LCDC)] = val;
-    //     return;
-    // }
-
-    // if (address == DMA)
-    // {
-    //     gb->ppu.dma = 2;
-    //     gb->ppu.dma_acc = 0;
-    //     gb->ppu.dma_source = val;
-    //     return;
-    // }
-
-    // if (address == BOOT)
-    // {
-    //     // Prevent enabling bootrom again
-    //     if (!(gb->memory.io[IO_OFFSET(BOOT)] & 0x01))
-    //         gb->memory.io[IO_OFFSET(BOOT)] = val;
-    //     return;
-    // }
-
     io_write(gb->memory.io, address, val);
-    // gb->memory.io[IO_OFFSET(address)] = val;
 }
 
 static void _hram(struct gb_core *gb, uint16_t address, uint8_t val)
