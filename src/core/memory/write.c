@@ -45,10 +45,31 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
     case DIV:
         gb->internal_div = 0;
         return;
+    case NR10:
+    case NR11:
+    case NR12:
+    case NR13:
+    case NR21:
+    case NR22:
+    case NR23:
+    case NR30:
+    case NR31:
+    case NR32:
+    case NR33:
+    case NR41:
+    case NR42:
+    case NR43:
+    case NR50:
+    case NR51:
+        if (!is_apu_on(gb))
+            return;
+        break;
     case NR14:
     case NR24:
     case NR34:
     case NR44:
+        if (!is_apu_on(gb))
+            return;
         gb->memory.io[IO_OFFSET(address)] = val & ~(NRx4_UNUSED_PART);
         uint8_t ch_number = ((address - NR14) / (NR24 - NR14)) + 1;
         /* Trigger event */
@@ -67,6 +88,14 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
         if (val & NRx4_LENGTH_ENABLE)
             enable_timer(gb, ch_number);
         return;
+    case NR52:
+        // APU off
+        if (!(val >> 7))
+        {
+            apu_turn_off(gb);
+            return;
+        }
+        break;
     case LCDC:
         // LCD off
         if (!(val >> 7))

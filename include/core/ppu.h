@@ -51,7 +51,7 @@ struct ppu
     {
         uint8_t y;
         uint8_t x;
-        uint8_t *oam_address;
+        uint8_t oam_offset;
         uint8_t done;
     } obj_slots[10];
 

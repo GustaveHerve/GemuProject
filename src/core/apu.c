@@ -505,8 +505,109 @@ void apu_tick_m(struct gb_core *gb)
     }
 }
 
+void apu_turn_off(struct gb_core *gb)
+{
+    // Clear all APU registers
+    gb->memory.io[IO_OFFSET(NR10)] &= 0x80;
+    gb->memory.io[IO_OFFSET(NR11)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR12)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR13)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR14)] &= 0x38;
+    gb->memory.io[IO_OFFSET(NR21)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR22)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR23)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR24)] &= 0x38;
+    gb->memory.io[IO_OFFSET(NR30)] &= 0x7F;
+    gb->memory.io[IO_OFFSET(NR31)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR32)] &= 0x9F;
+    gb->memory.io[IO_OFFSET(NR33)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR34)] &= 0x38;
+    gb->memory.io[IO_OFFSET(NR41)] &= 0xC0;
+    gb->memory.io[IO_OFFSET(NR42)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR43)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR44)] &= 0x3F;
+    gb->memory.io[IO_OFFSET(NR50)] &= 0x00;
+    gb->memory.io[IO_OFFSET(NR51)] &= 0x00;
+
+    gb->memory.io[IO_OFFSET(NR52)] &= 0x70;
+}
+
 void serialize_apu_to_stream(FILE *stream, struct apu *apu)
 {
-    // fwrite(apu->lx, sizeof(unsigned int), 1, stream);
-    // fwrite(ppu->obj_slots, sizeof(struct obj), 10, stream);
+    fwrite_le_32(stream, apu->ch1.length_timer);
+    fwrite_le_32(stream, apu->ch1.period_timer);
+    fwrite_le_32(stream, apu->ch1.current_volume);
+    fwrite_le_32(stream, apu->ch1.env_dir);
+    fwrite_le_32(stream, apu->ch1.env_period);
+    fwrite_le_32(stream, apu->ch1.frequency_timer);
+    fwrite_le_32(stream, apu->ch1.duty_pos);
+    fwrite_le_32(stream, apu->ch1.sweep_enabled);
+    fwrite_le_32(stream, apu->ch1.shadow_frequency);
+    fwrite_le_32(stream, apu->ch1.sweep_timer);
+
+    fwrite_le_32(stream, apu->ch2.length_timer);
+    fwrite_le_32(stream, apu->ch2.period_timer);
+    fwrite_le_32(stream, apu->ch2.current_volume);
+    fwrite_le_32(stream, apu->ch2.env_dir);
+    fwrite_le_32(stream, apu->ch2.env_period);
+    fwrite_le_32(stream, apu->ch2.frequency_timer);
+    fwrite_le_32(stream, apu->ch2.duty_pos);
+
+    fwrite_le_32(stream, apu->ch3.length_timer);
+    fwrite_le_32(stream, apu->ch3.frequency_timer);
+    fwrite_le_32(stream, apu->ch3.wave_pos);
+    fwrite_le_32(stream, apu->ch3.sample_buffer);
+
+    fwrite_le_32(stream, apu->ch4.length_timer);
+    fwrite_le_32(stream, apu->ch4.period_timer);
+    fwrite_le_32(stream, apu->ch4.current_volume);
+    fwrite_le_32(stream, apu->ch4.env_dir);
+    fwrite_le_32(stream, apu->ch4.env_period);
+    fwrite_le_32(stream, apu->ch4.frequency_timer);
+    fwrite_le_32(stream, apu->ch4.lfsr);
+    fwrite_le_32(stream, apu->ch4.polynomial_counter);
+
+    fwrite(&apu->fs_pos, sizeof(uint8_t), 1, stream);
+    fwrite_le_32(stream, apu->sampling_counter);
+    fwrite_le_16(stream, apu->previous_div_apu);
+}
+
+void load_apu_from_stream(FILE *stream, struct apu *apu)
+{
+    fread_le_32(stream, &apu->ch1.length_timer);
+    fread_le_32(stream, &apu->ch1.period_timer);
+    fread_le_32(stream, &apu->ch1.current_volume);
+    fread_le_32(stream, &apu->ch1.env_dir);
+    fread_le_32(stream, &apu->ch1.env_period);
+    fread_le_32(stream, &apu->ch1.frequency_timer);
+    fread_le_32(stream, &apu->ch1.duty_pos);
+    fread_le_32(stream, &apu->ch1.sweep_enabled);
+    fread_le_32(stream, &apu->ch1.shadow_frequency);
+    fread_le_32(stream, &apu->ch1.sweep_timer);
+
+    fread_le_32(stream, &apu->ch2.length_timer);
+    fread_le_32(stream, &apu->ch2.period_timer);
+    fread_le_32(stream, &apu->ch2.current_volume);
+    fread_le_32(stream, &apu->ch2.env_dir);
+    fread_le_32(stream, &apu->ch2.env_period);
+    fread_le_32(stream, &apu->ch2.frequency_timer);
+    fread_le_32(stream, &apu->ch2.duty_pos);
+
+    fread_le_32(stream, &apu->ch3.length_timer);
+    fread_le_32(stream, &apu->ch3.frequency_timer);
+    fread_le_32(stream, &apu->ch3.wave_pos);
+    fread_le_32(stream, &apu->ch3.sample_buffer);
+
+    fread_le_32(stream, &apu->ch4.length_timer);
+    fread_le_32(stream, &apu->ch4.period_timer);
+    fread_le_32(stream, &apu->ch4.current_volume);
+    fread_le_32(stream, &apu->ch4.env_dir);
+    fread_le_32(stream, &apu->ch4.env_period);
+    fread_le_32(stream, &apu->ch4.frequency_timer);
+    fread_le_32(stream, &apu->ch4.lfsr);
+    fread_le_32(stream, &apu->ch4.polynomial_counter);
+
+    fread(&apu->fs_pos, sizeof(uint8_t), 1, stream);
+    fread_le_32(stream, &apu->sampling_counter);
+    fread_le_16(stream, &apu->previous_div_apu);
 }

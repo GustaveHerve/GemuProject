@@ -165,7 +165,7 @@ static inline void io_write(uint8_t *io, uint16_t address, uint8_t val)
         [_IO(NR12)] = 0xFF,  [_IO(NR13)] = 0xFF,  [_IO(NR14)] = 0xC7,  [_IO(NR21)] = 0xFF,  [_IO(NR22)] = 0xFF,
         [_IO(NR23)] = 0xFF,  [_IO(NR24)] = 0xC7,  [_IO(NR30)] = 0x80,  [_IO(NR31)] = 0xFF,  [_IO(NR32)] = 0x60,
         [_IO(NR33)] = 0xFF,  [_IO(NR34)] = 0xC7,  [_IO(NR41)] = 0x3F,  [_IO(NR42)] = 0xFF,  [_IO(NR43)] = 0xFF,
-        [_IO(NR44)] = 0xC0,  [_IO(NR50)] = 0xFF,  [_IO(NR51)] = 0xFF,  [_IO(NR52)] = 0x8F,  [_IO(W(0))] = 0xFF,
+        [_IO(NR44)] = 0xC0,  [_IO(NR50)] = 0xFF,  [_IO(NR51)] = 0xFF,  [_IO(NR52)] = 0x80,  [_IO(W(0))] = 0xFF,
         [_IO(W(1))] = 0xFF,  [_IO(W(2))] = 0xFF,  [_IO(W(3))] = 0xFF,  [_IO(W(4))] = 0xFF,  [_IO(W(5))] = 0xFF,
         [_IO(W(6))] = 0xFF,  [_IO(W(7))] = 0xFF,  [_IO(W(8))] = 0xFF,  [_IO(W(9))] = 0xFF,  [_IO(W(10))] = 0xFF,
         [_IO(W(11))] = 0xFF, [_IO(W(12))] = 0xFF, [_IO(W(13))] = 0xFF, [_IO(W(14))] = 0xFF, [_IO(W(15))] = 0xFF,

@@ -50,8 +50,8 @@ static uint8_t get_tileid(struct gb_core *gb, int obj_index, int bottom_part)
         }
         else
         {
-            tileid = *(gb->ppu.obj_slots[obj_index].oam_address + 2);
-            gb->ppu.obj_fetcher.attributes = *(gb->ppu.obj_slots[obj_index].oam_address + 3);
+            tileid = gb->memory.oam[gb->ppu.obj_slots[obj_index].oam_offset + 2];
+            gb->ppu.obj_fetcher.attributes = gb->memory.oam[gb->ppu.obj_slots[obj_index].oam_offset + 3];
         }
 
         if (get_lcdc(gb->memory.io, LCDC_OBJ_SIZE))
@@ -321,18 +321,19 @@ static int oam_scan(struct gb_core *gb)
     gb->ppu.oam_locked = 1;
     gb->ppu.vram_locked = 0;
 
-    uint8_t *obj_y = &gb->memory.oam[0] + 2 * (gb->ppu.line_dot_count);
+    uint8_t oam_offset = 2 * (gb->ppu.line_dot_count);
     if (gb->ppu.obj_count < 10)
     {
         // 8x16 (LCDC bit 2 = 1) or 8x8 (LCDC bit 2 = 0)
         // TODO: obj_y + 1 != 0 condition is weird ? check this
         int y_max_offset = get_lcdc(gb->memory.io, LCDC_OBJ_SIZE) ? 16 : 8;
-        if (*(obj_y + 1) != 0 && gb->memory.io[IO_OFFSET(LY)] + 16 >= *obj_y &&
-            gb->memory.io[IO_OFFSET(LY)] + 16 < *obj_y + y_max_offset)
+        if (gb->memory.oam[OAM_OFFSET(oam_offset + 1)] != 0 &&
+            gb->memory.io[IO_OFFSET(LY)] + 16 >= gb->memory.oam[oam_offset] &&
+            gb->memory.io[IO_OFFSET(LY)] + 16 < gb->memory.oam[oam_offset] + y_max_offset)
         {
-            gb->ppu.obj_slots[gb->ppu.obj_count].y = *obj_y;
-            gb->ppu.obj_slots[gb->ppu.obj_count].x = *(obj_y + 1);
-            gb->ppu.obj_slots[gb->ppu.obj_count].oam_address = obj_y;
+            gb->ppu.obj_slots[gb->ppu.obj_count].y = gb->memory.oam[oam_offset];
+            gb->ppu.obj_slots[gb->ppu.obj_count].x = gb->memory.oam[oam_offset + 1];
+            gb->ppu.obj_slots[gb->ppu.obj_count].oam_offset = oam_offset;
             gb->ppu.obj_slots[gb->ppu.obj_count].done = 0;
             ++gb->ppu.obj_count;
         }
@@ -614,32 +615,35 @@ static uint8_t mode1_handler(struct gb_core *gb)
 
 void ppu_tick_m(struct gb_core *gb)
 {
-    for (size_t dots = 0; dots < 4;)
+    if (get_lcdc(gb->memory.io, LCDC_LCD_PPU_ENABLE))
     {
-        switch (gb->ppu.current_mode)
+        for (size_t dots = 0; dots < 4;)
         {
-        case 2:
-            dots += mode2_handler(gb);
-            break;
-        case 3:
-            dots += mode3_handler(gb);
-            break;
-        case 0:
-            dots += mode0_handler(gb);
-            break;
-        case 1:
-            dots += mode1_handler(gb);
-            break;
+            switch (gb->ppu.current_mode)
+            {
+            case 2:
+                dots += mode2_handler(gb);
+                break;
+            case 3:
+                dots += mode3_handler(gb);
+                break;
+            case 0:
+                dots += mode0_handler(gb);
+                break;
+            case 1:
+                dots += mode1_handler(gb);
+                break;
+            }
         }
     }
+
     // DMA handling
     // DMA first setup MCycle
     if (gb->ppu.dma == 2)
         gb->ppu.dma = 1;
     else if (gb->ppu.dma == 1)
     {
-        gb->memory.oam[OAM_OFFSET(OAM + gb->ppu.dma_acc)] =
-            read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
+        gb->memory.oam[gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
         ++gb->ppu.dma_acc;
         if (gb->ppu.dma_acc >= 160)
             gb->ppu.dma = 0;
@@ -649,11 +653,39 @@ void ppu_tick_m(struct gb_core *gb)
 void serialize_ppu_to_stream(FILE *stream, struct ppu *ppu)
 {
     fwrite(&ppu->lx, sizeof(uint8_t), 1, stream);
-    fwrite(ppu->obj_slots, sizeof(struct obj), 10, stream);
+
+    for (size_t i = 0; i < sizeof(ppu->obj_slots) / sizeof(struct obj); ++i)
+    {
+        fwrite(&ppu->obj_slots[i].x, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->obj_slots[i].y, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->obj_slots[i].oam_offset, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->obj_slots[i].x, sizeof(uint8_t), 1, stream);
+    }
 
     fwrite(&ppu->obj_count, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->obj_count, sizeof(uint8_t), 1, stream);
 
-    // fwrite_le_16(stream, cpu->pc);
+    fwrite_le_64(stream, ppu->bg_fifo.element_count);
+    for (size_t i = 0; i < ppu->bg_fifo.element_count; ++i)
+    {
+        fwrite(&ppu->bg_fifo.buffer[i].obj, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->bg_fifo.buffer[i].color, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->bg_fifo.buffer[i].palette, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->bg_fifo.buffer[i].priority, sizeof(uint8_t), 1, stream);
+    }
+    fwrite_le_64(stream, ppu->bg_fifo.head);
+    fwrite_le_64(stream, ppu->bg_fifo.tail);
+
+    fwrite_le_64(stream, ppu->obj_fifo.element_count);
+    for (size_t i = 0; i < ppu->obj_fifo.element_count; ++i)
+    {
+        fwrite(&ppu->obj_fifo.buffer[i].obj, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->obj_fifo.buffer[i].color, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->obj_fifo.buffer[i].palette, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->obj_fifo.buffer[i].priority, sizeof(uint8_t), 1, stream);
+    }
+    fwrite_le_64(stream, ppu->obj_fifo.head);
+    fwrite_le_64(stream, ppu->obj_fifo.tail);
 }
 
 void load_ppu_from_stream(FILE *stream, struct cpu *cpu)

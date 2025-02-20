@@ -2,6 +2,7 @@
 #define CORE_APU_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 struct gb_core;
 
@@ -110,6 +111,12 @@ void handle_trigger_event_ch4(struct gb_core *gb);
 void enable_timer(struct gb_core *gb, uint8_t ch_number);
 
 void apu_tick_m(struct gb_core *gb);
+
+void apu_turn_off(struct gb_core *gb);
+
+void serialize_apu_to_stream(FILE *stream, struct apu *apu);
+
+void load_apu_from_stream(FILE *stream, struct apu *apu);
 
 static inline float dac_output(uint32_t amplitude)
 {

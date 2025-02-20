@@ -81,7 +81,7 @@ static uint8_t _ie(struct gb_core *gb, uint16_t address)
 
 static uint8_t _read_jmp_level_4(struct gb_core *gb, uint16_t address)
 {
-    static uint8_t (*read_jmp_table_level_4[16])(struct gb_core *, uint16_t address) = {
+    static uint8_t (*read_jmp_table_level_4[16])(struct gb_core *, uint16_t) = {
         _hram,
         _hram,
         _hram,
@@ -104,7 +104,7 @@ static uint8_t _read_jmp_level_4(struct gb_core *gb, uint16_t address)
 
 static uint8_t _read_jmp_level_3(struct gb_core *gb, uint16_t address)
 {
-    static uint8_t (*read_jmp_table_level_3[16])(struct gb_core *, uint16_t address) = {
+    static uint8_t (*read_jmp_table_level_3[16])(struct gb_core *, uint16_t) = {
         _io,
         _io,
         _io,
@@ -127,7 +127,7 @@ static uint8_t _read_jmp_level_3(struct gb_core *gb, uint16_t address)
 
 static uint8_t _read_jmp_level_2(struct gb_core *gb, uint16_t address)
 {
-    static uint8_t (*read_jmp_table_level_2[16])(struct gb_core *, uint16_t address) = {
+    static uint8_t (*read_jmp_table_level_2[16])(struct gb_core *, uint16_t) = {
         _echo_ram,
         _echo_ram,
         _echo_ram,
@@ -150,7 +150,7 @@ static uint8_t _read_jmp_level_2(struct gb_core *gb, uint16_t address)
 
 static uint8_t _read_mem(struct gb_core *gb, uint16_t address)
 {
-    static uint8_t (*read_jmp_table[16])(struct gb_core *, uint16_t address) = {
+    static uint8_t (*read_jmp_table[16])(struct gb_core *, uint16_t) = {
         _rom,
         _rom,
         _rom,
@@ -178,10 +178,9 @@ uint8_t read_mem_no_oam_check(struct gb_core *gb, uint16_t address)
 
 uint8_t read_mem(struct gb_core *gb, uint16_t address)
 {
-    // TODO: fix DMA handling
-    // DMA, can only access HRAM
-    // if (gb->ppu.dma == 1 && (address < 0xFF80 || address > 0xFFFE))
-    //    return 0xFF;
+    // Only HRAM is accessible during a DMA transfer
+    if (gb->ppu.dma == 1 && (address < 0xFF80 || address > 0xFFFE))
+        return 0xFF;
     return _read_mem(gb, address);
 }
 

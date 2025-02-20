@@ -23,6 +23,7 @@ static void init_io_post_boot(struct memory_map *mem)
     mem->io[IO_OFFSET(NR12)] = 0xF3;
     mem->io[IO_OFFSET(NR13)] = 0xFF;
     mem->io[IO_OFFSET(NR14)] = 0xBF;
+    mem->io[IO_OFFSET(0xFF15)] = 0xFF;
     mem->io[IO_OFFSET(NR21)] = 0x3F;
     mem->io[IO_OFFSET(NR22)] = 0x00;
     mem->io[IO_OFFSET(NR23)] = 0xFF;
@@ -32,6 +33,7 @@ static void init_io_post_boot(struct memory_map *mem)
     mem->io[IO_OFFSET(NR32)] = 0x9F;
     mem->io[IO_OFFSET(NR33)] = 0xFF;
     mem->io[IO_OFFSET(NR34)] = 0xBF;
+    mem->io[IO_OFFSET(0xFF1F)] = 0xFF;
     mem->io[IO_OFFSET(NR41)] = 0xFF;
     mem->io[IO_OFFSET(NR42)] = 0x00;
     mem->io[IO_OFFSET(NR43)] = 0x00;

@@ -143,6 +143,5 @@ void tick_m(struct gb_core *gb)
     update_timers(gb);
     update_serial(gb);
 
-    if (get_lcdc(gb->memory.io, LCDC_LCD_PPU_ENABLE))
-        ppu_tick_m(gb);
+    ppu_tick_m(gb);
 }
