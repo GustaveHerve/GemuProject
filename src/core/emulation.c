@@ -133,15 +133,20 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
 
 void tick_m(struct gb_core *gb)
 {
-    gb->tcycles_since_sync += 4;
-
     if (gb->cpu.ime == 2)
         gb->cpu.ime = 1;
 
-    apu_tick_m(gb);
+    for (size_t i = 0; i < 4; ++i)
+    {
+        gb->tcycles_since_sync += 1;
 
-    update_timers(gb);
-    update_serial(gb);
+        apu_tick(gb);
 
-    ppu_tick_m(gb);
+        update_timers(gb);
+        update_serial(gb);
+
+        ppu_tick(gb);
+    }
+
+    dma_handle(gb);
 }

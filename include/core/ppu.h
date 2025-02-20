@@ -45,6 +45,8 @@ struct fetcher
 
 struct ppu
 {
+    uint8_t mode2_tick;
+
     uint8_t lx;
 
     struct obj
@@ -110,6 +112,8 @@ void ppu_init(struct gb_core *gb);
 
 void ppu_reset(struct gb_core *gb);
 
-void ppu_tick_m(struct gb_core *gb);
+void dma_handle(struct gb_core *gb);
+
+void ppu_tick(struct gb_core *gb);
 
 #endif

@@ -476,33 +476,30 @@ static void queue_audio_sample(struct gb_core *gb)
     }
 }
 
-void apu_tick_m(struct gb_core *gb)
+void apu_tick(struct gb_core *gb)
 {
     if (!is_apu_on(gb))
         return;
 
-    for (size_t i = 0; i < 4; ++i)
+    uint16_t div = gb->apu.previous_div_apu + 1;
+
+    // DIV bit 4 falling edge detection
+    if ((gb->apu.previous_div_apu & DIV_APU_MASK) && !(div & DIV_APU_MASK))
+        frame_sequencer_step(gb);
+
+    ch1_tick(gb);
+    ch2_tick(gb);
+    ch3_tick(gb);
+    ch4_tick(gb);
+
+    gb->apu.sampling_counter += SAMPLING_RATE;
+    if (gb->apu.sampling_counter >= CPU_FREQUENCY)
     {
-        uint16_t div = gb->apu.previous_div_apu + 1;
-
-        // DIV bit 4 falling edge detection
-        if ((gb->apu.previous_div_apu & DIV_APU_MASK) && !(div & DIV_APU_MASK))
-            frame_sequencer_step(gb);
-
-        ch1_tick(gb);
-        ch2_tick(gb);
-        ch3_tick(gb);
-        ch4_tick(gb);
-
-        gb->apu.sampling_counter += SAMPLING_RATE;
-        if (gb->apu.sampling_counter >= CPU_FREQUENCY)
-        {
-            queue_audio_sample(gb);
-            gb->apu.sampling_counter -= CPU_FREQUENCY;
-        }
-
-        gb->apu.previous_div_apu += 1;
+        queue_audio_sample(gb);
+        gb->apu.sampling_counter -= CPU_FREQUENCY;
     }
+
+    gb->apu.previous_div_apu += 1;
 }
 
 void apu_turn_off(struct gb_core *gb)

@@ -36,7 +36,7 @@ struct gb_core
     uint8_t halt;
     uint8_t stop;
 
-    uint8_t serial_clock;
+    uint16_t serial_clock;
     uint8_t serial_acc;
 
     struct mbc_base *mbc;
@@ -44,7 +44,7 @@ struct gb_core
     uint8_t joyp_a;
     uint8_t joyp_d;
 
-    size_t tcycles_since_sync;
+    uint64_t tcycles_since_sync;
     int64_t last_sync_timestamp;
 
     // Callbacks

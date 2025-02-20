@@ -148,13 +148,16 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(&gb->memory.ie, sizeof(uint8_t), 1, file);
 
     fwrite_le_16(file, gb->previous_div);
+    fwrite_le_16(file, gb->internal_div);
 
-    fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
+    fwrite(&gb->disabling_timer, sizeof(uint8_t), 1, file);
 
-    fwrite(&gb->disabling_timer, sizeof(uint8_t), 6, file);
+    fwrite(&gb->halt, sizeof(uint8_t), 1, file);
+    fwrite(&gb->stop, sizeof(uint8_t), 1, file);
+    fwrite_le_16(file, gb->serial_clock);
+    fwrite(&gb->serial_acc, sizeof(uint8_t), 1, file);
 
-    fwrite(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
-
+    fwrite_le_64(file, gb->tcycles_since_sync);
     fwrite_le_64(file, gb->last_sync_timestamp);
 
     mbc_serialize(gb->mbc, file);
@@ -194,13 +197,16 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     fread(&gb->memory.ie, sizeof(uint8_t), 1, file);
 
     fread_le_16(file, &gb->previous_div);
+    fread_le_16(file, &gb->internal_div);
 
-    fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
+    fread(&gb->disabling_timer, sizeof(uint8_t), 1, file);
 
-    fread(&gb->disabling_timer, sizeof(uint8_t), 6, file);
+    fread(&gb->halt, sizeof(uint8_t), 1, file);
+    fread(&gb->stop, sizeof(uint8_t), 1, file);
+    fread_le_16(file, &gb->serial_clock);
+    fread(&gb->serial_acc, sizeof(uint8_t), 1, file);
 
-    fread(&gb->tcycles_since_sync, sizeof(size_t), 1, file);
-
+    fread_le_64(file, &gb->tcycles_since_sync);
     fread_le_64(file, (void *)&gb->last_sync_timestamp);
 
     mbc_load_from_stream(gb->mbc, file);

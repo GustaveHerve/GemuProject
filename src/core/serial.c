@@ -12,10 +12,10 @@ static void transfer_complete(struct gb_core *gb)
 
 void update_serial(struct gb_core *gb)
 {
-    uint8_t previous_serial_clock = gb->serial_clock;
-    gb->serial_clock += 1; // This is in M-Cycle and not T-Cycle !
-    /* Bit 7 falling edge detection (if we were in T-Cycle it would be bit 9) */
-    if (previous_serial_clock >> 7 && !(gb->serial_clock >> 7))
+    uint16_t previous_serial_clock = gb->serial_clock;
+    gb->serial_clock += 1;
+    /* Bit 9 falling edge detection (if we were in M-Cycle it would be bit 7) */
+    if (previous_serial_clock & 0x0200 && !(gb->serial_clock & 0x0200))
     {
         if (get_clock_select(gb))
         {

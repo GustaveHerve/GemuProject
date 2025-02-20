@@ -110,7 +110,7 @@ void handle_trigger_event_ch4(struct gb_core *gb);
 
 void enable_timer(struct gb_core *gb, uint8_t ch_number);
 
-void apu_tick_m(struct gb_core *gb);
+void apu_tick(struct gb_core *gb);
 
 void apu_turn_off(struct gb_core *gb);
 

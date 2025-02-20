@@ -16,7 +16,7 @@ void update_timers(struct gb_core *gb)
     }
 
     if (!gb->stop)
-        gb->internal_div += 4;
+        gb->internal_div += 1;
 
     uint8_t previous_tima = gb->memory.io[IO_OFFSET(TIMA)];
     unsigned int selected_clock = gb->memory.io[IO_OFFSET(TAC)] & TAC_CLOCK_SELECT;

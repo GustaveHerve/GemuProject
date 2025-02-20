@@ -253,6 +253,8 @@ static int obj_fetcher_step(struct gb_core *gb)
 
 void ppu_init(struct gb_core *gb)
 {
+    gb->ppu.mode2_tick = 0;
+
     gb->ppu.lx = 0;
     gb->ppu.obj_count = 0;
 
@@ -354,6 +356,13 @@ static int oam_scan(struct gb_core *gb)
 
 static uint8_t mode2_handler(struct gb_core *gb)
 {
+    if (!gb->ppu.mode2_tick)
+    {
+        gb->ppu.mode2_tick = 1;
+        return 1;
+    }
+
+    gb->ppu.mode2_tick = 0;
     if (gb->ppu.line_dot_count == 0)
     {
         set_stat(gb->memory.io, 1);
@@ -370,7 +379,6 @@ static uint8_t mode2_handler(struct gb_core *gb)
     return 2;
 }
 
-// Do one iteration of both fetchers step (2 dots)
 static uint8_t fetchers_step(struct gb_core *gb)
 {
     // There is a new object to render
@@ -613,31 +621,8 @@ static uint8_t mode1_handler(struct gb_core *gb)
     return 0;
 }
 
-void ppu_tick_m(struct gb_core *gb)
+void dma_handle(struct gb_core *gb)
 {
-    if (get_lcdc(gb->memory.io, LCDC_LCD_PPU_ENABLE))
-    {
-        for (size_t dots = 0; dots < 4;)
-        {
-            switch (gb->ppu.current_mode)
-            {
-            case 2:
-                dots += mode2_handler(gb);
-                break;
-            case 3:
-                dots += mode3_handler(gb);
-                break;
-            case 0:
-                dots += mode0_handler(gb);
-                break;
-            case 1:
-                dots += mode1_handler(gb);
-                break;
-            }
-        }
-    }
-
-    // DMA handling
     // DMA first setup MCycle
     if (gb->ppu.dma == 2)
         gb->ppu.dma = 1;
@@ -650,8 +635,35 @@ void ppu_tick_m(struct gb_core *gb)
     }
 }
 
+void ppu_tick(struct gb_core *gb)
+{
+    if (!get_lcdc(gb->memory.io, LCDC_LCD_PPU_ENABLE))
+        return;
+
+    uint8_t dot = 0;
+    while (!dot)
+    {
+        switch (gb->ppu.current_mode)
+        {
+        case 2:
+            dot += mode2_handler(gb);
+            break;
+        case 3:
+            dot += mode3_handler(gb);
+            break;
+        case 0:
+            dot += mode0_handler(gb);
+            break;
+        case 1:
+            dot += mode1_handler(gb);
+            break;
+        }
+    }
+}
+
 void serialize_ppu_to_stream(FILE *stream, struct ppu *ppu)
 {
+    fwrite(&ppu->mode2_tick, sizeof(uint8_t), 1, stream);
     fwrite(&ppu->lx, sizeof(uint8_t), 1, stream);
 
     for (size_t i = 0; i < sizeof(ppu->obj_slots) / sizeof(struct obj); ++i)

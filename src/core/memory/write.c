@@ -45,18 +45,24 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
     case DIV:
         gb->internal_div = 0;
         return;
-    case NR10:
+
+    /* On DMG it is possible to write initial timer on NRx1 even if APU is off */
     case NR11:
+    case NR21:
+    case NR41:
+        if (!is_apu_on(gb))
+            val &= 0x3F;
+    case NR31: /* no masking for NR31: whole register is initial timer */
+        break;
+
+    case NR10:
     case NR12:
     case NR13:
-    case NR21:
     case NR22:
     case NR23:
     case NR30:
-    case NR31:
     case NR32:
     case NR33:
-    case NR41:
     case NR42:
     case NR43:
     case NR50:
@@ -64,6 +70,7 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
         if (!is_apu_on(gb))
             return;
         break;
+
     case NR14:
     case NR24:
     case NR34:
@@ -88,6 +95,7 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
         if (val & NRx4_LENGTH_ENABLE)
             enable_timer(gb, ch_number);
         return;
+
     case NR52:
         // APU off
         if (!(val >> 7))
@@ -96,16 +104,19 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
             return;
         }
         break;
+
     case LCDC:
         // LCD off
         if (!(val >> 7))
             ppu_reset(gb);
         break;
+
     case DMA:
         gb->ppu.dma = 2;
         gb->ppu.dma_acc = 0;
         gb->ppu.dma_source = val;
         break;
+
     case BOOT:
         if (gb->memory.io[IO_OFFSET(BOOT)] & 0x01)
             return;
