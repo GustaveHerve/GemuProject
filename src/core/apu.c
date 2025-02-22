@@ -219,17 +219,27 @@ void apu_reload_timer(struct gb_core *gb, uint8_t ch_number)
     ch->length_timer = val - initial_length;
 }
 
-static void length_clock(struct gb_core *gb, struct ch_generic *ch, uint8_t number)
+static void length_clock(struct gb_core *gb, uint8_t number)
 {
+    struct ch_generic *channels[4] = {
+        (void *)&gb->apu.ch1,
+        (void *)&gb->apu.ch2,
+        (void *)&gb->apu.ch3,
+        (void *)&gb->apu.ch4,
+    };
+
+    struct ch_generic *ch = channels[number - 1];
     uint8_t nrx4 = gb->memory.io[IO_OFFSET(NRXY(number, 4))];
     if (!LENGTH_ENABLE(nrx4))
         return;
 
     if (ch->length_timer > 0)
+    {
         --ch->length_timer;
 
-    if (ch->length_timer == 0)
-        turn_channel_off(gb, number);
+        if (ch->length_timer == 0)
+            turn_channel_off(gb, number);
+    }
 }
 
 static void volume_env_clock(struct gb_core *gb, struct ch_generic *ch, uint8_t number)
@@ -311,10 +321,10 @@ static void frame_sequencer_step(struct gb_core *gb)
     /* Length Counter tick */
     if (gb->apu.fs_pos % 2 == 0)
     {
-        length_clock(gb, (struct ch_generic *)&gb->apu.ch1, 1);
-        length_clock(gb, (struct ch_generic *)&gb->apu.ch2, 2);
-        length_clock(gb, (struct ch_generic *)&gb->apu.ch3, 3);
-        length_clock(gb, (struct ch_generic *)&gb->apu.ch4, 4);
+        length_clock(gb, 1);
+        length_clock(gb, 2);
+        length_clock(gb, 3);
+        length_clock(gb, 4);
     }
 
     /* Volume Envelope tick */
@@ -542,7 +552,7 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
         /* fall through */
     case NR31: /* no masking for NR31: whole register is initial timer */
         io_write(gb->memory.io, address, val);
-        apu_reload_timer(gb, (address - NR11) / 5 + 1);
+        apu_reload_timer(gb, (address - NR11) / (NR21 - NR11) + 1);
         return;
 
     case NR12:
@@ -588,8 +598,9 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
     case NR44:
         if (!is_apu_on(gb))
             return;
-        gb->memory.io[IO_OFFSET(address)] = val & ~(NRx4_UNUSED_PART);
+
         uint8_t ch_number = ((address - NR14) / (NR24 - NR14)) + 1;
+
         /* Trigger event */
         if (val & NRx4_TRIGGER_MASK)
         {
@@ -602,7 +613,16 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
 
             trigger_handlers[ch_number - 1](gb);
         }
-        return;
+
+        /* Extra length clocking on rising edge of length enable bit */
+        if (gb->apu.fs_pos % 2 == 1 && val & NRx4_LENGTH_ENABLE &&
+            !(gb->memory.io[IO_OFFSET(address)] & NRx4_LENGTH_ENABLE))
+        {
+            io_write(gb->memory.io, address, val);
+            length_clock(gb, ch_number);
+            return;
+        }
+        break;
 
     case NR52:
         // APU off
