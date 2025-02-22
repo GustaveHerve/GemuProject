@@ -27,10 +27,9 @@ struct gb_core
     } memory;
 
     // Internal registers
-    uint16_t previous_div;
     uint16_t internal_div;
+    uint8_t prev_tac_AND;
 
-    uint8_t disabling_timer;
     uint8_t schedule_tima_overflow;
 
     uint8_t halt;

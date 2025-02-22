@@ -108,11 +108,13 @@ void handle_trigger_event_ch2(struct gb_core *gb);
 void handle_trigger_event_ch3(struct gb_core *gb);
 void handle_trigger_event_ch4(struct gb_core *gb);
 
-void enable_timer(struct gb_core *gb, uint8_t ch_number);
+void apu_reload_timer(struct gb_core *gb, uint8_t ch_number);
 
 void apu_tick(struct gb_core *gb);
 
 void apu_turn_off(struct gb_core *gb);
+
+void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val);
 
 void serialize_apu_to_stream(FILE *stream, struct apu *apu);
 

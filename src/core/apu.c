@@ -192,7 +192,7 @@ void handle_trigger_event_ch4(struct gb_core *gb)
         turn_channel_off(gb, 4);
 }
 
-void enable_timer(struct gb_core *gb, uint8_t ch_number)
+void apu_reload_timer(struct gb_core *gb, uint8_t ch_number)
 {
     struct ch_generic *ch = NULL;
     unsigned int val = 64;
@@ -214,8 +214,8 @@ void enable_timer(struct gb_core *gb, uint8_t ch_number)
         ch = (void *)&gb->apu.ch4;
         break;
     }
-    unsigned int initial_length = gb->memory.io[IO_OFFSET(NRXY(ch_number, 1))] & init_len_mask;
 
+    unsigned int initial_length = gb->memory.io[IO_OFFSET(NRXY(ch_number, 1))] & init_len_mask;
     ch->length_timer = val - initial_length;
 }
 
@@ -225,7 +225,9 @@ static void length_clock(struct gb_core *gb, struct ch_generic *ch, uint8_t numb
     if (!LENGTH_ENABLE(nrx4))
         return;
 
-    --ch->length_timer;
+    if (ch->length_timer > 0)
+        --ch->length_timer;
+
     if (ch->length_timer == 0)
         turn_channel_off(gb, number);
 }
@@ -481,10 +483,8 @@ void apu_tick(struct gb_core *gb)
     if (!is_apu_on(gb))
         return;
 
-    uint16_t div = gb->apu.previous_div_apu + 1;
-
     // DIV bit 4 falling edge detection
-    if ((gb->apu.previous_div_apu & DIV_APU_MASK) && !(div & DIV_APU_MASK))
+    if ((gb->apu.previous_div_apu & DIV_APU_MASK) && !(gb->internal_div & DIV_APU_MASK))
         frame_sequencer_step(gb);
 
     ch1_tick(gb);
@@ -499,7 +499,7 @@ void apu_tick(struct gb_core *gb)
         gb->apu.sampling_counter -= CPU_FREQUENCY;
     }
 
-    gb->apu.previous_div_apu += 1;
+    gb->apu.previous_div_apu = gb->internal_div;
 }
 
 void apu_turn_off(struct gb_core *gb)
@@ -527,6 +527,94 @@ void apu_turn_off(struct gb_core *gb)
     gb->memory.io[IO_OFFSET(NR51)] &= 0x00;
 
     gb->memory.io[IO_OFFSET(NR52)] &= 0x70;
+}
+
+void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
+{
+    switch (address)
+    {
+        /* On DMG it is possible to write initial timer on NRx1 even if APU is off */
+    case NR11:
+    case NR21:
+    case NR41:
+        if (!is_apu_on(gb))
+            val &= 0x3F;
+        /* fall through */
+    case NR31: /* no masking for NR31: whole register is initial timer */
+        io_write(gb->memory.io, address, val);
+        apu_reload_timer(gb, (address - NR11) / 5 + 1);
+        return;
+
+    case NR12:
+        if (!is_apu_on(gb))
+            return;
+        if (!(val & 0xF8))
+            turn_channel_off(gb, 1);
+        break;
+    case NR22:
+        if (!is_apu_on(gb))
+            return;
+        if (!(val & 0xF8))
+            turn_channel_off(gb, 2);
+        break;
+    case NR42:
+        if (!is_apu_on(gb))
+            return;
+        if (!(val & 0xF8))
+            turn_channel_off(gb, 4);
+        break;
+    case NR30:
+        if (!is_apu_on(gb))
+            return;
+        if (val == 0x00)
+            turn_channel_off(gb, 3);
+        break;
+
+    case NR10:
+    case NR13:
+    case NR23:
+    case NR32:
+    case NR33:
+    case NR43:
+    case NR50:
+    case NR51:
+        if (!is_apu_on(gb))
+            return;
+        break;
+
+    case NR14:
+    case NR24:
+    case NR34:
+    case NR44:
+        if (!is_apu_on(gb))
+            return;
+        gb->memory.io[IO_OFFSET(address)] = val & ~(NRx4_UNUSED_PART);
+        uint8_t ch_number = ((address - NR14) / (NR24 - NR14)) + 1;
+        /* Trigger event */
+        if (val & NRx4_TRIGGER_MASK)
+        {
+            static void (*trigger_handlers[])(struct gb_core *) = {
+                handle_trigger_event_ch1,
+                handle_trigger_event_ch2,
+                handle_trigger_event_ch3,
+                handle_trigger_event_ch4,
+            };
+
+            trigger_handlers[ch_number - 1](gb);
+        }
+        return;
+
+    case NR52:
+        // APU off
+        if (!(val >> 7))
+        {
+            apu_turn_off(gb);
+            return;
+        }
+        break;
+    }
+
+    io_write(gb->memory.io, address, val);
 }
 
 void serialize_apu_to_stream(FILE *stream, struct apu *apu)

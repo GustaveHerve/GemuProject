@@ -46,64 +46,35 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
         gb->internal_div = 0;
         return;
 
-    /* On DMG it is possible to write initial timer on NRx1 even if APU is off */
-    case NR11:
-    case NR21:
-    case NR41:
-        if (!is_apu_on(gb))
-            val &= 0x3F;
-    case NR31: /* no masking for NR31: whole register is initial timer */
+    case TIMA:
+        /* Ignore TIMA write on cycle after TIMA overflow */
+        if (gb->schedule_tima_overflow)
+            return;
         break;
 
     case NR10:
+    case NR11:
     case NR12:
     case NR13:
+    case NR14:
+    case NR21:
     case NR22:
     case NR23:
+    case NR24:
     case NR30:
+    case NR31:
     case NR32:
     case NR33:
+    case NR34:
+    case NR41:
     case NR42:
     case NR43:
+    case NR44:
     case NR50:
     case NR51:
-        if (!is_apu_on(gb))
-            return;
-        break;
-
-    case NR14:
-    case NR24:
-    case NR34:
-    case NR44:
-        if (!is_apu_on(gb))
-            return;
-        gb->memory.io[IO_OFFSET(address)] = val & ~(NRx4_UNUSED_PART);
-        uint8_t ch_number = ((address - NR14) / (NR24 - NR14)) + 1;
-        /* Trigger event */
-        if (val & NRx4_TRIGGER_MASK)
-        {
-            static void (*trigger_handlers[])(struct gb_core *) = {
-                handle_trigger_event_ch1,
-                handle_trigger_event_ch2,
-                handle_trigger_event_ch3,
-                handle_trigger_event_ch4,
-            };
-
-            trigger_handlers[ch_number - 1](gb);
-        }
-
-        if (val & NRx4_LENGTH_ENABLE)
-            enable_timer(gb, ch_number);
-        return;
-
     case NR52:
-        // APU off
-        if (!(val >> 7))
-        {
-            apu_turn_off(gb);
-            return;
-        }
-        break;
+        apu_write_reg(gb, address, val);
+        return;
 
     case LCDC:
         // LCD off

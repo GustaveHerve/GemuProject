@@ -97,8 +97,9 @@ void init_gb_core(struct gb_core *gb)
     gb->halt = 0;
     gb->stop = 0;
 
-    gb->previous_div = 0;
     gb->internal_div = 0;
+
+    gb->prev_tac_AND = 0;
 
     gb->serial_clock = 0;
     gb->serial_acc = 0;
@@ -108,7 +109,6 @@ void init_gb_core(struct gb_core *gb)
 
     gb->mbc = NULL;
 
-    gb->disabling_timer = 0;
     gb->schedule_tima_overflow = 0;
 
     gb->tcycles_since_sync = 0;
@@ -147,10 +147,7 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(gb->memory.hram, sizeof(uint8_t), HRAM_SIZE, file);
     fwrite(&gb->memory.ie, sizeof(uint8_t), 1, file);
 
-    fwrite_le_16(file, gb->previous_div);
     fwrite_le_16(file, gb->internal_div);
-
-    fwrite(&gb->disabling_timer, sizeof(uint8_t), 1, file);
 
     fwrite(&gb->halt, sizeof(uint8_t), 1, file);
     fwrite(&gb->stop, sizeof(uint8_t), 1, file);
@@ -196,10 +193,7 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
     fread(gb->memory.hram, sizeof(uint8_t), HRAM_SIZE, file);
     fread(&gb->memory.ie, sizeof(uint8_t), 1, file);
 
-    fread_le_16(file, &gb->previous_div);
     fread_le_16(file, &gb->internal_div);
-
-    fread(&gb->disabling_timer, sizeof(uint8_t), 1, file);
 
     fread(&gb->halt, sizeof(uint8_t), 1, file);
     fread(&gb->stop, sizeof(uint8_t), 1, file);

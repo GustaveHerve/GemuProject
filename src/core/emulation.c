@@ -35,8 +35,8 @@ void reset_gb(struct gb_core *gb)
     gb->halt = 0;
     gb->stop = 0;
 
-    gb->previous_div = 0;
     gb->internal_div = 0;
+    gb->prev_tac_AND = 0;
 
     gb->serial_clock = 0;
     gb->serial_acc = 0;
@@ -44,7 +44,6 @@ void reset_gb(struct gb_core *gb)
     gb->joyp_a = 0xF;
     gb->joyp_d = 0xF;
 
-    gb->disabling_timer = 0;
     gb->schedule_tima_overflow = 0;
 
     gb->tcycles_since_sync = 0;
@@ -140,11 +139,10 @@ void tick_m(struct gb_core *gb)
     {
         gb->tcycles_since_sync += 1;
 
-        apu_tick(gb);
-
         update_timers(gb);
         update_serial(gb);
 
+        apu_tick(gb);
         ppu_tick(gb);
     }
 
