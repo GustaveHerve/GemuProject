@@ -139,10 +139,7 @@ static void frequency_sweep_trigger(struct gb_core *gb, struct ch1 *ch1)
     if (ch1->sweep_timer == 0)
         ch1->sweep_timer = 8;
 
-    if (sweep_period != 0 || sweep_shift != 0)
-        ch1->sweep_enabled = 1;
-    else
-        ch1->sweep_enabled = 0;
+    ch1->sweep_enabled = (sweep_period != 0 || sweep_shift != 0);
 
     if (sweep_shift)
         calculate_frequency(gb, sweep_shift, SWEEP_DIR(nr10));
@@ -162,12 +159,13 @@ void handle_trigger_event_ch1(struct gb_core *gb)
     length_trigger(gb, 1);
     gb->apu.ch1.frequency_timer = (2048 - FREQUENCY(1)) * 4;
     envelope_trigger(gb, (void *)&gb->apu.ch1, 1);
-    frequency_sweep_trigger(gb, &gb->apu.ch1);
 
     if (is_dac_on(gb, 1))
         turn_channel_on(gb, 1);
     else
         turn_channel_off(gb, 1);
+
+    frequency_sweep_trigger(gb, &gb->apu.ch1);
 }
 
 void handle_trigger_event_ch2(struct gb_core *gb)
@@ -302,17 +300,16 @@ static void frequency_sweep_clock(struct gb_core *gb)
 {
     struct ch1 *ch1 = &gb->apu.ch1;
 
-    uint8_t nr10 = gb->memory.io[IO_OFFSET(NR10)];
-
-    uint8_t period = SWEEP_PERIOD(nr10);
-    uint8_t dir = SWEEP_DIR(nr10);
-    uint8_t shift = SWEEP_SHIFT(nr10);
-
     if (ch1->sweep_timer > 0)
         --ch1->sweep_timer;
 
     if (ch1->sweep_timer != 0)
         return;
+
+    uint8_t nr10 = gb->memory.io[IO_OFFSET(NR10)];
+    uint8_t shift = SWEEP_SHIFT(nr10);
+    uint8_t dir = SWEEP_DIR(nr10);
+    uint8_t period = SWEEP_PERIOD(nr10);
 
     if (period == 0)
         ch1->sweep_timer = 8;
