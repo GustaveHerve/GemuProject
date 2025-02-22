@@ -42,6 +42,7 @@ struct ch1
     uint32_t sweep_enabled;    // 1 bit
     uint32_t shadow_frequency; // 16 bits
     uint32_t sweep_timer;      // 3 bits
+    uint8_t neg_calc;
 };
 
 struct ch2

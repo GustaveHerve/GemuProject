@@ -156,6 +156,7 @@ static void envelope_trigger(struct gb_core *gb, struct ch_generic *ch, uint8_t 
 
 void handle_trigger_event_ch1(struct gb_core *gb)
 {
+    gb->apu.ch1.neg_calc = 0;
     length_trigger(gb, 1);
     gb->apu.ch1.frequency_timer = (2048 - FREQUENCY(1)) * 4;
     envelope_trigger(gb, (void *)&gb->apu.ch1, 1);
@@ -283,10 +284,14 @@ static void volume_env_clock(struct gb_core *gb, struct ch_generic *ch, uint8_t 
 static unsigned int calculate_frequency(struct gb_core *gb, uint8_t sweep_shift, uint8_t dir)
 {
     struct ch1 *ch1 = &gb->apu.ch1;
+
     unsigned int new_frequency = ch1->shadow_frequency >> sweep_shift;
 
     if (dir == SWEEP_DIR_DECREMENT)
+    {
+        ch1->neg_calc = 1;
         new_frequency = ch1->shadow_frequency - new_frequency;
+    }
     else
         new_frequency = ch1->shadow_frequency + new_frequency;
 
@@ -596,6 +601,15 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
         break;
 
     case NR10:
+        if (!is_apu_on(gb))
+            return;
+        /* Clearing dir bit when it was previously set may disable channel */
+        if (SWEEP_DIR(gb->memory.io[IO_OFFSET(address)]) && !(val & 0x08) && gb->apu.ch1.neg_calc)
+        {
+            gb->apu.ch1.neg_calc = 0;
+            turn_channel_off(gb, 1);
+        }
+        break;
     case NR13:
     case NR23:
     case NR32:
