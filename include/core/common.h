@@ -43,6 +43,7 @@
 #define NOT_USABLE_SIZE 0x70
 #define IO_SIZE         0x80
 #define HRAM_SIZE       0x7F
+#define WAVE_RAM_SIZE   0x10
 
 /* I/O Registers */
 #define JOYP            0xFF00

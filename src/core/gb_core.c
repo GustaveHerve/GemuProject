@@ -94,6 +94,27 @@ void init_gb_core(struct gb_core *gb)
     ppu_init(gb);
     apu_init(&gb->apu);
 
+    /* Init Wave RAM pattern */
+    uint8_t wave_data[] = {
+        0x84,
+        0x40,
+        0x43,
+        0xAA,
+        0x2D,
+        0x78,
+        0x92,
+        0x3C,
+        0x60,
+        0x59,
+        0x59,
+        0xB0,
+        0x34,
+        0xB8,
+        0x2E,
+        0xDA,
+    };
+    memcpy(gb->memory.io + IO_OFFSET(WAVE_RAM), wave_data, WAVE_RAM_SIZE * sizeof(uint8_t));
+
     gb->halt = 0;
     gb->stop = 0;
 

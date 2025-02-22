@@ -659,6 +659,14 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
             apu_turn_off(gb);
             return;
         }
+        // APU on
+        if (!(gb->memory.io[IO_OFFSET(address)] >> 7) && val >> 7)
+        {
+            gb->apu.fs_pos = 0;
+            gb->apu.ch1.duty_pos = 0;
+            gb->apu.ch2.duty_pos = 0;
+            gb->apu.ch3.sample_buffer = 0;
+        }
         break;
     }
 
