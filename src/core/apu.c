@@ -99,12 +99,30 @@ void apu_init(struct apu *apu)
     audio_buffer_len = 0;
 }
 
-static void length_trigger(struct apu *apu, struct ch_generic *ch)
+static void length_trigger(struct gb_core *gb, uint8_t ch_number)
 {
-    if ((void *)ch == (void *)&apu->ch3 && ch->length_timer == 0)
-        ch->length_timer = 256;
-    else if (ch->length_timer == 0)
-        ch->length_timer = 64;
+    struct ch_generic *channels[4] = {
+        (void *)&gb->apu.ch1,
+        (void *)&gb->apu.ch2,
+        (void *)&gb->apu.ch3,
+        (void *)&gb->apu.ch4,
+    };
+    struct ch_generic *ch = channels[ch_number - 1];
+
+    uint8_t was_zero = 0;
+    if (ch->length_timer == 0)
+    {
+        was_zero = 1;
+        if (ch_number == 3)
+            ch->length_timer = 256;
+        else
+            ch->length_timer = 64;
+    }
+
+    /* Extra length clock with length enabled */
+    uint16_t address = NR14 + (ch_number - 1) * (NR24 - NR14);
+    if (was_zero && gb->apu.fs_pos % 2 == 1 && gb->memory.io[IO_OFFSET(address)] & NRx4_LENGTH_ENABLE)
+        --ch->length_timer;
 }
 
 static unsigned int calculate_frequency(struct gb_core *gb, uint8_t sweep_shift, uint8_t dir);
@@ -141,7 +159,7 @@ static void envelope_trigger(struct gb_core *gb, struct ch_generic *ch, uint8_t 
 
 void handle_trigger_event_ch1(struct gb_core *gb)
 {
-    length_trigger(&gb->apu, (void *)&gb->apu.ch1);
+    length_trigger(gb, 1);
     gb->apu.ch1.frequency_timer = (2048 - FREQUENCY(1)) * 4;
     envelope_trigger(gb, (void *)&gb->apu.ch1, 1);
     frequency_sweep_trigger(gb, &gb->apu.ch1);
@@ -154,7 +172,7 @@ void handle_trigger_event_ch1(struct gb_core *gb)
 
 void handle_trigger_event_ch2(struct gb_core *gb)
 {
-    length_trigger(&gb->apu, (void *)&gb->apu.ch2);
+    length_trigger(gb, 2);
     gb->apu.ch2.frequency_timer = (2048 - FREQUENCY(2)) * 4;
     envelope_trigger(gb, (void *)&gb->apu.ch2, 2);
 
@@ -166,7 +184,7 @@ void handle_trigger_event_ch2(struct gb_core *gb)
 
 void handle_trigger_event_ch3(struct gb_core *gb)
 {
-    length_trigger(&gb->apu, (void *)&gb->apu.ch3);
+    length_trigger(gb, 3);
     gb->apu.ch3.frequency_timer = (2048 - FREQUENCY(3)) * 2;
     gb->apu.ch3.wave_pos = 0;
 
@@ -178,7 +196,7 @@ void handle_trigger_event_ch3(struct gb_core *gb)
 
 void handle_trigger_event_ch4(struct gb_core *gb)
 {
-    length_trigger(&gb->apu, (void *)&gb->apu.ch4);
+    length_trigger(gb, 4);
     uint8_t nr43 = gb->memory.io[IO_OFFSET(NR43)];
     unsigned int shift = NOISE_CLOCK_SHIFT(nr43);
     unsigned int divisor_code = NOISE_CLOCK_DIVIDER_CODE(nr43);
@@ -600,6 +618,13 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
             return;
 
         uint8_t ch_number = ((address - NR14) / (NR24 - NR14)) + 1;
+        uint8_t prev_val = gb->memory.io[IO_OFFSET(address)];
+        io_write(gb->memory.io, address, val);
+
+        /* Extra length clocking on rising edge of length enable bit
+         * This is done before the trigger handling to allow triggering reloading the timer after the extra clock */
+        if (gb->apu.fs_pos % 2 == 1 && val & NRx4_LENGTH_ENABLE && !(prev_val & NRx4_LENGTH_ENABLE))
+            length_clock(gb, ch_number);
 
         /* Trigger event */
         if (val & NRx4_TRIGGER_MASK)
@@ -614,15 +639,7 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
             trigger_handlers[ch_number - 1](gb);
         }
 
-        /* Extra length clocking on rising edge of length enable bit */
-        if (gb->apu.fs_pos % 2 == 1 && val & NRx4_LENGTH_ENABLE &&
-            !(gb->memory.io[IO_OFFSET(address)] & NRx4_LENGTH_ENABLE))
-        {
-            io_write(gb->memory.io, address, val);
-            length_clock(gb, ch_number);
-            return;
-        }
-        break;
+        return;
 
     case NR52:
         // APU off
