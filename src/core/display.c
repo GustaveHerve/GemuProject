@@ -33,8 +33,7 @@ void draw_pixel(struct gb_core *gb, struct pixel p)
     unsigned int palette_address = p.obj > -1 ? (p.palette ? OBP1 : OBP0) : BGP;
     unsigned int color_index = (gb->memory.io[IO_OFFSET(palette_address)] >> (p.color * 2)) & 0x03;
 
-    frame_buffer[gb->memory.io[IO_OFFSET(LY)] * SCREEN_WIDTH + (gb->ppu.lx - 8)] =
-        (struct pixel_data){._unused = 0, .values = color_palette[color_index]};
+    frame_buffer[gb->memory.io[IO_OFFSET(LY)] * SCREEN_WIDTH + (gb->ppu.lx - 8)].values = color_palette[color_index];
 
     //  A whole frame is ready, render it, handle inputs, synchronize
     if (gb->memory.io[IO_OFFSET(LY)] == SCREEN_HEIGHT - 1 && gb->ppu.lx == SCREEN_WIDTH + 7)
@@ -49,11 +48,7 @@ void lcd_off(struct gb_core *gb)
 {
     for (size_t i = 0; i < SCREEN_RESOLUTION; ++i)
     {
-        struct pixel_data pixel = {
-            ._unused = 0,
-            .values = color_palette[4],
-        };
-        frame_buffer[i] = pixel;
+        frame_buffer[i].values = color_palette[4];
     };
     gb->callbacks.render_frame();
 }

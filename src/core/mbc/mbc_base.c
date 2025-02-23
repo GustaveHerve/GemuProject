@@ -58,6 +58,9 @@ static struct mbc_base *make_mbc(uint8_t type_byte)
     case 0x13:
         res = make_mbc3();
         break;
+    case 0x19:
+        res = make_mbc5();
+        break;
     case 0x1A:
         res = make_mbc5();
         break;
@@ -114,7 +117,10 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
     mbc->rom_size_header = rom[0x0148];
     mbc->ram_size_header = rom[0x0149];
 
-    mbc->rom_bank_count = 1 << (mbc->rom_size_header + 1);
+    if (mbc->rom_size_header > 0x08)
+        mbc->rom_bank_count = 512;
+    else
+        mbc->rom_bank_count = 1 << (mbc->rom_size_header + 1);
 
     switch (mbc->ram_size_header)
     {
@@ -132,6 +138,10 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
         break;
     case 0x05:
         mbc->ram_bank_count = 8;
+        break;
+    default:
+        /* Unknown ram size */
+        mbc->ram_bank_count = 16;
         break;
     }
 

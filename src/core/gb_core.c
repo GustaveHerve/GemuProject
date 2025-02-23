@@ -87,7 +87,7 @@ void init_gb_core(struct gb_core *gb)
 
     gb->memory.boot_rom_size = 0;
     gb->memory.boot_rom = NULL;
-    gb->memory.vram = malloc(VRAM_SIZE * sizeof(uint8_t));
+    gb->memory.vram = calloc(VRAM_SIZE, sizeof(uint8_t));
     gb->memory.wram = malloc(WRAM_SIZE * sizeof(uint8_t));
     gb->memory.unusable_mem = malloc(NOT_USABLE_SIZE * sizeof(uint8_t));
 

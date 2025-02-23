@@ -67,13 +67,13 @@ int on_object(struct gb_core *gb, int *bottom_part)
 
 struct pixel select_pixel(struct gb_core *gb)
 {
-    struct pixel bg_p;
+    struct pixel bg_p = {0};
     RING_BUFFER_DEQUEUE(pixel, &gb->ppu.bg_fifo, &bg_p);
 
     if (RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.obj_fifo))
         return bg_p;
 
-    struct pixel obj_p;
+    struct pixel obj_p = {0};
     RING_BUFFER_DEQUEUE(pixel, &gb->ppu.obj_fifo, &obj_p);
 
     if (!get_lcdc(gb->memory.io, LCDC_BG_WINDOW_ENABLE))

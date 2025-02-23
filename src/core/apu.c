@@ -513,14 +513,23 @@ static unsigned int get_channel_amplitude(struct gb_core *gb, uint8_t number, ui
     return ((~gb->apu.ch4.lfsr) & 0x1) * gb->apu.ch4.current_volume;
 }
 
+static float capacitor = 0.0f;
 static float mix_channels(struct gb_core *gb, uint8_t panning)
 {
     float sum = 0.0f;
     for (size_t i = 1; i < 5; ++i)
     {
-        sum += dac_output(get_channel_amplitude(gb, i, panning));
+        if (is_dac_on(gb, i))
+            sum += dac_output(get_channel_amplitude(gb, i, panning));
     }
-    return sum / 4.0f;
+    float in = sum / 4.0f;
+    float out = 0.0f;
+    if (is_dac_on(gb, 1) || is_dac_on(gb, 2) || is_dac_on(gb, 3) || is_dac_on(gb, 4))
+    {
+        out = in - capacitor;
+        capacitor = in - out * 0.996f;
+    }
+    return out;
 }
 
 static void queue_audio_sample(struct gb_core *gb)
