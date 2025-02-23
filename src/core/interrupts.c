@@ -15,11 +15,11 @@ int check_interrupt(struct gb_core *gb)
         return 0;
 
     // Joypad check
-    if (((gb->memory.io[IO_OFFSET(JOYP)] >> 5 & 0x01) == 0x00) || (gb->memory.io[IO_OFFSET(JOYP)] >> 4 & 0x01) == 0x00)
+    if ((!(gb->memory.io[IO_OFFSET(JOYP)] >> 5 & 0x01)) || !(gb->memory.io[IO_OFFSET(JOYP)] >> 4 & 0x01))
     {
         for (size_t i = 0; i < 4; ++i)
         {
-            if (((gb->memory.io[IO_OFFSET(JOYP)] >> i) & 0x01) == 0x00)
+            if (!((gb->memory.io[IO_OFFSET(JOYP)] >> i) & 0x01))
                 set_if(gb, INTERRUPT_JOYPAD);
         }
     }

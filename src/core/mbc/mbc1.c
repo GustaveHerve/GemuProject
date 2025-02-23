@@ -13,7 +13,7 @@ static void _mbc_reset(struct mbc_base *mbc)
     mbc1->bank1 = 1;
     mbc1->bank2 = 0;
     mbc1->ram_enabled = 0;
-    mbc1->mbc1_mode = 1;
+    mbc1->mbc1_mode = 0;
 }
 
 static void _mbc_free(struct mbc_base *mbc)
