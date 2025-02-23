@@ -92,9 +92,16 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
     case WAVE_RAM + 13:
     case WAVE_RAM + 14:
     case WAVE_RAM + 15:
-        /* Wave RAM accessible to CPU only on same cycle as CH3 read */
-        if (is_channel_on(gb, 3) && (gb->apu.ch3.frequency_timer >= 4 || gb->apu.ch3.phantom_sample))
-            return;
+        /* Attempting write to wave RAM while channel 3 is active */
+        if (is_channel_on(gb, 3))
+        {
+            /* CPU can only access the Wave RAM when CH3 is also accessing it */
+            if ((gb->apu.ch3.frequency_timer >= 4 || gb->apu.ch3.phantom_sample))
+                return;
+            /* CPU can only access the same byte that CH3 is acessing (CH3 has priority over CPU) */
+            uint8_t pos = (gb->apu.ch3.wave_pos) % 32;
+            address = WAVE_RAM + pos / 2;
+        }
         break;
 
     case LCDC:

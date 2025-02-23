@@ -186,8 +186,33 @@ void handle_trigger_event_ch2(struct gb_core *gb)
     gb->apu.ch2.trigger_request = 1;
 }
 
+static void wave_ram_corruption(struct gb_core *gb)
+{
+    uint8_t pos = ((gb->apu.ch3.wave_pos) % 32) / 2;
+    uint8_t align_4 = pos & 0xC;
+    if (align_4 == 0)
+    {
+        gb->memory.io[IO_OFFSET(WAVE_RAM + 0)] = gb->memory.io[IO_OFFSET(WAVE_RAM + pos)];
+    }
+    else
+    {
+        uint8_t start_index = align_4;
+        gb->memory.io[IO_OFFSET(WAVE_RAM + 0)] = gb->memory.io[IO_OFFSET(WAVE_RAM + start_index + 0)];
+        gb->memory.io[IO_OFFSET(WAVE_RAM + 1)] = gb->memory.io[IO_OFFSET(WAVE_RAM + start_index + 1)];
+        gb->memory.io[IO_OFFSET(WAVE_RAM + 2)] = gb->memory.io[IO_OFFSET(WAVE_RAM + start_index + 2)];
+        gb->memory.io[IO_OFFSET(WAVE_RAM + 3)] = gb->memory.io[IO_OFFSET(WAVE_RAM + start_index + 3)];
+    }
+}
+
 void handle_trigger_event_ch3(struct gb_core *gb)
 {
+    /* Triggering CH3 while it is active and reading Wave RAM will corrupt Wave RAM */
+    if (is_channel_on(gb, 3))
+    {
+        if ((gb->apu.ch3.frequency_timer >= 4 || gb->apu.ch3.phantom_sample))
+            wave_ram_corruption(gb);
+    }
+
     length_trigger(gb, 3);
     gb->apu.ch3.frequency_timer = (2048 - FREQUENCY(3)) * 2;
     gb->apu.ch3.wave_pos = 0;
@@ -614,7 +639,7 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
     case NR30:
         if (!is_apu_on(gb))
             return;
-        if (val == 0x00)
+        if (!(val & 0x80))
             turn_channel_off(gb, 3);
         break;
 

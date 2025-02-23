@@ -82,12 +82,17 @@ static uint8_t _io(struct gb_core *gb, uint16_t address)
     case WAVE_RAM + 13:
     case WAVE_RAM + 14:
     case WAVE_RAM + 15:
-        /* Wave RAM accessible to CPU only on same cycle as CH3 read */
-        if (is_channel_on(gb, 3) && (gb->apu.ch3.frequency_timer >= 4 || gb->apu.ch3.phantom_sample))
-            return 0xFF;
-        /* Whole wave RAM is mapped to the same byte read by CH3 */
-        uint8_t pos = (gb->apu.ch3.wave_pos) % 32;
-        return gb->memory.io[IO_OFFSET(WAVE_RAM + pos / 2)];
+        /* Attempting to access wave RAM while channel 3 is active */
+        if (is_channel_on(gb, 3))
+        {
+            /* Wave RAM accessible to CPU only on same cycle as CH3 read */
+            if ((gb->apu.ch3.frequency_timer >= 4 || gb->apu.ch3.phantom_sample))
+                return 0xFF;
+            /* Whole wave RAM is mapped to the same byte read by CH3 */
+            uint8_t pos = (gb->apu.ch3.wave_pos) % 32;
+            return gb->memory.io[IO_OFFSET(WAVE_RAM + pos / 2)];
+        }
+        break;
     }
     return io_read(gb->memory.io, address);
 }
