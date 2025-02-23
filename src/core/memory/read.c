@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "common.h"
 #include "emulation.h"
 #include "gb_core.h"
 #include "mbc_base.h"
@@ -64,6 +65,29 @@ static uint8_t _io(struct gb_core *gb, uint16_t address)
     }
     case DIV:
         return gb->internal_div >> 8;
+
+    case WAVE_RAM:
+    case WAVE_RAM + 1:
+    case WAVE_RAM + 2:
+    case WAVE_RAM + 3:
+    case WAVE_RAM + 4:
+    case WAVE_RAM + 5:
+    case WAVE_RAM + 6:
+    case WAVE_RAM + 7:
+    case WAVE_RAM + 8:
+    case WAVE_RAM + 9:
+    case WAVE_RAM + 10:
+    case WAVE_RAM + 11:
+    case WAVE_RAM + 12:
+    case WAVE_RAM + 13:
+    case WAVE_RAM + 14:
+    case WAVE_RAM + 15:
+        /* Wave RAM accessible to CPU only on same cycle as CH3 read */
+        if (is_channel_on(gb, 3) && (gb->apu.ch3.frequency_timer >= 4 || gb->apu.ch3.phantom_sample))
+            return 0xFF;
+        /* Whole wave RAM is mapped to the same byte read by CH3 */
+        uint8_t pos = (gb->apu.ch3.wave_pos) % 32;
+        return gb->memory.io[IO_OFFSET(WAVE_RAM + pos / 2)];
     }
     return io_read(gb->memory.io, address);
 }

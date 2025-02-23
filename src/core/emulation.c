@@ -147,4 +147,9 @@ void tick_m(struct gb_core *gb)
     }
 
     dma_handle(gb);
+
+    gb->apu.ch1.trigger_request = 0;
+    gb->apu.ch2.trigger_request = 0;
+    gb->apu.ch3.trigger_request = 0;
+    gb->apu.ch4.trigger_request = 0;
 }

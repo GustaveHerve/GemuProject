@@ -77,6 +77,7 @@ static size_t audio_buffer_len = 0;
 
 struct ch_generic
 {
+    uint32_t trigger_request;
     uint32_t length_timer;
 
     uint32_t period_timer;
@@ -167,6 +168,8 @@ void handle_trigger_event_ch1(struct gb_core *gb)
         turn_channel_off(gb, 1);
 
     frequency_sweep_trigger(gb, &gb->apu.ch1);
+
+    gb->apu.ch1.trigger_request = 1;
 }
 
 void handle_trigger_event_ch2(struct gb_core *gb)
@@ -179,6 +182,8 @@ void handle_trigger_event_ch2(struct gb_core *gb)
         turn_channel_on(gb, 2);
     else
         turn_channel_off(gb, 2);
+
+    gb->apu.ch2.trigger_request = 1;
 }
 
 void handle_trigger_event_ch3(struct gb_core *gb)
@@ -191,6 +196,13 @@ void handle_trigger_event_ch3(struct gb_core *gb)
         turn_channel_on(gb, 3);
     else
         turn_channel_off(gb, 3);
+
+    gb->apu.ch3.trigger_request = 1;
+
+    /* On trigger there is a sample long delay during which a "phantom" sample is played
+     * Because this phantom sample isn't actually present in the wave RAM, trying to read it through CPU
+     * will fail and return 0xFF */
+    gb->apu.ch3.phantom_sample = 1;
 }
 
 void handle_trigger_event_ch4(struct gb_core *gb)
@@ -207,6 +219,8 @@ void handle_trigger_event_ch4(struct gb_core *gb)
         turn_channel_on(gb, 4);
     else
         turn_channel_off(gb, 4);
+
+    gb->apu.ch4.trigger_request = 1;
 }
 
 void apu_reload_timer(struct gb_core *gb, uint8_t ch_number)
@@ -368,7 +382,7 @@ static void frame_sequencer_step(struct gb_core *gb)
 
 static void ch1_tick(struct gb_core *gb)
 {
-    if (!is_channel_on(gb, 1) || !is_dac_on(gb, 1))
+    if (!is_channel_on(gb, 1) || !is_dac_on(gb, 1) || gb->apu.ch1.trigger_request)
         return;
 
     gb->apu.ch1.frequency_timer -= 1;
@@ -381,7 +395,7 @@ static void ch1_tick(struct gb_core *gb)
 
 static void ch2_tick(struct gb_core *gb)
 {
-    if (!is_channel_on(gb, 2) || !is_dac_on(gb, 2))
+    if (!is_channel_on(gb, 2) || !is_dac_on(gb, 2) || gb->apu.ch2.trigger_request)
         return;
 
     gb->apu.ch2.frequency_timer -= 1;
@@ -394,7 +408,7 @@ static void ch2_tick(struct gb_core *gb)
 
 static void ch3_tick(struct gb_core *gb)
 {
-    if (!is_channel_on(gb, 3) || !is_dac_on(gb, 3))
+    if (!is_channel_on(gb, 3) || !is_dac_on(gb, 3) || gb->apu.ch3.trigger_request)
         return;
 
     gb->apu.ch3.frequency_timer -= 1;
@@ -404,19 +418,22 @@ static void ch3_tick(struct gb_core *gb)
         gb->apu.ch3.wave_pos = (gb->apu.ch3.wave_pos + 1) % 32;
 
         unsigned int sample = gb->memory.io[IO_OFFSET(WAVE_RAM + (gb->apu.ch3.wave_pos / 2))];
-        // Each byte has two 4-bit samples
+
+        /* Each byte is two 4-bit samples */
         if (gb->apu.ch3.wave_pos % 2 == 0)
             sample >>= 4;
         else
             sample &= 0x0F;
 
         gb->apu.ch3.sample_buffer = sample;
+
+        gb->apu.ch3.phantom_sample = 0;
     }
 }
 
 static void ch4_tick(struct gb_core *gb)
 {
-    if (!is_channel_on(gb, 4) || !is_dac_on(gb, 4))
+    if (!is_channel_on(gb, 4) || !is_dac_on(gb, 4) || gb->apu.ch4.trigger_request)
         return;
 
     uint8_t nr43 = gb->memory.io[IO_OFFSET(NR43)];
@@ -534,6 +551,7 @@ void apu_tick(struct gb_core *gb)
 
 void apu_turn_off(struct gb_core *gb)
 {
+    gb->apu.ch3.sample_buffer = 0;
     // Clear all APU registers
     gb->memory.io[IO_OFFSET(NR10)] &= 0x80;
     gb->memory.io[IO_OFFSET(NR11)] &= 0x00;
@@ -653,13 +671,13 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
         return;
 
     case NR52:
-        // APU off
+        /* Turns APU off */
         if (!(val >> 7))
         {
             apu_turn_off(gb);
             return;
         }
-        // APU on
+        /* Turns APU on (does nothing if already on) */
         if (!(gb->memory.io[IO_OFFSET(address)] >> 7) && val >> 7)
         {
             gb->apu.fs_pos = 0;

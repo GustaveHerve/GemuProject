@@ -26,6 +26,7 @@ union audio_sample
 
 struct ch1
 {
+    uint32_t trigger_request;
     /* Length */
     uint32_t length_timer; // 8 bits
 
@@ -47,6 +48,7 @@ struct ch1
 
 struct ch2
 {
+    uint32_t trigger_request;
     /* Length */
     uint32_t length_timer;
 
@@ -62,6 +64,7 @@ struct ch2
 
 struct ch3
 {
+    uint32_t trigger_request;
     /* Length */
     uint32_t length_timer;
 
@@ -69,10 +72,13 @@ struct ch3
 
     uint32_t wave_pos;
     uint32_t sample_buffer;
+
+    uint32_t phantom_sample;
 };
 
 struct ch4
 {
+    uint32_t trigger_request;
     /* Length */
     uint32_t length_timer;
 

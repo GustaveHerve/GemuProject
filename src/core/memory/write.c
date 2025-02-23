@@ -76,6 +76,27 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
         apu_write_reg(gb, address, val);
         return;
 
+    case WAVE_RAM:
+    case WAVE_RAM + 1:
+    case WAVE_RAM + 2:
+    case WAVE_RAM + 3:
+    case WAVE_RAM + 4:
+    case WAVE_RAM + 5:
+    case WAVE_RAM + 6:
+    case WAVE_RAM + 7:
+    case WAVE_RAM + 8:
+    case WAVE_RAM + 9:
+    case WAVE_RAM + 10:
+    case WAVE_RAM + 11:
+    case WAVE_RAM + 12:
+    case WAVE_RAM + 13:
+    case WAVE_RAM + 14:
+    case WAVE_RAM + 15:
+        /* Wave RAM accessible to CPU only on same cycle as CH3 read */
+        if (is_channel_on(gb, 3) && (gb->apu.ch3.frequency_timer >= 4 || gb->apu.ch3.phantom_sample))
+            return;
+        break;
+
     case LCDC:
         // LCD off
         if (!(val >> 7))
