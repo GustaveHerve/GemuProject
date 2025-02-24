@@ -120,7 +120,7 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
     uint8_t checksum = rom[CHECKSUM_ADDR];
 
     // Init MBC / cartridge info and fill rom in buffer
-    set_mbc(&gb->mbc, rom, rom_path);
+    set_mbc(&gb->mbc, rom, rom_path, fsize);
 
     lcd_off(gb);
 

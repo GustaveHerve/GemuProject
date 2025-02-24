@@ -100,12 +100,12 @@ static struct mbc_base *make_mbc(uint8_t type_byte)
     return res;
 }
 
-void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
+void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_size)
 {
     uint8_t type = rom[0x0147];
     struct mbc_base *mbc = make_mbc(type);
 
-    // Unsupported MBC type
+    /* Unsupported MBC type */
     if (!mbc)
         errx(-3, "ERROR: Provided rom file uses an unsupported MBC type");
 
@@ -118,7 +118,7 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
     mbc->ram_size_header = rom[0x0149];
 
     if (mbc->rom_size_header > 0x08)
-        mbc->rom_bank_count = 512;
+        mbc->rom_bank_count = (file_size + (1 << 14) - 1) / (1 << 14);
     else
         mbc->rom_bank_count = 1 << (mbc->rom_size_header + 1);
 
@@ -140,7 +140,7 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
         mbc->ram_bank_count = 8;
         break;
     default:
-        /* Unknown ram size */
+        /* Unknown RAM size, assume there is RAM just to be safe */
         mbc->ram_bank_count = 16;
         break;
     }
