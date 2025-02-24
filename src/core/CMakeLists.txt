@@ -11,6 +11,7 @@ target_sources(gemu PUBLIC
     opcodes/logic.c
     mbc/mbc_base.c
     mbc/mbc1.c
+    mbc/mbc2.c
     mbc/mbc3.c
     mbc/mbc5.c
     mbc/no_mbc.c
