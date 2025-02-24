@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "mbc1.h"
+#include "mbc2.h"
 #include "mbc3.h"
 #include "mbc5.h"
 #include "no_mbc.h"
@@ -48,6 +49,12 @@ static struct mbc_base *make_mbc(uint8_t type_byte)
         break;
     case 0x03:
         res = make_mbc1();
+        break;
+    case 0x05:
+        res = make_mbc2();
+        break;
+    case 0x06:
+        res = make_mbc2();
         break;
     case 0x11:
         res = make_mbc3();
