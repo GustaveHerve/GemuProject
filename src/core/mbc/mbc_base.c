@@ -157,7 +157,10 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file
 
     // Allocate the external RAM
     free(mbc->ram);
-    mbc->ram = calloc(8192 * mbc->ram_bank_count, sizeof(uint8_t));
+    if (mbc->type == MBC2)
+        mbc->ram = calloc(512, sizeof(uint8_t));
+    else
+        mbc->ram = calloc(8192 * mbc->ram_bank_count, sizeof(uint8_t));
 
     // Create / Load save file if battery
     if (type == 0x03 || type == 0x06 || type == 0x09 || type == 0x0D || type == 0x0F || type == 0x10 || type == 0x13 ||
