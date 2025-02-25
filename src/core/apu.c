@@ -77,7 +77,9 @@ static size_t audio_buffer_len = 0;
 
 struct ch_generic
 {
+    uint32_t zombie_vol_offset;
     uint32_t trigger_request;
+
     uint32_t length_timer;
 
     uint32_t period_timer;
@@ -478,39 +480,40 @@ static void ch4_tick(struct gb_core *gb)
     }
 }
 
-static unsigned int get_channel_amplitude(struct gb_core *gb, uint8_t number, uint8_t panning)
+static unsigned int get_channel_amplitude(struct gb_core *gb, uint8_t ch_number, uint8_t panning)
 {
-    if (!is_dac_on(gb, number) || !is_channel_on(gb, number))
+    if (!is_dac_on(gb, ch_number) || !is_channel_on(gb, ch_number))
         return 0;
 
-    unsigned int panning_mask = 1 << (number - 1);
+    unsigned int panning_mask = 1 << (ch_number - 1);
     if (panning == PANNING_LEFT)
         panning_mask <<= 4;
 
     if (!(gb->memory.io[IO_OFFSET(NR51)] & panning_mask))
         return 0;
 
-    if (number == 1)
+    switch (ch_number)
+    {
+    case 1:
     {
         unsigned int wave_duty = WAVE_DUTY(gb->memory.io[IO_OFFSET(NR11)]);
-        unsigned int duty_pos = gb->apu.ch1.duty_pos;
-        return duty_table[wave_duty][duty_pos] * gb->apu.ch1.current_volume;
+        return duty_table[wave_duty][gb->apu.ch1.duty_pos] * gb->apu.ch1.current_volume;
     }
-
-    if (number == 2)
+    case 2:
     {
         unsigned int wave_duty = WAVE_DUTY(gb->memory.io[IO_OFFSET(NR21)]);
-        unsigned int duty_pos = gb->apu.ch2.duty_pos;
-        return duty_table[wave_duty][duty_pos] * gb->apu.ch2.current_volume;
+        return duty_table[wave_duty][gb->apu.ch2.duty_pos] * gb->apu.ch2.current_volume;
     }
-
-    if (number == 3)
+    case 3:
     {
         unsigned int wave_output = WAVE_OUTPUT(gb->memory.io[IO_OFFSET(NR32)]);
         return gb->apu.ch3.sample_buffer >> ch3_shifts[wave_output];
     }
+    case 4:
+        return ((~gb->apu.ch4.lfsr) & 0x1) * gb->apu.ch4.current_volume;
+    }
 
-    return ((~gb->apu.ch4.lfsr) & 0x1) * gb->apu.ch4.current_volume;
+    return 0;
 }
 
 static float capacitor = 0.0f;
@@ -611,6 +614,13 @@ void apu_turn_off(struct gb_core *gb)
     gb->memory.io[IO_OFFSET(NR52)] &= 0x70;
 }
 
+static void zombie_mode(struct gb_core *gb, struct ch_generic *ch, uint8_t val)
+{
+    (void)gb;
+    if (val & 0x08)
+        ch->current_volume = (ch->current_volume + 1) % 16;
+}
+
 void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
 {
     switch (address)
@@ -632,18 +642,21 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
             return;
         if (!(val & 0xF8))
             turn_channel_off(gb, 1);
+        zombie_mode(gb, (void *)&gb->apu.ch1, val);
         break;
     case NR22:
         if (!is_apu_on(gb))
             return;
         if (!(val & 0xF8))
             turn_channel_off(gb, 2);
+        zombie_mode(gb, (void *)&gb->apu.ch2, val);
         break;
     case NR42:
         if (!is_apu_on(gb))
             return;
         if (!(val & 0xF8))
             turn_channel_off(gb, 4);
+        zombie_mode(gb, (void *)&gb->apu.ch4, val);
         break;
     case NR30:
         if (!is_apu_on(gb))

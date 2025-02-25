@@ -125,7 +125,8 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file
     mbc->ram_size_header = rom[0x0149];
 
     if (mbc->rom_size_header > 0x08)
-        mbc->rom_bank_count = (file_size + (1 << 14) - 1) / (1 << 14);
+        // mbc->rom_bank_count = (file_size + (1 << 14) - 1) / (1 << 14);
+        mbc->rom_bank_count = 512;
     else
         mbc->rom_bank_count = 1 << (mbc->rom_size_header + 1);
 

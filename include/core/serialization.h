@@ -1,5 +1,5 @@
-#ifndef CORE_SERIALIZATION
-#define CORE_SERIALIZATION
+#ifndef CORE_SERIALIZATION_H
+#define CORE_SERIALIZATION_H
 
 #include <stdint.h>
 #include <stdio.h>
