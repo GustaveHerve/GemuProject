@@ -35,7 +35,7 @@ static void _oam(struct gb_core *gb, uint16_t address, uint8_t val)
 {
     if (address >= 0xFEA0 && address <= 0xFEFF)
         return;
-    if (!gb->ppu.oam_locked)
+    if (!gb->ppu.oam_locked && gb->ppu.dma != 1)
         gb->memory.oam[OAM_OFFSET(address)] = val;
 }
 
@@ -113,9 +113,6 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
 
     case DMA:
     {
-        // gb->ppu.dma = 3;
-        // gb->ppu.dma_source = val;
-        // gb->ppu.dma_acc = 0;
         struct dma_request new_req = {
             .source = val,
             .status = DMA_REQUESTED,

@@ -622,17 +622,6 @@ static uint8_t mode1_handler(struct gb_core *gb)
 
 void dma_handle(struct gb_core *gb)
 {
-    /* Wait for DMA setup delay (2 cycles, the one when write happened, and another setup one after that) */
-    // if (gb->ppu.dma > 1)
-    //     --gb->ppu.dma;
-    // else if (gb->ppu.dma == 1)
-    // {
-    //     gb->memory.oam[gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
-    //     ++gb->ppu.dma_acc;
-    //     if (gb->ppu.dma_acc >= 160)
-    //         gb->ppu.dma = 0;
-    // }
-
     uint8_t dequeue = 0;
     for (size_t i = 0; i < RING_BUFFER_GET_COUNT(dma_request, &gb->ppu.dma_requests); ++i)
     {
@@ -655,6 +644,7 @@ void dma_handle(struct gb_core *gb)
             if (gb->ppu.dma_acc >= 160)
             {
                 gb->ppu.dma = 0;
+                gb->ppu.dma_acc = 0;
                 dequeue = 1;
             }
             break;
