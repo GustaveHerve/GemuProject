@@ -32,7 +32,6 @@
                                                                                                                        \
     static inline int ring_buffer_##TYPE##_dequeue(struct ring_buffer_##TYPE *ring_buffer, TYPE *output)               \
     {                                                                                                                  \
-        /* Dequeuing if no element makes no sense so forbidden */                                                      \
         if (ring_buffer->element_count == 0)                                                                           \
             return -1;                                                                                                 \
         --ring_buffer->element_count;                                                                                  \
@@ -61,6 +60,11 @@
             return -1;                                                                                                 \
         *output = ring_buffer->buffer[ring_buffer->tail - 1];                                                          \
         return 0;                                                                                                      \
+    }                                                                                                                  \
+                                                                                                                       \
+    static inline size_t ring_buffer_##TYPE##_get_size(void)                                                           \
+    {                                                                                                                  \
+        return (SIZE);                                                                                                 \
     }
 
 #define RING_BUFFER(TYPE) struct ring_buffer_##TYPE
@@ -78,5 +82,7 @@
 #define RING_BUFFER_GET_FRONT(TYPE, BUFFER, OUTPUT) ring_buffer_##TYPE##_get_front((BUFFER), (OUTPUT))
 
 #define RING_BUFFER_GET_REAR(TYPE, BUFFER, OUTPUT) ring_buffer_##TYPE##_get_rear((BUFFER), (OUTPUT))
+
+#define RING_BUFFER_GET_SIZE(TYPE, BUFFER) ring_buffer_##TYPE##_get_size((BUFFER))
 
 #endif

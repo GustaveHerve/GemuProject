@@ -3,6 +3,7 @@
 #include "emulation.h"
 #include "gb_core.h"
 #include "mbc_base.h"
+#include "ring_buffer.h"
 
 static void _rom(struct gb_core *gb, uint16_t address, uint8_t val)
 {
@@ -105,16 +106,23 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
         break;
 
     case LCDC:
-        // LCD off
+        /* LCD off */
         if (!(val >> 7))
             ppu_reset(gb);
         break;
 
     case DMA:
-        gb->ppu.dma = 2;
-        gb->ppu.dma_acc = 0;
-        gb->ppu.dma_source = val;
+    {
+        // gb->ppu.dma = 3;
+        // gb->ppu.dma_source = val;
+        // gb->ppu.dma_acc = 0;
+        struct dma_request new_req = {
+            .source = val,
+            .status = DMA_REQUESTED,
+        };
+        RING_BUFFER_ENQUEUE(dma_request, &gb->ppu.dma_requests, &new_req);
         break;
+    }
 
     case BOOT:
         if (gb->memory.io[IO_OFFSET(BOOT)] & 0x01)

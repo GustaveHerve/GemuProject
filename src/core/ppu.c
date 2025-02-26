@@ -270,7 +270,6 @@ void ppu_init(struct gb_core *gb)
 
     gb->ppu.dma = 0;
     gb->ppu.dma_acc = 0;
-    gb->ppu.dma_source = 0;
 
     gb->ppu.line_dot_count = 0;
     gb->ppu.mode1_153th = 0;
@@ -623,16 +622,47 @@ static uint8_t mode1_handler(struct gb_core *gb)
 
 void dma_handle(struct gb_core *gb)
 {
-    // DMA first setup MCycle
-    if (gb->ppu.dma == 2)
-        gb->ppu.dma = 1;
-    else if (gb->ppu.dma == 1)
+    /* Wait for DMA setup delay (2 cycles, the one when write happened, and another setup one after that) */
+    // if (gb->ppu.dma > 1)
+    //     --gb->ppu.dma;
+    // else if (gb->ppu.dma == 1)
+    // {
+    //     gb->memory.oam[gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
+    //     ++gb->ppu.dma_acc;
+    //     if (gb->ppu.dma_acc >= 160)
+    //         gb->ppu.dma = 0;
+    // }
+
+    uint8_t dequeue = 0;
+    for (size_t i = 0; i < RING_BUFFER_GET_COUNT(dma_request, &gb->ppu.dma_requests); ++i)
     {
-        gb->memory.oam[gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (gb->ppu.dma_source << 8) + gb->ppu.dma_acc);
-        ++gb->ppu.dma_acc;
-        if (gb->ppu.dma_acc >= 160)
-            gb->ppu.dma = 0;
+        struct dma_request *req = gb->ppu.dma_requests.buffer + ((gb->ppu.dma_requests.head + i) % 3);
+        switch (req->status)
+        {
+        case DMA_REQUESTED:
+            --req->status;
+            break;
+        case DMA_SETUP:
+            --req->status;
+            gb->ppu.dma = 1;
+            gb->ppu.dma_acc = 0;
+            if (i > 0)
+                dequeue = 1; /* This DMA request overrides the currently active one */
+            break;
+        case DMA_ACTIVE:
+            gb->memory.oam[gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (req->source << 8) + gb->ppu.dma_acc);
+            ++gb->ppu.dma_acc;
+            if (gb->ppu.dma_acc >= 160)
+            {
+                gb->ppu.dma = 0;
+                dequeue = 1;
+            }
+            break;
+        }
     }
+
+    if (dequeue)
+        RING_BUFFER_DEQUEUE(dma_request, &gb->ppu.dma_requests, NULL);
 }
 
 void ppu_tick(struct gb_core *gb)

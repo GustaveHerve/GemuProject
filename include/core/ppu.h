@@ -43,6 +43,21 @@ struct fetcher
     uint8_t lx_save;
 };
 
+typedef struct dma_request
+{
+    uint8_t status;
+    uint8_t source;
+} dma_request;
+
+enum dma_status
+{
+    DMA_REQUESTED = 3,
+    DMA_SETUP = 2,
+    DMA_ACTIVE = 1
+};
+
+DEFINE_RING_BUFFER(dma_request, 3)
+
 struct ppu
 {
     uint8_t mode2_tick;
@@ -68,9 +83,10 @@ struct ppu
     uint8_t oam_locked;
     uint8_t vram_locked;
 
+    RING_BUFFER(dma_request) dma_requests;
+
     uint8_t dma;
     uint8_t dma_acc;
-    uint8_t dma_source;
 
     uint16_t line_dot_count; // Dot count for current scanline
     uint8_t mode1_153th;
