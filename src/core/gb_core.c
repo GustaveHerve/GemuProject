@@ -116,6 +116,7 @@ void init_gb_core(struct gb_core *gb)
     memcpy(gb->memory.io + IO_OFFSET(WAVE_RAM), wave_data, WAVE_RAM_SIZE * sizeof(uint8_t));
 
     gb->halt = 0;
+    gb->halt_bug = 0;
     gb->stop = 0;
 
     gb->internal_div = 0;

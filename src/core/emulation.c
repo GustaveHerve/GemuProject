@@ -34,6 +34,7 @@ void reset_gb(struct gb_core *gb)
     mbc_reset(gb->mbc);
 
     gb->halt = 0;
+    gb->halt_bug = 0;
     gb->stop = 0;
 
     gb->internal_div = 0;

@@ -11,10 +11,13 @@
 
 int check_interrupt(struct gb_core *gb)
 {
+    if (gb->cpu.ime == 2)
+        gb->cpu.ime = 1;
+
     if (!gb->halt && gb->cpu.ime != 1)
         return 0;
 
-    // Joypad check
+    /* Joypad check */
     if ((!(gb->memory.io[IO_OFFSET(JOYP)] >> 5 & 0x01)) || !(gb->memory.io[IO_OFFSET(JOYP)] >> 4 & 0x01))
     {
         for (size_t i = 0; i < 4; ++i)
@@ -30,7 +33,7 @@ int check_interrupt(struct gb_core *gb)
         {
             gb->halt = 0;
             if (!gb->cpu.ime) // Wake up from halt with IME = 0
-                return 0;
+                return 1;
             handle_interrupt(gb, i);
         }
     }
@@ -47,12 +50,12 @@ int handle_interrupt(struct gb_core *gb, unsigned int bit)
     gb->cpu.ime = 0;
     tick_m(gb);
     tick_m(gb);
-    uint8_t lo = regist_lo(&gb->cpu.pc);
-    uint8_t hi = regist_hi(&gb->cpu.pc);
-    --gb->cpu.sp;
-    write_mem(gb, gb->cpu.sp, hi);
-    --gb->cpu.sp;
-    write_mem(gb, gb->cpu.sp, lo);
+    uint16_t pc = gb->cpu.pc - gb->halt_bug;
+    gb->halt_bug = 0;
+    uint8_t lo = regist_lo(&pc);
+    uint8_t hi = regist_hi(&pc);
+    write_mem(gb, --gb->cpu.sp, hi);
+    write_mem(gb, --gb->cpu.sp, lo);
     uint16_t handler = handlers_vector[bit];
     gb->cpu.pc = handler;
     tick_m(gb);

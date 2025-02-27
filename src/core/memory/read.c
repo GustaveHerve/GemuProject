@@ -207,9 +207,6 @@ uint8_t read_mem_no_oam_check(struct gb_core *gb, uint16_t address)
 
 uint8_t read_mem(struct gb_core *gb, uint16_t address)
 {
-    // Only HRAM is accessible during a DMA transfer
-    // if (gb->ppu.dma == 1 && (address < 0xFF80 || address > 0xFFFE))
-    //     return 0xFF;
     return _read_mem(gb, address);
 }
 

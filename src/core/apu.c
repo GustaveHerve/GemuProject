@@ -77,7 +77,6 @@ static size_t audio_buffer_len = 0;
 
 struct ch_generic
 {
-    uint32_t zombie_vol_offset;
     uint32_t trigger_request;
 
     uint32_t length_timer;

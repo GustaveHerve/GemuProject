@@ -28,8 +28,7 @@ int ld_r_r(struct gb_core *gb, uint8_t *dest, uint8_t *src)
 // x(0-3)(6 or E)	2 MCycle
 int ld_r_u8(struct gb_core *gb, uint8_t *dest)
 {
-    *dest = read_mem_tick(gb, gb->cpu.pc);
-    ++gb->cpu.pc;
+    *dest = read_mem_tick(gb, gb->cpu.pc++);
     return 2;
 }
 
@@ -38,9 +37,8 @@ int ld_r_u8(struct gb_core *gb, uint8_t *dest)
 int ld_hl_u8(struct gb_core *gb)
 {
     uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
-    uint8_t n = read_mem_tick(gb, gb->cpu.pc);
+    uint8_t n = read_mem_tick(gb, gb->cpu.pc++);
     write_mem(gb, address, n);
-    ++gb->cpu.pc;
     return 3;
 }
 
@@ -77,12 +75,10 @@ int ld_r_hl(struct gb_core *gb, uint8_t *dest)
 // xEA   4 MCycle
 int ld_nn_a(struct gb_core *gb)
 {
-    uint8_t lo = read_mem_tick(gb, gb->cpu.pc);
-    ++gb->cpu.pc;
-    uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
+    uint8_t lo = read_mem_tick(gb, gb->cpu.pc++);
+    uint8_t hi = read_mem_tick(gb, gb->cpu.pc++);
     uint16_t address = convert_8to16(&hi, &lo);
     write_mem(gb, address, gb->cpu.a);
-    ++gb->cpu.pc;
     return 4;
 }
 
@@ -90,13 +86,10 @@ int ld_nn_a(struct gb_core *gb)
 // xFA   4 MCycle
 int ld_a_nn(struct gb_core *gb)
 {
-    uint8_t lo = read_mem_tick(gb, gb->cpu.pc);
-    ++gb->cpu.pc;
-    uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
+    uint8_t lo = read_mem_tick(gb, gb->cpu.pc++);
+    uint8_t hi = read_mem_tick(gb, gb->cpu.pc++);
     uint16_t address = convert_8to16(&hi, &lo);
     gb->cpu.a = read_mem_tick(gb, address);
-    ;
-    ++gb->cpu.pc;
     return 4;
 }
 
@@ -156,10 +149,8 @@ int ldd_a_hl(struct gb_core *gb)
 // x(0-2)1	3 MCycle
 int ld_rr_nn(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 {
-    *lo = read_mem_tick(gb, gb->cpu.pc);
-    ++gb->cpu.pc;
-    *hi = read_mem_tick(gb, gb->cpu.pc);
-    ++gb->cpu.pc;
+    *lo = read_mem_tick(gb, gb->cpu.pc++);
+    *hi = read_mem_tick(gb, gb->cpu.pc++);
     return 3;
 }
 
@@ -167,11 +158,9 @@ int ld_rr_nn(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 // x31	3 MCycle
 int ld_sp_nn(struct gb_core *gb)
 {
-    uint8_t lo = read_mem_tick(gb, gb->cpu.pc);
-    ++gb->cpu.pc;
-    uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
+    uint8_t lo = read_mem_tick(gb, gb->cpu.pc++);
+    uint8_t hi = read_mem_tick(gb, gb->cpu.pc++);
     gb->cpu.sp = convert_8to16(&hi, &lo);
-    ++gb->cpu.pc;
     return 3;
 }
 
@@ -179,13 +168,11 @@ int ld_sp_nn(struct gb_core *gb)
 // x08	5 MCycle
 int ld_nn_sp(struct gb_core *gb)
 {
-    uint8_t lo = read_mem_tick(gb, gb->cpu.pc);
-    ++gb->cpu.pc;
-    uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
+    uint8_t lo = read_mem_tick(gb, gb->cpu.pc++);
+    uint8_t hi = read_mem_tick(gb, gb->cpu.pc++);
     uint16_t address = convert_8to16(&hi, &lo);
     write_mem(gb, address, regist_lo(&gb->cpu.sp));
     write_mem(gb, address + 1, regist_hi(&gb->cpu.sp));
-    ++gb->cpu.pc;
     return 5;
 }
 
@@ -193,7 +180,7 @@ int ld_nn_sp(struct gb_core *gb)
 // xF8   3 MCycle
 int ld_hl_spe8(struct gb_core *gb)
 {
-    int8_t offset = read_mem_tick(gb, gb->cpu.pc);
+    int8_t offset = read_mem_tick(gb, gb->cpu.pc++);
     uint8_t lo = regist_lo(&gb->cpu.sp);
     hflag_add_set(&gb->cpu, lo, offset);
     cflag_add_set(&gb->cpu, lo, offset);
@@ -203,7 +190,6 @@ int ld_hl_spe8(struct gb_core *gb)
     tick_m(gb);
     gb->cpu.h = regist_hi(&res);
     gb->cpu.l = regist_lo(&res);
-    ++gb->cpu.pc;
     return 3;
 }
 
@@ -218,17 +204,15 @@ int ld_sp_hl(struct gb_core *gb)
 
 int ldh_n_a(struct gb_core *gb)
 {
-    uint8_t offset = read_mem_tick(gb, gb->cpu.pc);
+    uint8_t offset = read_mem_tick(gb, gb->cpu.pc++);
     write_mem(gb, 0xFF00 + offset, gb->cpu.a);
-    ++gb->cpu.pc;
     return 3;
 }
 
 int ldh_a_n(struct gb_core *gb)
 {
-    uint8_t offset = read_mem_tick(gb, gb->cpu.pc);
+    uint8_t offset = read_mem_tick(gb, gb->cpu.pc++);
     gb->cpu.a = read_mem_tick(gb, 0xFF00 + offset);
-    ++gb->cpu.pc;
     return 3;
 }
 
@@ -246,10 +230,8 @@ int ldh_c_a(struct gb_core *gb)
 
 int pop_rr(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 {
-    uint8_t _lo = read_mem_tick(gb, gb->cpu.sp);
-    ++gb->cpu.sp;
-    uint8_t _hi = read_mem_tick(gb, gb->cpu.sp);
-    ++gb->cpu.sp;
+    uint8_t _lo = read_mem_tick(gb, gb->cpu.sp++);
+    uint8_t _hi = read_mem_tick(gb, gb->cpu.sp++);
     *lo = _lo;
     *hi = _hi;
     return 3;
@@ -257,25 +239,20 @@ int pop_rr(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 
 int pop_af(struct gb_core *gb)
 {
-    uint8_t _lo = read_mem_tick(gb, gb->cpu.sp);
+    uint8_t _lo = read_mem_tick(gb, gb->cpu.sp++);
     set_z(&gb->cpu, _lo >> 7 & 0x1);
     set_n(&gb->cpu, _lo >> 6 & 0x1);
     set_h(&gb->cpu, _lo >> 5 & 0x1);
     set_c(&gb->cpu, _lo >> 4 & 0x1);
-    ++gb->cpu.sp;
-    uint8_t _hi = read_mem_tick(gb, gb->cpu.sp);
+    uint8_t _hi = read_mem_tick(gb, gb->cpu.sp++);
     gb->cpu.a = _hi;
-    ++gb->cpu.sp;
-
     return 3;
 }
 
 int push_rr(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 {
     tick_m(gb);
-    --gb->cpu.sp;
-    write_mem(gb, gb->cpu.sp, *hi);
-    --gb->cpu.sp;
-    write_mem(gb, gb->cpu.sp, *lo);
+    write_mem(gb, --gb->cpu.sp, *hi);
+    write_mem(gb, --gb->cpu.sp, *lo);
     return 4;
 }

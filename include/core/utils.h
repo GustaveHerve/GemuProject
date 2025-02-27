@@ -83,10 +83,7 @@ static inline uint8_t get_msb_nibble(uint8_t b)
 
 static inline uint16_t convert_8to16(uint8_t *hi, uint8_t *lo)
 {
-    uint16_t res = 0;
-    res = (res | *hi) << 8;
-    res = res | *lo;
-    return res;
+    return *hi << 8 | *lo;
 }
 
 ////////////////

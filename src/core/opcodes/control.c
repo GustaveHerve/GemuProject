@@ -1,6 +1,7 @@
 #include <err.h>
 
 #include "gb_core.h"
+#include "interrupts.h"
 #include "utils.h"
 
 // nop
@@ -15,15 +16,34 @@ int nop(void)
 int stop(struct gb_core *gb)
 {
     gb->stop = 1;
-    /* Reset DIV Timer */
     gb->internal_div = 0;
     return 1;
+}
+
+static int pending_interrupt(struct gb_core *gb)
+{
+    /* Joypad check */
+    if ((!(gb->memory.io[IO_OFFSET(JOYP)] >> 5 & 0x01)) || !(gb->memory.io[IO_OFFSET(JOYP)] >> 4 & 0x01))
+    {
+        for (size_t i = 0; i < 4; ++i)
+        {
+            if (!((gb->memory.io[IO_OFFSET(JOYP)] >> i) & 0x01))
+                set_if(gb, INTERRUPT_JOYPAD);
+        }
+    }
+
+    if (gb->memory.io[IO_OFFSET(IF)] & gb->memory.ie & 0x1F)
+        return 1;
+    return 0;
 }
 
 // halt
 int halt(struct gb_core *gb)
 {
-    gb->halt = 1;
+    if (gb->cpu.ime != 1 && pending_interrupt(gb))
+        gb->halt_bug = 1;
+    else
+        gb->halt = 1;
     return 1;
 }
 
@@ -60,7 +80,7 @@ int di(struct gb_core *gb)
 int ei(struct gb_core *gb)
 {
     // Schedule a IME enable
-    if (gb->cpu.ime != 1)
-        gb->cpu.ime = 2;
+    if (gb->cpu.ime != 1 && gb->cpu.ime != 2)
+        gb->cpu.ime = 3;
     return 1;
 }

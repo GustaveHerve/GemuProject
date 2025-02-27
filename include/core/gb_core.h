@@ -33,6 +33,7 @@ struct gb_core
     uint8_t schedule_tima_overflow;
 
     uint8_t halt;
+    uint8_t halt_bug;
     uint8_t stop;
 
     uint16_t serial_clock;

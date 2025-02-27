@@ -18,7 +18,9 @@ static int prefix_op(struct gb_core *gb);
 int next_op(struct gb_core *gb)
 {
     int mcycles = 0;
-    uint8_t opcode = read_mem_tick(gb, gb->cpu.pc++);
+    uint8_t opcode = read_mem_tick(gb, gb->cpu.pc);
+    gb->cpu.pc += !gb->halt_bug;
+    gb->halt_bug = 0;
     switch (opcode)
     {
     case 0x00:
