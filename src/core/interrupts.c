@@ -11,7 +11,7 @@
 
 int check_interrupt(struct gb_core *gb)
 {
-    if (!gb->halt && !gb->cpu.ime)
+    if (!gb->halt && gb->cpu.ime != 1)
         return 0;
 
     // Joypad check

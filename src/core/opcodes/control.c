@@ -60,6 +60,7 @@ int di(struct gb_core *gb)
 int ei(struct gb_core *gb)
 {
     // Schedule a IME enable
-    gb->cpu.ime = 2;
+    if (gb->cpu.ime != 1)
+        gb->cpu.ime = 2;
     return 1;
 }

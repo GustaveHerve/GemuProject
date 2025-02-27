@@ -137,9 +137,7 @@ static void _hram(struct gb_core *gb, uint16_t address, uint8_t val)
 static void _ie(struct gb_core *gb, uint16_t address, uint8_t val)
 {
     (void)address;
-    uint8_t temp = (gb->memory.ie & 0xE0);
-    temp |= (val & 0x1F);
-    gb->memory.ie = temp;
+    gb->memory.ie = val;
 }
 
 static void _write_jmp_level_4(struct gb_core *gb, uint16_t address, uint8_t val)

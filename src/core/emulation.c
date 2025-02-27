@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "common.h"
 #include "display.h"
@@ -52,23 +53,36 @@ void reset_gb(struct gb_core *gb)
     init_gb_core_post_boot(gb, gb->mbc->rom[CHECKSUM_ADDR]);
 }
 
+static int is_regular_file(char *path)
+{
+    if (!path)
+        return 0;
+    struct stat st_buf;
+    if (stat(path, &st_buf))
+        return 0;
+    return S_ISREG(st_buf.st_mode);
+}
+
 static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
 {
-    if (!gb)
-        return EXIT_FAILURE;
-    if (!boot_rom_path)
+    if (!gb || !boot_rom_path)
         return EXIT_SUCCESS;
-
-    // Enable bootrom
-    gb->memory.io[IO_OFFSET(BOOT)] = 0xFE;
+    if (!is_regular_file(boot_rom_path) || !gb)
+    {
+        fprintf(stderr, "Invalid boot rom path (not a regular file): %s\n", boot_rom_path);
+        return EXIT_FAILURE;
+    }
 
     // Load bootrom
     FILE *fptr = fopen(boot_rom_path, "rb");
     if (!fptr)
     {
-        fprintf(stderr, "Invalid boot rom path: %s\n", boot_rom_path);
+        fprintf(stderr, "Invalid boot rom path (error opening the file): %s\n", boot_rom_path);
         return EXIT_FAILURE;
     }
+
+    // Enable bootrom
+    gb->memory.io[IO_OFFSET(BOOT)] = 0xFE;
 
     fseek(fptr, 0, SEEK_END);
     long fsize = ftell(fptr);
@@ -98,9 +112,14 @@ static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
 
 int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
 {
-    // Load boot rom if provided
-    if (load_boot_rom(gb, boot_rom_path))
+    if (!gb || load_boot_rom(gb, boot_rom_path))
         return EXIT_FAILURE;
+
+    if (!is_regular_file(rom_path))
+    {
+        fprintf(stderr, "Invalid rom path (not a regular file): %s\n", rom_path);
+        return EXIT_FAILURE;
+    }
 
     // Open ROM, get its size and and copy its content in MBC struct
     FILE *fptr = fopen(rom_path, "rb");
@@ -132,8 +151,8 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
 
 void tick_m(struct gb_core *gb)
 {
-    if (gb->cpu.ime == 2)
-        gb->cpu.ime = 1;
+    if (gb->cpu.ime > 1)
+        --gb->cpu.ime;
 
     for (size_t i = 0; i < 4; ++i)
     {
