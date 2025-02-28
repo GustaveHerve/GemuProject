@@ -120,7 +120,7 @@ void init_gb_core(struct gb_core *gb)
     gb->halt_bug = 0;
     gb->stop = 0;
 
-    gb->internal_div = 0;
+    gb->internal_div = -24;
 
     gb->prev_tac_AND = 0;
     gb->prev_serial_AND = 0;

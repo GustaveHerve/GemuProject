@@ -37,12 +37,12 @@ void reset_gb(struct gb_core *gb)
     gb->halt_bug = 0;
     gb->stop = 0;
 
-    gb->internal_div = 0;
+    gb->internal_div = -24;
     gb->prev_tac_AND = 0;
 
     gb->prev_serial_AND = 0;
 
-    gb->serial_clock = 0;
+    gb->serial_clock = -24;
     gb->serial_acc = 0;
 
     gb->joyp_a = 0xF;
