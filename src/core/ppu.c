@@ -10,7 +10,7 @@
 #include "emulation.h"
 #include "gb_core.h"
 #include "interrupts.h"
-#include "memory.h"
+#include "read.h"
 #include "serialization.h"
 
 static uint8_t get_tileid(struct gb_core *gb, int obj_index, int bottom_part)
@@ -639,7 +639,7 @@ void dma_handle(struct gb_core *gb)
                 dequeue = 1; /* This DMA request overrides the currently active one */
             break;
         case DMA_ACTIVE:
-            gb->memory.oam[gb->ppu.dma_acc] = read_mem_no_oam_check(gb, (req->source << 8) + gb->ppu.dma_acc);
+            gb->memory.oam[gb->ppu.dma_acc] = read_mem(gb, (req->source << 8) + gb->ppu.dma_acc);
             ++gb->ppu.dma_acc;
             if (gb->ppu.dma_acc >= 160)
             {

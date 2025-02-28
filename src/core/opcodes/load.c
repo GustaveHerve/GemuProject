@@ -2,8 +2,9 @@
 
 #include "emulation.h"
 #include "gb_core.h"
-#include "memory.h"
+#include "read.h"
 #include "utils.h"
+#include "write.h"
 
 // ld (rr),a
 // x(0-1)2	2 MCycle

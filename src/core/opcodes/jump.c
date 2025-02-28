@@ -2,8 +2,9 @@
 
 #include "emulation.h"
 #include "gb_core.h"
-#include "memory.h"
+#include "read.h"
 #include "utils.h"
+#include "write.h"
 
 // jr e (signed 8 bit)
 // x18	3 MCycle

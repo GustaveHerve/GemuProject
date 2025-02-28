@@ -8,8 +8,8 @@
 #include "jump.h"
 #include "load.h"
 #include "logic.h"
-#include "memory.h"
 #include "prefix.h"
+#include "read.h"
 #include "rotshift.h"
 #include "utils.h"
 

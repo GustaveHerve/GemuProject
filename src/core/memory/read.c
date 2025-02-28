@@ -200,11 +200,6 @@ static uint8_t _read_mem(struct gb_core *gb, uint16_t address)
     return read_jmp_table[(address & 0xF000) >> 12](gb, address);
 }
 
-uint8_t read_mem_no_oam_check(struct gb_core *gb, uint16_t address)
-{
-    return _read_mem(gb, address);
-}
-
 uint8_t read_mem(struct gb_core *gb, uint16_t address)
 {
     return _read_mem(gb, address);

@@ -3,8 +3,9 @@
 
 #include "emulation.h"
 #include "gb_core.h"
-#include "memory.h"
+#include "read.h"
 #include "utils.h"
+#include "write.h"
 
 // rlc
 // x0(0-7)   2 MCycle

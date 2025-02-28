@@ -2,8 +2,9 @@
 
 #include "emulation.h"
 #include "gb_core.h"
-#include "memory.h"
+#include "read.h"
 #include "utils.h"
+#include "write.h"
 
 // inc r (8 bit)
 // x(0-3)(4 or C)	1 MCycle

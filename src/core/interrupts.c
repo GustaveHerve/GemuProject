@@ -6,8 +6,8 @@
 #include "cpu.h"
 #include "emulation.h"
 #include "gb_core.h"
-#include "memory.h"
 #include "utils.h"
+#include "write.h"
 
 // clang-format off
                                         /* VBlank   LCD     Timer   Serial  Joypad */

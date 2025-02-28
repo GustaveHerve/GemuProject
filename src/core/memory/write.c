@@ -114,7 +114,7 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
     case DMA:
     {
         struct dma_request new_req = {
-            .source = val,
+            .source = val > 0xDF ? val & 0xDF : val,
             .status = DMA_REQUESTED,
         };
         RING_BUFFER_ENQUEUE(dma_request, &gb->ppu.dma_requests, &new_req);
