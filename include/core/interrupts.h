@@ -43,6 +43,4 @@ static inline void clear_ie(struct gb_core *gb, int bit)
 
 int check_interrupt(struct gb_core *gb);
 
-int handle_interrupt(struct gb_core *gb, unsigned int bit);
-
 #endif

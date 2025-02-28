@@ -1,7 +1,7 @@
 #include "gb_core.h"
 #include "interrupts.h"
 
-#define TAC_TIMER_ENABLED (0x1 << 2)
+#define TAC_TIMER_ENABLED (1 << 2)
 #define TAC_CLOCK_SELECT 0x3
 
 static unsigned int clock_shifts[] = {9, 3, 5, 7};

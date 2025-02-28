@@ -61,14 +61,12 @@ static inline void set_c(struct cpu *cpu, int value)
 // 8 bit and 16 bit manipulations
 static inline uint8_t regist_hi(uint16_t *rr)
 {
-    uint8_t res = (*rr >> 8) & 0xFF;
-    return res;
+    return (*rr >> 8) & 0xFF;
 }
 
 static inline uint8_t regist_lo(uint16_t *rr)
 {
-    uint8_t res = *rr & 0xFF;
-    return res;
+    return *rr & 0xFF;
 }
 
 static inline uint8_t get_lsb_nibble(uint8_t b)
@@ -187,9 +185,9 @@ static inline void rotl_carry(struct cpu *cpu, uint8_t *src)
     int a = *src & 1UL; // get lsb
     int b = get_c(cpu);
     if (b)
-        *src = *src | 1UL;
+        *src |= 1UL;
     else
-        *src = *src & ~(1UL);
+        *src &= ~(1UL);
     set_c(cpu, a);
 }
 
@@ -201,12 +199,12 @@ static inline void rotr(uint8_t *src)
 static inline void rotr_carry(struct cpu *cpu, uint8_t *src)
 {
     rotr(src);
-    int a = (*src >> 7) & 1UL; // get msb
+    int a = (*src >> 7) & 1UL;
     int b = get_c(cpu);
     if (b)
-        *src = *src | (1UL << 7);
+        *src |= (1UL << 7);
     else
-        *src = *src & ~(1UL << 7);
+        *src &= ~(1UL << 7);
 
     set_c(cpu, a);
 }
