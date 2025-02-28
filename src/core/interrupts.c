@@ -15,7 +15,7 @@ static unsigned int handlers_vector[] = {   0x40,   0x48,   0x50,   0x58,   0x60
 
 // clang-format on
 
-static int handle_interrupt(struct gb_core *gb /* , unsigned int bit */)
+static int handle_interrupt(struct gb_core *gb)
 {
     gb->cpu.ime = 0;
     tick_m(gb);

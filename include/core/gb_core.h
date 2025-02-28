@@ -29,6 +29,7 @@ struct gb_core
     // Internal registers
     uint16_t internal_div;
     uint8_t prev_tac_AND;
+    uint8_t prev_serial_AND;
 
     uint8_t schedule_tima_overflow;
 

@@ -75,6 +75,7 @@ void init_gb_core_post_boot(struct gb_core *gb, int checksum)
     init_io_post_boot(&gb->memory);
 
     gb->internal_div = 0xABCC;
+    gb->serial_clock = 460;
 
     gb->ppu.current_mode = 1;
     gb->ppu.line_dot_count = 400;
@@ -122,8 +123,9 @@ void init_gb_core(struct gb_core *gb)
     gb->internal_div = 0;
 
     gb->prev_tac_AND = 0;
+    gb->prev_serial_AND = 0;
 
-    gb->serial_clock = 0;
+    gb->serial_clock = -24;
     gb->serial_acc = 0;
 
     gb->joyp_a = 0xF;
@@ -174,6 +176,7 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     fwrite(&gb->halt, sizeof(uint8_t), 1, file);
     fwrite(&gb->stop, sizeof(uint8_t), 1, file);
     fwrite_le_16(file, gb->serial_clock);
+    fwrite(&gb->serial_acc, sizeof(uint8_t), 1, file);
     fwrite(&gb->serial_acc, sizeof(uint8_t), 1, file);
 
     fwrite_le_64(file, gb->tcycles_since_sync);
