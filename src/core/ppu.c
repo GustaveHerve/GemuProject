@@ -57,7 +57,7 @@ static uint8_t get_tileid(struct gb_core *gb, int obj_index, int bottom_part)
         if (get_lcdc(gb->memory.io, LCDC_OBJ_SIZE))
         {
             uint8_t cond = !bottom_part;
-            if ((gb->ppu.obj_fetcher.attributes >> 6) & 0x01)
+            if ((gb->ppu.obj_fetcher.attributes >> 6) & 1)
                 cond = bottom_part;
 
             if (cond)
@@ -78,8 +78,8 @@ static uint8_t get_tile_lo(struct gb_core *gb, uint8_t tileid, int obj_index)
     if (obj_index != -1)
     {
         y_part = (gb->memory.io[IO_OFFSET(LY)] - (gb->ppu.obj_slots[obj_index].y - 16)) % 8;
-        // Y flip
-        if ((attributes >> 6) & 0x01)
+        /* Y flip */
+        if ((attributes >> 6) & 1)
         {
             y_part = ~y_part;
             y_part &= 0x07;
@@ -102,7 +102,7 @@ static uint8_t get_tile_lo(struct gb_core *gb, uint8_t tileid, int obj_index)
 
     if (obj_index != -1)
     {
-        // X flip
+        /* X flip */
         if ((attributes >> 5) & 0x01)
             slice_low = slice_xflip(slice_low);
     }
@@ -141,7 +141,7 @@ static uint8_t get_tile_hi(struct gb_core *gb, uint8_t tileid, int obj_index)
     if (obj_index != -1)
     {
         /* X flip */
-        if ((attributes >> 5) & 0x01)
+        if ((attributes >> 5) & 1)
             slice_high = slice_xflip(slice_high);
     }
 
@@ -270,6 +270,8 @@ void ppu_init(struct gb_core *gb)
 
     gb->ppu.dma = 0;
     gb->ppu.dma_acc = 0;
+
+    RING_BUFFER_INIT(dma_request, &gb->ppu.dma_requests);
 
     gb->ppu.line_dot_count = 0;
     gb->ppu.mode1_153th = 0;
@@ -481,10 +483,10 @@ static uint8_t mode3_handler(struct gb_core *gb)
     }
 
     // Check for object if we are not already treating one
-    int obj = -1;
-    int bottom_part = 0;
     if (gb->ppu.obj_fetcher.obj_index == -1 && get_lcdc(gb->memory.io, LCDC_OBJ_ENABLE))
     {
+        int obj = -1;
+        int bottom_part = 0;
         obj = on_object(gb, &bottom_part);
         if (obj > -1)
         {
@@ -514,7 +516,7 @@ static uint8_t mode3_handler(struct gb_core *gb)
         {
             if (!RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo))
             {
-                // Pop current pixel and do nothing with it
+                // Pop current pixel and discard it
                 select_pixel(gb);
                 ++gb->ppu.lx;
             }
