@@ -137,6 +137,8 @@ void init_gb_core(struct gb_core *gb)
 
     gb->tcycles_since_sync = 0;
     gb->last_sync_timestamp = get_nanoseconds();
+
+    gb->memory.io[IO_OFFSET(JOYP)] = 0xCF;
 }
 
 void free_gb_core(struct gb_core *gb)
