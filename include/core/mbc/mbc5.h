@@ -12,6 +12,6 @@ struct mbc5
     uint8_t ram_enabled;
 };
 
-struct mbc_base *make_mbc5(void);
+int make_mbc5(struct mbc_base **output);
 
 #endif

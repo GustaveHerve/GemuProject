@@ -6,17 +6,17 @@
 
 struct cpu;
 
-#define MBC_SET_VTABLE                                                                                                 \
+#define MBC_SET_VTABLE(MBC_PTR)                                                                                        \
     do                                                                                                                 \
     {                                                                                                                  \
-        mbc->_mbc_reset = _mbc_reset;                                                                                  \
-        mbc->_mbc_free = _mbc_free;                                                                                    \
-        mbc->_read_mbc_rom = _read_mbc_rom;                                                                            \
-        mbc->_write_mbc_rom = _write_mbc_rom;                                                                          \
-        mbc->_read_mbc_ram = _read_mbc_ram;                                                                            \
-        mbc->_write_mbc_ram = _write_mbc_ram;                                                                          \
-        mbc->_mbc_serialize = _mbc_serialize;                                                                          \
-        mbc->_mbc_load_from_stream = _mbc_load_from_stream;                                                            \
+        (MBC_PTR)->_mbc_reset = _mbc_reset;                                                                            \
+        (MBC_PTR)->_mbc_free = _mbc_free;                                                                              \
+        (MBC_PTR)->_read_mbc_rom = _read_mbc_rom;                                                                      \
+        (MBC_PTR)->_write_mbc_rom = _write_mbc_rom;                                                                    \
+        (MBC_PTR)->_read_mbc_ram = _read_mbc_ram;                                                                      \
+        (MBC_PTR)->_write_mbc_ram = _write_mbc_ram;                                                                    \
+        (MBC_PTR)->_mbc_serialize = _mbc_serialize;                                                                    \
+        (MBC_PTR)->_mbc_load_from_stream = _mbc_load_from_stream;                                                      \
     } while (0)
 
 enum MBC_TYPE
@@ -62,7 +62,7 @@ struct mbc_base
     void (*_mbc_load_from_stream)(struct mbc_base *mbc, FILE *stream);
 };
 
-void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_size);
+int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_size);
 
 void mbc_reset(struct mbc_base *mbc);
 void mbc_free(struct mbc_base *mbc);

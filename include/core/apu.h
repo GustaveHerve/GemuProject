@@ -131,9 +131,4 @@ void serialize_apu_to_stream(FILE *stream, struct apu *apu);
 
 void load_apu_from_stream(FILE *stream, struct apu *apu);
 
-static inline float dac_output(uint32_t amplitude)
-{
-    return (amplitude / 7.5f) - 1.0f;
-}
-
 #endif

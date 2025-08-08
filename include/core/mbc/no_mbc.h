@@ -8,6 +8,6 @@ struct no_mbc
     struct mbc_base base;
 };
 
-struct mbc_base *make_no_mbc(void);
+int make_no_mbc(struct mbc_base **output);
 
 #endif

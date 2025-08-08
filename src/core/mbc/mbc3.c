@@ -207,6 +207,7 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
 
 static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
 {
+    // TODO
     struct mbc3 *mbc3 = (struct mbc3 *)mbc;
 
     fwrite(&mbc3->bank1, sizeof(uint8_t), 4, stream);
@@ -216,6 +217,7 @@ static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
 
 static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 {
+    // TODO
     struct mbc3 *mbc3 = (struct mbc3 *)mbc;
 
     fread(&mbc3->bank1, sizeof(uint8_t), 8, stream);
@@ -223,15 +225,14 @@ static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
     fread_le_16(stream, &mbc3->latch_last_write);
 }
 
-struct mbc_base *make_mbc3(void)
+int make_mbc3(struct mbc_base **output)
 {
-    struct mbc_base *mbc = calloc(1, sizeof(struct mbc3));
+    if ((*output = calloc(1, sizeof(struct mbc3))) == NULL)
+        return EXIT_FAILURE;
 
-    mbc->type = MBC3;
+    (*output)->type = MBC3;
+    MBC_SET_VTABLE(*output);
+    _mbc_reset(*output);
 
-    MBC_SET_VTABLE;
-
-    _mbc_reset(mbc);
-
-    return mbc;
+    return EXIT_SUCCESS;
 }

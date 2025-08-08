@@ -1,10 +1,14 @@
+#include <linux/limits.h>
 #ifdef _LINUX
-#define _POSIX_C_SOURCE 2
+#define _POSIX_C_SOURCE 200809L
 #endif
 
 #include <SDL3/SDL_main.h>
+#include <err.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "audio.h"
@@ -15,9 +19,12 @@
 #include "interrupts.h"
 #include "mbc_base.h"
 #include "rendering.h"
+#include "save.h"
 #include "sdl_utils.h"
 #include "serialization.h"
 #include "sync.h"
+
+#define SAVESTATE_EXTENSION ".savestate"
 
 struct gb_core gb;
 
@@ -49,25 +56,25 @@ static void parse_arguments(int argc, char **argv)
             break;
         case 'h':
             print_usage(stdout);
-            exit(0);
+            exit(EXIT_SUCCESS);
         default:
             print_usage(stderr);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
     }
 
     if (optind >= argc)
     {
-        fprintf(stderr, "Expected a rom path\n");
+        fprintf(stderr, "ERROR: Expected a rom path\n");
         print_usage(stderr);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 
     if (optind + 1 < argc)
     {
-        fprintf(stderr, "Unexpected argument: %s\n", argv[optind + 1]);
+        fprintf(stderr, "ERROR: Unexpected argument: %s\n", argv[optind + 1]);
         print_usage(stderr);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 
     args.rom_path = argv[optind];
@@ -81,7 +88,7 @@ static void init_gb_callbacks(struct gb_core *gb)
     gb->callbacks.render_frame = render_frame_callback;
 }
 
-void main_loop(void)
+static int main_loop(void)
 {
     struct global_settings *settings = get_global_settings();
     while (!settings->quit_signal)
@@ -102,21 +109,17 @@ void main_loop(void)
 
         else if (settings->save_state)
         {
-            size_t len = strlen(gb.mbc->rom_path) + 11 + 1;
-            char *save_path = malloc(len);
-            snprintf(save_path, len, "%s.savestate%d", gb.mbc->rom_path, settings->save_state);
+            char save_path[PATH_MAX];
+            snprintf(save_path, PATH_MAX, "%s" SAVESTATE_EXTENSION "%d", gb.mbc->rom_path, settings->save_state);
             serialize_gb_to_file(save_path, &gb);
-            free(save_path);
             settings->save_state = 0;
         }
 
         else if (settings->load_state)
         {
-            size_t len = strlen(gb.mbc->rom_path) + 11 + 1;
-            char *load_path = malloc(len);
-            snprintf(load_path, len, "%s.savestate%d", gb.mbc->rom_path, settings->load_state);
+            char load_path[PATH_MAX];
+            snprintf(load_path, PATH_MAX, "%s" SAVESTATE_EXTENSION "%d", gb.mbc->rom_path, settings->load_state);
             load_gb_from_file(load_path, &gb);
-            free(load_path);
             settings->load_state = 0;
         }
 
@@ -130,30 +133,33 @@ void main_loop(void)
 
         check_interrupt(&gb);
     }
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char **argv)
 {
+    int return_value = EXIT_SUCCESS;
     parse_arguments(argc, argv);
 
     SDL_CHECK_ERROR(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS));
-
     if (init_rendering() || init_audio())
         return EXIT_FAILURE;
 
     init_gb_callbacks(&gb);
-
     init_gb_core(&gb);
 
-    if (!load_rom(&gb, args.rom_path, args.bootrom_path))
-        main_loop();
+    if (load_rom(&gb, args.rom_path, args.bootrom_path) == EXIT_FAILURE)
+    {
+        return_value = EXIT_FAILURE;
+        goto exit;
+    }
 
+    main_loop();
+
+exit:
     free_gb_core(&gb);
-
     free_rendering();
-
     free_audio();
-
     SDL_Quit();
-    return 0;
+    return return_value;
 }

@@ -124,15 +124,14 @@ static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
     fread(&mbc5->bank2, sizeof(uint8_t), 2, stream);
 }
 
-struct mbc_base *make_mbc5(void)
+int make_mbc5(struct mbc_base **output)
 {
-    struct mbc_base *mbc = calloc(1, sizeof(struct mbc5));
+    if ((*output = calloc(1, sizeof(struct mbc5))) == NULL)
+        return EXIT_FAILURE;
 
-    mbc->type = MBC5;
+    (*output)->type = MBC5;
+    MBC_SET_VTABLE(*output);
+    _mbc_reset(*output);
 
-    MBC_SET_VTABLE;
-
-    _mbc_reset(mbc);
-
-    return mbc;
+    return EXIT_SUCCESS;
 }

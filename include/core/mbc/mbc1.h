@@ -14,6 +14,6 @@ struct mbc1
     uint8_t mbc1_mode; // Banking Mode
 };
 
-struct mbc_base *make_mbc1(void);
+int make_mbc1(struct mbc_base **output);
 
 #endif

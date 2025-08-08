@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mbc_base.h"
 #include "save.h"
 
 static void _mbc_reset(struct mbc_base *mbc)
@@ -96,23 +97,24 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
 
 static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
 {
+    // TODO
     struct mbc2 *mbc2 = (struct mbc2 *)mbc;
 }
 
 static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 {
+    // TODO
     struct mbc2 *mbc2 = (struct mbc2 *)mbc;
 }
 
-struct mbc_base *make_mbc2(void)
+int make_mbc2(struct mbc_base **output)
 {
-    struct mbc_base *mbc = calloc(1, sizeof(struct mbc2));
+    if ((*output = calloc(1, sizeof(struct mbc2))) == NULL)
+        return EXIT_FAILURE;
 
-    mbc->type = MBC2;
+    (*output)->type = MBC2;
+    MBC_SET_VTABLE(*output);
+    _mbc_reset(*output);
 
-    MBC_SET_VTABLE;
-
-    _mbc_reset(mbc);
-
-    return mbc;
+    return EXIT_SUCCESS;
 }

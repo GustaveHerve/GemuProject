@@ -11,6 +11,6 @@ struct mbc2
     uint8_t ROMB;
 };
 
-struct mbc_base *make_mbc2(void);
+int make_mbc2(struct mbc_base **output);
 
 #endif

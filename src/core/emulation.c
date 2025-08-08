@@ -120,7 +120,7 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
 
     if (!is_regular_file(rom_path))
     {
-        fprintf(stderr, "Invalid rom path (not a regular file): %s\n", rom_path);
+        fprintf(stderr, "ERROR: Invalid rom path (not a regular file): %s\n", rom_path);
         return EXIT_FAILURE;
     }
 
@@ -128,21 +128,30 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
     FILE *fptr = fopen(rom_path, "rb");
     if (!fptr)
     {
-        fprintf(stderr, "Invalid rom path: %s\n", rom_path);
+        fprintf(stderr, "ERROR: Invalid rom path: %s\n", rom_path);
         return EXIT_FAILURE;
     }
     fseek(fptr, 0, SEEK_END);
     long fsize = ftell(fptr);
     rewind(fptr);
 
-    uint8_t *rom = malloc(sizeof(uint8_t) * fsize);
+    uint8_t *rom = NULL;
+    if ((rom = malloc(sizeof(uint8_t) * fsize)) == NULL)
+    {
+        fprintf(stderr, "ERROR: Error allocating memory for loading ROM\n");
+        return EXIT_FAILURE;
+    }
+
     fread(rom, 1, fsize, fptr);
     fclose(fptr);
 
     uint8_t checksum = rom[CHECKSUM_ADDR];
-
     // Init MBC / cartridge info and fill rom in buffer
-    set_mbc(&gb->mbc, rom, rom_path, fsize);
+    if (set_mbc(&gb->mbc, rom, rom_path, fsize) == EXIT_FAILURE)
+    {
+        free(rom);
+        return EXIT_FAILURE;
+    }
 
     lcd_off(gb);
 

@@ -33,88 +33,71 @@ void mbc_free(struct mbc_base *mbc)
     free(mbc);
 }
 
-static struct mbc_base *make_mbc(uint8_t type_byte)
+static int make_mbc(uint8_t type_byte, struct mbc_base **output)
 {
-    struct mbc_base *res = NULL;
+    int err = EXIT_SUCCESS;
     switch (type_byte)
     {
     case 0x00:
-        res = make_no_mbc();
+        err = make_no_mbc(output);
         break;
     case 0x01:
-        res = make_mbc1();
-        break;
     case 0x02:
-        res = make_mbc1();
-        break;
     case 0x03:
-        res = make_mbc1();
+        err = make_mbc1(output);
         break;
     case 0x05:
-        res = make_mbc2();
-        break;
     case 0x06:
-        res = make_mbc2();
+        err = make_mbc2(output);
         break;
     case 0x11:
-        res = make_mbc3();
-        break;
     case 0x12:
-        res = make_mbc3();
-        break;
     case 0x13:
-        res = make_mbc3();
+        err = make_mbc3(output);
         break;
     case 0x19:
-        res = make_mbc5();
-        break;
     case 0x1A:
-        res = make_mbc5();
-        break;
     case 0x1B:
-        res = make_mbc5();
-        break;
     case 0x1C:
-        res = make_mbc5();
-        break;
     case 0x1D:
-        res = make_mbc5();
-        break;
     case 0x1E:
-        res = make_mbc5();
+        err = make_mbc5(output);
         break;
+    default:
+        return EXIT_FAILURE;
     }
 
-    // Unsupported MBC type
-    if (!res)
-        return NULL;
+    if (err == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
-    res->rom_path = NULL;
-    res->save_file = NULL;
+    (*output)->rom_path = NULL;
+    (*output)->save_file = NULL;
 
-    res->rom = NULL;
-    res->ram = NULL;
+    (*output)->rom = NULL;
+    (*output)->ram = NULL;
 
-    res->rom_size_header = 0;
-    res->ram_size_header = 0;
+    (*output)->rom_size_header = 0;
+    (*output)->ram_size_header = 0;
 
-    res->rom_bank_count = 0;
-    res->ram_bank_count = 0;
+    (*output)->rom_bank_count = 0;
+    (*output)->ram_bank_count = 0;
 
-    res->rom_total_size = 0;
-    res->ram_total_size = 0;
+    (*output)->rom_total_size = 0;
+    (*output)->ram_total_size = 0;
 
-    return res;
+    return EXIT_SUCCESS;
 }
 
-void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_size)
+int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_size)
 {
     uint8_t type = rom[0x0147];
-    struct mbc_base *mbc = make_mbc(type);
-
-    /* Unsupported MBC type */
-    if (!mbc)
-        errx(-3, "ERROR: Provided rom file uses an unsupported MBC type");
+    struct mbc_base *mbc;
+    if (make_mbc(type, &mbc) == EXIT_FAILURE)
+    {
+        /* Unsupported MBC type or error allocating MBC */
+        fprintf(stderr, "ERROR: Provided rom file uses an unsupported MBC type\n");
+        return EXIT_FAILURE;
+    }
 
     mbc->rom_path = rom_path;
     mbc->rom_basename = basename(rom_path);
@@ -173,6 +156,7 @@ void set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file
         (*output)->_mbc_free(*output);
 
     *output = mbc;
+    return EXIT_SUCCESS;
 }
 
 uint8_t read_mbc_rom(struct mbc_base *mbc, uint16_t address)

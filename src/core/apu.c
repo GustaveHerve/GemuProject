@@ -522,7 +522,7 @@ static float mix_channels(struct gb_core *gb, uint8_t panning)
     for (size_t i = 1; i < 5; ++i)
     {
         if (is_dac_on(gb, i))
-            sum += dac_output(get_channel_amplitude(gb, i, panning));
+            sum += get_channel_amplitude(gb, i, panning) / 7.5f - 1.0f;
     }
     float in = sum / 4.0f;
     float out = 0.0f;
