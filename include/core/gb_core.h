@@ -8,7 +8,7 @@
 
 struct gb_core
 {
-    // Components
+    /* Components */
     struct cpu cpu;
     struct ppu ppu;
     struct apu apu;
@@ -26,7 +26,7 @@ struct gb_core
         uint8_t ie;
     } memory;
 
-    // Internal registers
+    /* Internal registers */
     uint16_t internal_div;
     uint8_t prev_tac_AND;
     uint8_t prev_serial_AND;
@@ -48,7 +48,7 @@ struct gb_core
     uint64_t tcycles_since_sync;
     int64_t last_sync_timestamp;
 
-    // Callbacks
+    /* Callbacks */
     struct
     {
         int (*get_queued_audio_sample_count)(void);

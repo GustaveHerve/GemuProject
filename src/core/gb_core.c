@@ -143,6 +143,7 @@ void init_gb_core(struct gb_core *gb)
 
 void free_gb_core(struct gb_core *gb)
 {
+    free(gb->memory.boot_rom);
     free(gb->memory.vram);
     free(gb->memory.wram);
     free(gb->memory.unusable_mem);

@@ -8,7 +8,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include "audio.h"
@@ -36,12 +35,13 @@ static struct
 
 static void print_usage(FILE *stream)
 {
-    fprintf(stream, "Usage: gemu [-b BOOT_ROM_PATH] ROM_PATH");
-    fprintf(stream, "\nOptions:\n");
-    fprintf(stream, "  -b BOOT_ROM_PATH   Specify the path to the boot ROM file.\n");
-    fprintf(stream, "  -h                 Show this help message and exit.\n");
-    fprintf(stream, "\nArguments:\n");
-    fprintf(stream, "  ROM_PATH           Path to the ROM file to be used.\n");
+    fprintf(stream,
+            "Usage: gemu [-b BOOT_ROM_PATH] ROM_PATH"
+            "\nOptions:\n"
+            "  -b BOOT_ROM_PATH   Specify the path to the boot ROM file.\n"
+            "  -h                 Show this help message and exit.\n"
+            "\nArguments:\n"
+            "  ROM_PATH           Path to the ROM file to be used.\n");
 }
 
 static void parse_arguments(int argc, char **argv)

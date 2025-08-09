@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,13 +7,15 @@
 
 FILE *open_save_file(struct mbc_base *mbc)
 {
+    assert(mbc);
+
     size_t len = strlen(mbc->rom_path) + 4 + 1;
     char *save_path = malloc(len);
     snprintf(save_path, len, "%s.sav", mbc->rom_path);
 
     FILE *res = NULL;
     res = fopen(save_path, "rb+");
-    if (!res)
+    if (!res) /* If no save file exists, create it */
         res = fopen(save_path, "wb+");
     free(save_path);
 

@@ -32,7 +32,7 @@ struct mbc_base
 {
     enum MBC_TYPE type;
 
-    char *rom_path;
+    char *rom_path; // Path of the ROM
     char *rom_basename;
     FILE *save_file;
 

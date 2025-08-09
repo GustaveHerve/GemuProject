@@ -333,7 +333,9 @@ static unsigned int calculate_frequency(struct gb_core *gb, uint8_t sweep_shift,
         new_frequency = ch1->shadow_frequency - new_frequency;
     }
     else
+    {
         new_frequency = ch1->shadow_frequency + new_frequency;
+    }
 
     if (new_frequency > 2047)
         turn_channel_off(gb, 1);

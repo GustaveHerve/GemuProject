@@ -1,5 +1,6 @@
 #include "mbc_base.h"
 
+#include <assert.h>
 #include <err.h>
 #include <libgen.h>
 #include <stdio.h>
@@ -64,11 +65,16 @@ static int make_mbc(uint8_t type_byte, struct mbc_base **output)
         err = make_mbc5(output);
         break;
     default:
+        /* Unsupported MBC type */
+        fprintf(stderr, "ERROR: ROM is of unsuported MBC type\n");
         return EXIT_FAILURE;
     }
 
     if (err == EXIT_FAILURE)
+    {
+        fprintf(stderr, "ERROR: MBC allocation failed\n");
         return EXIT_FAILURE;
+    }
 
     (*output)->rom_path = NULL;
     (*output)->save_file = NULL;
@@ -90,20 +96,18 @@ static int make_mbc(uint8_t type_byte, struct mbc_base **output)
 
 int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_size)
 {
+    assert(output);
+    assert(rom);
+    assert(rom_path);
+
     uint8_t type = rom[0x0147];
     struct mbc_base *mbc;
     if (make_mbc(type, &mbc) == EXIT_FAILURE)
-    {
-        /* Unsupported MBC type or error allocating MBC */
-        fprintf(stderr, "ERROR: Provided rom file uses an unsupported MBC type\n");
         return EXIT_FAILURE;
-    }
 
     mbc->rom_path = rom_path;
     mbc->rom_basename = basename(rom_path);
-
     mbc->rom = rom;
-
     mbc->rom_size_header = rom[0x0148];
     mbc->ram_size_header = rom[0x0149];
 

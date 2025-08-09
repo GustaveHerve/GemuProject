@@ -1,5 +1,7 @@
 #include "emulation.h"
 
+#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -68,97 +70,158 @@ static int is_regular_file(char *path)
 
 static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
 {
-    if (!gb || !boot_rom_path)
-        return EXIT_SUCCESS;
-    if (!is_regular_file(boot_rom_path) || !gb)
+    assert(boot_rom_path);
+
+    int err_code = EXIT_SUCCESS;
+    FILE *fptr = NULL;
+
+    if (!is_regular_file(boot_rom_path))
     {
-        fprintf(stderr, "Invalid boot rom path (not a regular file): %s\n", boot_rom_path);
-        return EXIT_FAILURE;
+        fprintf(stderr, "ERROR: Invalid BOOT ROM path (not a regular file): %s\n", boot_rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
     }
 
-    // Load bootrom
-    FILE *fptr = fopen(boot_rom_path, "rb");
+    /* Load bootrom */
+    fptr = fopen(boot_rom_path, "rb");
     if (!fptr)
     {
-        fprintf(stderr, "Invalid boot rom path (error opening the file): %s\n", boot_rom_path);
-        return EXIT_FAILURE;
+        fprintf(stderr, "ERROR: Invalid BOOT ROM path (error opening the file): %s\n", boot_rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
     }
 
-    // Enable bootrom
+    /* Enable bootrom by clearing bit 0 of BOOT */
     gb->memory.io[IO_OFFSET(BOOT)] = 0xFE;
 
-    fseek(fptr, 0, SEEK_END);
-    long fsize = ftell(fptr);
+    /* Get total size of file */
+    if (fseek(fptr, 0, SEEK_END))
+    {
+        fprintf(stderr, "ERROR: Error reading file: %s\n", boot_rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
+    }
+    long fsize = 0;
+    if ((fsize = ftell(fptr)) == -1)
+    {
+        fprintf(stderr, "ERROR: Error reading file: %s\n", boot_rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
+    }
     rewind(fptr);
 
     if (fsize == -1)
     {
-        fprintf(stderr, "Error reading boot rom file, file is empty or damaged: %s\n", boot_rom_path);
-        fclose(fptr);
-        return EXIT_FAILURE;
+        fprintf(stderr, "ERROR: could not load BOOT ROM, file is empty or damaged: %s\n", boot_rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
     }
 
     if (fsize > (uint32_t)-1)
     {
-        fprintf(stderr, "Error reading boot rom file, file is too big: %s\n", boot_rom_path);
-        fclose(fptr);
-        return EXIT_FAILURE;
+        fprintf(stderr, "ERROR: could not load BOOT ROM, file is too big: %s\n", boot_rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
     }
 
     gb->memory.boot_rom_size = fsize;
-    gb->memory.boot_rom = malloc(sizeof(uint8_t) * fsize);
-    fread(gb->memory.boot_rom, 1, fsize, fptr);
-    fclose(fptr);
+    if ((gb->memory.boot_rom = malloc(sizeof(uint8_t) * fsize)) == NULL)
+    {
+        fprintf(stderr, "ERROR: could not load BOOT ROM, error allocating memory\n");
+        err_code = EXIT_FAILURE;
+        goto exit;
+    }
 
-    return EXIT_SUCCESS;
+    fread(gb->memory.boot_rom, 1, fsize, fptr);
+    if (ferror(fptr))
+    {
+        fprintf(stderr, "ERROR: error loading BOOT ROM: %s\n", boot_rom_path);
+        err_code = EXIT_FAILURE;
+    }
+
+exit:
+    if (fptr)
+        fclose(fptr);
+    return err_code;
 }
 
 int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
 {
-    if (!gb || load_boot_rom(gb, boot_rom_path))
-        return EXIT_FAILURE;
+    assert(gb && rom_path);
+
+    int err_code = EXIT_SUCCESS;
+    FILE *fptr = NULL;
+    uint8_t *rom = NULL;
+
+    if (boot_rom_path && load_boot_rom(gb, boot_rom_path))
+    {
+        err_code = EXIT_FAILURE;
+        goto exit;
+    }
 
     if (!is_regular_file(rom_path))
     {
         fprintf(stderr, "ERROR: Invalid rom path (not a regular file): %s\n", rom_path);
-        return EXIT_FAILURE;
+        err_code = EXIT_FAILURE;
+        goto exit;
     }
 
-    // Open ROM, get its size and and copy its content in MBC struct
-    FILE *fptr = fopen(rom_path, "rb");
+    fptr = fopen(rom_path, "rb");
     if (!fptr)
     {
-        fprintf(stderr, "ERROR: Invalid rom path: %s\n", rom_path);
-        return EXIT_FAILURE;
+        fprintf(stderr, "ERROR: Invalid rom path (doesn't exist): %s\n", rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
     }
-    fseek(fptr, 0, SEEK_END);
-    long fsize = ftell(fptr);
+
+    /* Get total size of file */
+    if (fseek(fptr, 0, SEEK_END))
+    {
+        fprintf(stderr, "ERROR: Error reading file: %s\n", rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
+    }
+    long fsize = 0;
+    if ((fsize = ftell(fptr)) == -1)
+    {
+        fprintf(stderr, "ERROR: Error reading file: %s\n", rom_path);
+        err_code = EXIT_FAILURE;
+        goto exit;
+    }
     rewind(fptr);
 
-    uint8_t *rom = NULL;
+    /* Init MBC / cartridge info and fill rom in buffer */
     if ((rom = malloc(sizeof(uint8_t) * fsize)) == NULL)
     {
-        fprintf(stderr, "ERROR: Error allocating memory for loading ROM\n");
-        return EXIT_FAILURE;
+        fprintf(stderr, "ERROR: Error allocating memory for loading ROM file\n");
+        err_code = EXIT_FAILURE;
+        goto exit;
     }
 
     fread(rom, 1, fsize, fptr);
-    fclose(fptr);
+    if (ferror(fptr))
+    {
+        fprintf(stderr, "ERROR: error loading ROM: %s\n", rom_path);
+        err_code = EXIT_FAILURE;
+        free(rom);
+        goto exit;
+    }
 
     uint8_t checksum = rom[CHECKSUM_ADDR];
-    // Init MBC / cartridge info and fill rom in buffer
     if (set_mbc(&gb->mbc, rom, rom_path, fsize) == EXIT_FAILURE)
     {
-        free(rom);
-        return EXIT_FAILURE;
+        err_code = EXIT_FAILURE;
+        goto exit;
     }
 
     lcd_off(gb);
-
     if (!boot_rom_path)
         init_gb_core_post_boot(gb, checksum);
 
-    return EXIT_SUCCESS;
+exit:
+    if (fptr)
+        fclose(fptr);
+    return err_code;
 }
 
 void tick_m(struct gb_core *gb)

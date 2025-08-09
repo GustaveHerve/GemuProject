@@ -131,10 +131,10 @@
 // clang-format on
 static inline uint8_t io_read(uint8_t *io, uint16_t address)
 {
-// Shorthand macros for better array lisibility
+/* Shorthand macros for better array lisibility */
 #define _IO(ADDR) IO_OFFSET(ADDR)
 #define W(N) WAVE_RAM + (N)
-    // These masks are only correct for DMG !
+    /* These masks are only correct for DMG ! */
     static uint8_t masks[IO_SIZE] = {
         [_IO(JOYP)] = 0x3F,  [_IO(SB)] = 0xFF,    [_IO(SC)] = 0x81,    [_IO(DIV)] = 0xFF,   [_IO(TIMA)] = 0xFF,
         [_IO(TMA)] = 0xFF,   [_IO(TAC)] = 0x07,   [_IO(IF)] = 0x1F,    [_IO(NR10)] = 0x7F,  [_IO(NR11)] = 0xC0,
@@ -153,13 +153,13 @@ static inline uint8_t io_read(uint8_t *io, uint16_t address)
         [_IO(OCPD)] = 0,     [_IO(OPRI)] = 0,     [_IO(SVBK)] = 0,     [_IO(UNK1)] = 0,     [_IO(UNK2)] = 0,
         [_IO(UNK3)] = 0,     [_IO(UNK4)] = 0,     [_IO(PCM12)] = 0,    [_IO(PCM34)] = 0,
     };
-    // Unused bits always read as 1
+    /* Unused bits always read as 1 */
     return io[_IO(address)] | ~masks[_IO(address)];
 }
 
 static inline void io_write(uint8_t *io, uint16_t address, uint8_t val)
 {
-    // These masks are only correct for DMG !
+    /* These masks are only correct for DMG ! */
     static uint8_t masks[IO_SIZE] = {
         [_IO(JOYP)] = 0x30,  [_IO(SB)] = 0xFF,    [_IO(SC)] = 0x83,    [_IO(DIV)] = 0,      [_IO(TIMA)] = 0xFF,
         [_IO(TMA)] = 0xFF,   [_IO(TAC)] = 0x07,   [_IO(IF)] = 0x1F,    [_IO(NR10)] = 0x7F,  [_IO(NR11)] = 0xFF,
@@ -178,7 +178,7 @@ static inline void io_write(uint8_t *io, uint16_t address, uint8_t val)
         [_IO(OCPD)] = 0,     [_IO(OPRI)] = 0,     [_IO(SVBK)] = 0,     [_IO(UNK1)] = 0,     [_IO(UNK2)] = 0,
         [_IO(UNK3)] = 0,     [_IO(UNK4)] = 0,     [_IO(PCM12)] = 0,    [_IO(PCM34)] = 0,
     };
-    // Unused bits always ignore writes
+    /* Unused bits always ignore writes */
     io[_IO(address)] = (val & masks[_IO(address)]) | (io[_IO(address)] & ~masks[_IO(address)]);
 #undef W
 #undef _IO
