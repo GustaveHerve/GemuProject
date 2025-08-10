@@ -47,7 +47,7 @@ int init_rendering(void)
 
     SDL_CHECK_ERROR(texture =
                         SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB32, SDL_TEXTUREACCESS_STREAMING, 160, 144));
-    // Disable texture filtering
+    /* Disable texture filtering */
     SDL_CHECK_ERROR(SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST));
 
     return EXIT_SUCCESS;
@@ -55,7 +55,10 @@ int init_rendering(void)
 
 void free_rendering(void)
 {
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    if (texture)
+        SDL_DestroyTexture(texture);
+    if (renderer)
+        SDL_DestroyRenderer(renderer);
+    if (window)
+        SDL_DestroyWindow(window);
 }

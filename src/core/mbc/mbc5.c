@@ -126,7 +126,7 @@ static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 
 int make_mbc5(struct mbc_base **output)
 {
-    if ((*output = calloc(1, sizeof(struct mbc5))) == NULL)
+    if (!(*output = calloc(1, sizeof(struct mbc5))))
         return EXIT_FAILURE;
 
     (*output)->type = MBC5;

@@ -27,4 +27,5 @@ target_sources(gemu PUBLIC
     sync.c
     display.c
     serialization.c
+    logger.c
 )

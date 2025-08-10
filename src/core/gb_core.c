@@ -82,7 +82,7 @@ void init_gb_core_post_boot(struct gb_core *gb, int checksum)
     gb->ppu.mode1_153th = 1;
 }
 
-void init_gb_core(struct gb_core *gb)
+int init_gb_core(struct gb_core *gb)
 {
     memset(&gb->cpu, 0, sizeof(struct cpu));
 
@@ -91,6 +91,12 @@ void init_gb_core(struct gb_core *gb)
     gb->memory.vram = calloc(VRAM_SIZE, sizeof(uint8_t));
     gb->memory.wram = malloc(WRAM_SIZE * sizeof(uint8_t));
     gb->memory.unusable_mem = malloc(NOT_USABLE_SIZE * sizeof(uint8_t));
+
+    if (!gb->memory.vram || !gb->memory.wram || !gb->memory.unusable_mem)
+    {
+        perror("ERROR: couldn't allocate necessary memory for emulation");
+        return EXIT_FAILURE;
+    }
 
     ppu_init(gb);
     apu_init(&gb->apu);
@@ -139,6 +145,8 @@ void init_gb_core(struct gb_core *gb)
     gb->last_sync_timestamp = get_nanoseconds();
 
     gb->memory.io[IO_OFFSET(JOYP)] = 0xCF;
+
+    return EXIT_SUCCESS;
 }
 
 void free_gb_core(struct gb_core *gb)
@@ -153,7 +161,7 @@ void free_gb_core(struct gb_core *gb)
 int serialize_gb_to_file(char *output_path, struct gb_core *gb)
 {
     FILE *file;
-    if ((file = fopen(output_path, "wb")) == NULL)
+    if (!(file = fopen(output_path, "wb")))
         return EXIT_FAILURE;
 
     serialize_cpu_to_stream(file, &gb->cpu);

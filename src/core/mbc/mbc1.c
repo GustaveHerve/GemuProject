@@ -133,7 +133,7 @@ static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 
 int make_mbc1(struct mbc_base **output)
 {
-    if ((*output = calloc(1, sizeof(struct mbc1))) == NULL)
+    if (!(*output = calloc(1, sizeof(struct mbc1))))
         return EXIT_FAILURE;
 
     (*output)->type = MBC1;

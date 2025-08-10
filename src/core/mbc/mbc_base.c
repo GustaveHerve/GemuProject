@@ -101,9 +101,9 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_
     assert(rom_path);
 
     uint8_t type = rom[0x0147];
-    struct mbc_base *mbc;
+    struct mbc_base *mbc = NULL;
     if (make_mbc(type, &mbc) == EXIT_FAILURE)
-        return EXIT_FAILURE;
+        goto error_exit;
 
     mbc->rom_path = rom_path;
     mbc->rom_basename = basename(rom_path);
@@ -111,7 +111,8 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_
     mbc->rom_size_header = rom[0x0148];
     mbc->ram_size_header = rom[0x0149];
 
-    if (mbc->rom_size_header > 0x08)
+    if (mbc->rom_size_header > 0x08) /* Unknown/Unofficial ROM size */
+        // TODO: what to do in case of weird ROM size ?
         // mbc->rom_bank_count = (file_size + (1 << 14) - 1) / (1 << 14);
         mbc->rom_bank_count = 512;
     else
@@ -135,7 +136,7 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_
         mbc->ram_bank_count = 8;
         break;
     default:
-        /* Unknown RAM size, assume there is RAM just to be safe */
+        /* Unknown RAM size, assume there is max possible RAM just to be safe */
         mbc->ram_bank_count = 16;
         break;
     }
@@ -150,10 +151,16 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_
     else
         mbc->ram = calloc(8192 * mbc->ram_bank_count, sizeof(uint8_t));
 
+    if (!mbc->ram)
+        goto error_exit;
+
     // Create / Load save file if battery
     if (type == 0x03 || type == 0x06 || type == 0x09 || type == 0x0D || type == 0x0F || type == 0x10 || type == 0x13 ||
         type == 0x1B || type == 0x1E || type == 0x22 || type == 0xFF)
-        mbc->save_file = open_save_file(mbc);
+    {
+        if (open_save_file(mbc))
+            goto error_exit;
+    }
 
     // Free previous MBC if one is already loaded
     if (*output)
@@ -161,6 +168,10 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_
 
     *output = mbc;
     return EXIT_SUCCESS;
+
+error_exit:
+    free(mbc);
+    return EXIT_FAILURE;
 }
 
 uint8_t read_mbc_rom(struct mbc_base *mbc, uint16_t address)

@@ -61,7 +61,7 @@ static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 
 int make_no_mbc(struct mbc_base **output)
 {
-    if ((*output = malloc(sizeof(struct no_mbc))) == NULL)
+    if (!(*output = malloc(sizeof(struct no_mbc))))
         return EXIT_FAILURE;
 
     (*output)->type = NO_MBC;

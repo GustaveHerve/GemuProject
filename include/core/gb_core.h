@@ -86,7 +86,7 @@ static inline void turn_channel_on(struct gb_core *gb, uint8_t number)
     gb->memory.io[IO_OFFSET(NR52)] |= 1 << (number - 1);
 }
 
-void init_gb_core(struct gb_core *gb);
+int init_gb_core(struct gb_core *gb);
 
 void init_gb_core_post_boot(struct gb_core *gb, int checksum);
 

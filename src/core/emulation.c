@@ -125,7 +125,7 @@ static int load_boot_rom(struct gb_core *gb, char *boot_rom_path)
     }
 
     gb->memory.boot_rom_size = fsize;
-    if ((gb->memory.boot_rom = malloc(sizeof(uint8_t) * fsize)) == NULL)
+    if (!(gb->memory.boot_rom = malloc(sizeof(uint8_t) * fsize)))
     {
         fprintf(stderr, "ERROR: could not load BOOT ROM, error allocating memory\n");
         err_code = EXIT_FAILURE;
@@ -191,7 +191,7 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
     rewind(fptr);
 
     /* Init MBC / cartridge info and fill rom in buffer */
-    if ((rom = malloc(sizeof(uint8_t) * fsize)) == NULL)
+    if (!(rom = malloc(sizeof(uint8_t) * fsize)))
     {
         fprintf(stderr, "ERROR: Error allocating memory for loading ROM file\n");
         err_code = EXIT_FAILURE;

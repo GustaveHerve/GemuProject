@@ -4,6 +4,7 @@
 #endif
 
 #include <SDL3/SDL_main.h>
+#include <assert.h>
 #include <err.h>
 #include <limits.h>
 #include <stdio.h>
@@ -16,6 +17,7 @@
 #include "events.h"
 #include "gb_core.h"
 #include "interrupts.h"
+#include "logger.h"
 #include "mbc_base.h"
 #include "rendering.h"
 #include "save.h"
@@ -31,7 +33,7 @@ static struct
 {
     char *rom_path;
     char *bootrom_path;
-} args = {0};
+} args;
 
 static void print_usage(FILE *stream)
 {
@@ -82,6 +84,7 @@ static void parse_arguments(int argc, char **argv)
 
 static void init_gb_callbacks(struct gb_core *gb)
 {
+    assert(gb);
     gb->callbacks.queue_audio = queue_audio;
     gb->callbacks.get_queued_audio_sample_count = get_queued_sample_count;
     gb->callbacks.handle_events = handle_events;
@@ -96,7 +99,7 @@ static int main_loop(void)
         if (settings->paused)
         {
             // Nothing to do meanwhile, wait for an event and handle it
-            SDL_WaitEvent(NULL);
+            SDL_CHECK_ERROR(SDL_WaitEvent(NULL));
             handle_events(&gb);
             continue;
         }
@@ -138,28 +141,47 @@ static int main_loop(void)
 
 int main(int argc, char **argv)
 {
-    int return_value = EXIT_SUCCESS;
+    int err_code = EXIT_SUCCESS;
     parse_arguments(argc, argv);
 
+    LOG_INFO("Welcome to GemuProject!");
+    LOG_INFO("Initializing SDL...");
+
     SDL_CHECK_ERROR(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS));
-    if (init_rendering() || init_audio())
-        return EXIT_FAILURE;
-
-    init_gb_callbacks(&gb);
-    init_gb_core(&gb);
-
-    if (load_rom(&gb, args.rom_path, args.bootrom_path) == EXIT_FAILURE)
+    if (init_rendering())
     {
-        return_value = EXIT_FAILURE;
-        goto exit;
+        err_code = EXIT_FAILURE;
+        goto exit3;
+    }
+    if (init_audio())
+    {
+        err_code = EXIT_FAILURE;
+        goto exit2;
+    }
+
+    LOG_INFO("Initializing emulator...");
+    init_gb_callbacks(&gb);
+    if (init_gb_core(&gb))
+    {
+        err_code = EXIT_FAILURE;
+        goto exit1;
+    }
+
+    LOG_INFO("Loading rom: %s", args.rom_path);
+    if (load_rom(&gb, args.rom_path, args.bootrom_path))
+    {
+        err_code = EXIT_FAILURE;
+        goto exit1;
     }
 
     main_loop();
 
-exit:
+exit1:
     free_gb_core(&gb);
-    free_rendering();
+exit2:
     free_audio();
+exit3:
+    free_rendering();
     SDL_Quit();
-    return return_value;
+    return err_code;
 }
