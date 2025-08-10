@@ -6,12 +6,15 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED 99)
 set(CMAKE_C_EXTENSIONS FALSE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
-add_compile_options(-Wall -Wextra -pedantic -O3)
+add_compile_options(-Wall -Wextra -pedantic)
 
-# Check if the build type is Debug
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
+endif()
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+    add_compile_options(-O3)
 endif()
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
