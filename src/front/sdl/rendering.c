@@ -39,11 +39,11 @@ int render_frame_callback(void)
 
     if (show_demo_window && !first_time_render)
     {
-        SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED));
 
         ImGuiIO *io = ImGui_GetIO();
         ImGui_Render();
         SDL_CHECK_ERROR(SDL_SetRenderScale(renderer, io->DisplayFramebufferScale.x, io->DisplayFramebufferScale.y));
+        SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED));
         cImGui_ImplSDLRenderer3_RenderDrawData(ImGui_GetDrawData(), renderer);
 
         SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
@@ -63,7 +63,6 @@ static void init_imgui(void)
     (void)io;
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Control
-    // io->DisplayFramebufferScale = (ImVec2){960, 864};
 
     ImGui_StyleColorsDark(NULL);
 

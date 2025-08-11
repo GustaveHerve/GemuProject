@@ -1,9 +1,13 @@
 # Known leaks to ignore
 
-# SDL2
-leak:libSDL2
+# SDL: SDL_Renderer leaks despite destroying it properly with SDL_DestroyRenderer...
+leak:libSDL3
 
-# Various graphics drivers and X11 stuff.
+# Various graphics drivers and X11/Wayland (not needed anymore)
 leak:libdbus
 leak:libnvidia-glcore
 leak:radeonsi_dri
+
+# GTK3 / Pango / FontConfig recently started to have many leaks
+leak:libgtk-3
+leak:libpango
