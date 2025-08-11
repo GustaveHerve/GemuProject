@@ -2,7 +2,11 @@
 #include <stdlib.h>
 
 #include "common.h"
+#include "dcimgui.h"
+#include "dcimgui_impl_sdl3.h"
+#include "dcimgui_impl_sdlrenderer3.h"
 #include "display.h"
+#include "logger.h"
 #include "sdl_utils.h"
 
 void *pixel_buffer;
@@ -11,25 +15,86 @@ SDL_Renderer *renderer;
 SDL_Texture *texture;
 SDL_Window *window;
 
+bool first_time_render = true;
+
+extern bool show_demo_window;
+extern bool show_another_window;
+
 int set_window_title(const char *title)
 {
     SDL_CHECK_ERROR(SDL_SetWindowTitle(window, title));
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int set_vsync(int val)
 {
     SDL_CHECK_ERROR(SDL_SetRenderVSync(renderer, val));
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int render_frame_callback(void)
 {
+    SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
     SDL_CHECK_ERROR(SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t)));
     SDL_CHECK_ERROR(SDL_RenderClear(renderer));
     SDL_CHECK_ERROR(SDL_RenderTexture(renderer, texture, NULL, NULL));
     SDL_CHECK_ERROR(SDL_RenderPresent(renderer));
-    return 0;
+
+    if (first_time_render)
+    {
+        first_time_render = false;
+
+        SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED));
+        cImGui_ImplSDLRenderer3_NewFrame();
+        cImGui_ImplSDL3_NewFrame();
+        ImGui_NewFrame();
+
+        if (show_demo_window)
+            ImGui_ShowDemoWindow(&show_demo_window);
+    }
+
+    SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED));
+    ImVec4 clear_color = {0.45f, 0.55f, 0.60f, 1.00f};
+    ImGuiIO *io = ImGui_GetIO();
+    ImGui_Render();
+    SDL_SetRenderScale(renderer, 1.00f, 1.00f);
+    SDL_SetRenderDrawColorFloat(renderer, clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    SDL_RenderClear(renderer);
+    cImGui_ImplSDLRenderer3_RenderDrawData(ImGui_GetDrawData(), renderer);
+
+    SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
+    SDL_RenderPresent(renderer);
+
+    return EXIT_SUCCESS;
+}
+
+static void init_imgui(void)
+{
+    CIMGUI_CHECKVERSION();
+
+    ImGui_CreateContext(NULL);
+    ImGuiIO *io = ImGui_GetIO();
+    (void)io;
+    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Control
+    io->DisplayFramebufferScale = (ImVec2){960, 864};
+
+    ImGui_StyleColorsDark(NULL);
+
+    ImGuiStyle *style = ImGui_GetStyle();
+    float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
+    ImGuiStyle_ScaleAllSizes(style, main_scale);
+    style->FontScaleMain = main_scale;
+
+    cImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+    cImGui_ImplSDLRenderer3_Init(renderer);
+}
+
+static void deinit_imgui(void)
+{
+    cImGui_ImplSDLRenderer3_Shutdown();
+    cImGui_ImplSDL3_Shutdown();
+    ImGui_DestroyContext(NULL);
 }
 
 int init_rendering(void)
@@ -50,11 +115,14 @@ int init_rendering(void)
     /* Disable texture filtering */
     SDL_CHECK_ERROR(SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST));
 
+    init_imgui();
+
     return EXIT_SUCCESS;
 }
 
 void free_rendering(void)
 {
+    deinit_imgui();
     if (texture)
         SDL_DestroyTexture(texture);
     if (renderer)

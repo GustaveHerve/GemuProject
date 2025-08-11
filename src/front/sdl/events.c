@@ -1,8 +1,14 @@
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_render.h>
 
+#include "dcimgui_impl_sdl3.h"
+#include "dcimgui_impl_sdlrenderer3.h"
 #include "emulation.h"
 #include "gb_core.h"
 #include "rendering.h"
+
+extern SDL_Renderer *renderer;
+bool show_demo_window = true;
 
 void handle_events(struct gb_core *gb)
 {
@@ -10,6 +16,8 @@ void handle_events(struct gb_core *gb)
     struct global_settings *settings = get_global_settings();
     while (SDL_PollEvent(&event))
     {
+        cImGui_ImplSDL3_ProcessEvent(&event);
+
         switch (event.type)
         {
         case SDL_EVENT_KEY_DOWN:
@@ -134,4 +142,12 @@ void handle_events(struct gb_core *gb)
         }
         }
     }
+
+    SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED);
+    cImGui_ImplSDLRenderer3_NewFrame();
+    cImGui_ImplSDL3_NewFrame();
+    ImGui_NewFrame();
+
+    if (show_demo_window)
+        ImGui_ShowDemoWindow(&show_demo_window);
 }

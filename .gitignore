@@ -1,24 +1,23 @@
-#MacOS Trash
+# MacOS Trash
 .DS_Store
 
-#Compilation files
+# Compilation files
 *.o
 *.d
 
-#VSCode trash
+# VSCode trash
 .vscode
 
-#Vim trash
+# Vim trash
 *.swp
 
-
-#Debugging
+# Debugging
 *.dSYM
 a.out
 testroms
 roms
 
-#LSP config file
+# LSP config file
 *.json
 .cache
 
@@ -28,7 +27,6 @@ agbe
 
 coredumps
 
-backup_scx
 diff
 
 vgcore*
