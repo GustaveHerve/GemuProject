@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(GemuProject VERSION 1.0 LANGUAGES C CXX)
+project(GemuProject VERSION 1.0 LANGUAGES C CXX) # We need C++ for DearImGui
+
+# ------------------------
+# Standards
+# ------------------------
 
 set(CMAKE_C_STANDARD 17)
-set(CMAKE_C_STANDARD_REQUIRED 17)
-set(CMAKE_C_EXTENSIONS FALSE)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,7 +21,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 
 # ------------------------
-# Dear ImGui + dear_bindings
+# Dear ImGui + dear_bindings (C Bindings)
 # ------------------------
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/dependencies/imgui)
@@ -40,23 +44,18 @@ set(DEAR_BINDINGS_SOURCES
     ${DEAR_BINDINGS_DIR}/src/dcimgui_impl_sdlrenderer3.cpp
 )
 
-add_library(dear_imgui STATIC
-    ${IMGUI_SOURCES}
-    ${DEAR_BINDINGS_SOURCES}
-)
-
-set_target_properties(dear_imgui PROPERTIES LINKER_LANGUAGE CXX)
-
-target_include_directories(dear_imgui PUBLIC
-    ${IMGUI_DIR}/include
-    ${DEAR_BINDINGS_DIR}/include
-)
-
 # ------------------------
 # GemuProject
 # ------------------------
 
-add_executable(gemu)
+add_executable(gemu
+    # ImGui dependencies are not built as a library to avoid intensive function calling overhead
+    # See ImGui Getting Started recommendations
+    ${IMGUI_SOURCES}
+    ${DEAR_BINDINGS_SOURCES}
+)
+
+add_subdirectory(src)
 
 set_target_properties(gemu PROPERTIES EXPORT_COMPILE_COMMANDS ON)
 
@@ -79,7 +78,9 @@ elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     target_compile_definitions(gemu PUBLIC "_LINUX")
 endif()
 
-add_subdirectory(src)
+# ------------------------
+# Includes
+# ------------------------
 
 target_include_directories(gemu PUBLIC
     "include"
@@ -89,7 +90,12 @@ target_include_directories(gemu PUBLIC
     "include/core/opcodes"
     "include/front"
     "include/front/sdl"
+    ${IMGUI_DIR}/include
     ${DEAR_BINDINGS_DIR}/include
 )
 
-target_link_libraries(gemu PRIVATE SDL3::SDL3 dear_imgui)
+# ------------------------
+# Linking
+# ------------------------
+
+target_link_libraries(gemu PRIVATE SDL3::SDL3)
