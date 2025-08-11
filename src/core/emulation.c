@@ -208,7 +208,7 @@ int load_rom(struct gb_core *gb, char *rom_path, char *boot_rom_path)
     }
 
     uint8_t checksum = rom[CHECKSUM_ADDR];
-    if (set_mbc(&gb->mbc, rom, rom_path, fsize) == EXIT_FAILURE)
+    if (set_mbc(&gb->mbc, rom, rom_path, fsize))
     {
         err_code = EXIT_FAILURE;
         goto exit;

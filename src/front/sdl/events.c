@@ -1,4 +1,5 @@
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_render.h>
 
 #include "dcimgui_impl_sdl3.h"
@@ -8,7 +9,7 @@
 #include "rendering.h"
 
 extern SDL_Renderer *renderer;
-bool show_demo_window = true;
+bool show_demo_window = false;
 
 void handle_events(struct gb_core *gb)
 {
@@ -131,6 +132,9 @@ void handle_events(struct gb_core *gb)
                     settings->save_state = key;
                 break;
             }
+            case SDLK_ESCAPE:
+                show_demo_window = !show_demo_window;
+                break;
             }
         }
         break;
@@ -143,11 +147,11 @@ void handle_events(struct gb_core *gb)
         }
     }
 
-    SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED);
-    cImGui_ImplSDLRenderer3_NewFrame();
-    cImGui_ImplSDL3_NewFrame();
-    ImGui_NewFrame();
-
     if (show_demo_window)
+    {
+        cImGui_ImplSDLRenderer3_NewFrame();
+        cImGui_ImplSDL3_NewFrame();
+        ImGui_NewFrame();
         ImGui_ShowDemoWindow(&show_demo_window);
+    }
 }

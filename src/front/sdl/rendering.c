@@ -18,7 +18,6 @@ SDL_Window *window;
 bool first_time_render = true;
 
 extern bool show_demo_window;
-extern bool show_another_window;
 
 int set_window_title(const char *title)
 {
@@ -34,37 +33,24 @@ int set_vsync(int val)
 
 int render_frame_callback(void)
 {
-    SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
     SDL_CHECK_ERROR(SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t)));
     SDL_CHECK_ERROR(SDL_RenderClear(renderer));
     SDL_CHECK_ERROR(SDL_RenderTexture(renderer, texture, NULL, NULL));
+
+    if (show_demo_window && !first_time_render)
+    {
+        SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED));
+
+        ImGuiIO *io = ImGui_GetIO();
+        ImGui_Render();
+        SDL_CHECK_ERROR(SDL_SetRenderScale(renderer, io->DisplayFramebufferScale.x, io->DisplayFramebufferScale.y));
+        cImGui_ImplSDLRenderer3_RenderDrawData(ImGui_GetDrawData(), renderer);
+
+        SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
+    }
     SDL_CHECK_ERROR(SDL_RenderPresent(renderer));
 
-    if (first_time_render)
-    {
-        first_time_render = false;
-
-        SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED));
-        cImGui_ImplSDLRenderer3_NewFrame();
-        cImGui_ImplSDL3_NewFrame();
-        ImGui_NewFrame();
-
-        if (show_demo_window)
-            ImGui_ShowDemoWindow(&show_demo_window);
-    }
-
-    SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED));
-    ImVec4 clear_color = {0.45f, 0.55f, 0.60f, 1.00f};
-    ImGuiIO *io = ImGui_GetIO();
-    ImGui_Render();
-    SDL_SetRenderScale(renderer, 1.00f, 1.00f);
-    SDL_SetRenderDrawColorFloat(renderer, clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-    SDL_RenderClear(renderer);
-    cImGui_ImplSDLRenderer3_RenderDrawData(ImGui_GetDrawData(), renderer);
-
-    SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
-    SDL_RenderPresent(renderer);
-
+    first_time_render = false;
     return EXIT_SUCCESS;
 }
 
@@ -77,7 +63,7 @@ static void init_imgui(void)
     (void)io;
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Control
-    io->DisplayFramebufferScale = (ImVec2){960, 864};
+    // io->DisplayFramebufferScale = (ImVec2){960, 864};
 
     ImGui_StyleColorsDark(NULL);
 

@@ -70,7 +70,7 @@ static int make_mbc(uint8_t type_byte, struct mbc_base **output)
         return EXIT_FAILURE;
     }
 
-    if (err == EXIT_FAILURE)
+    if (err)
     {
         fprintf(stderr, "ERROR: MBC allocation failed\n");
         return EXIT_FAILURE;
@@ -102,7 +102,7 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_
 
     uint8_t type = rom[0x0147];
     struct mbc_base *mbc = NULL;
-    if (make_mbc(type, &mbc) == EXIT_FAILURE)
+    if (make_mbc(type, &mbc))
         goto error_exit;
 
     mbc->rom_path = rom_path;
