@@ -41,7 +41,7 @@ void draw_pixel(struct gb_core *gb, struct pixel p)
         // gb->callbacks.handle_events(gb);
         // gb->callbacks.render_frame();
         gb->callbacks.frame_ready();
-        // synchronize(gb);
+        // synchronize(gb); /* Tying sync to PPU output seems like a bad idea, what if PPU is off? */
     }
 }
 
