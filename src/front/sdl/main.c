@@ -92,10 +92,13 @@ static void init_gb_callbacks(struct gb_core *gb)
     gb->callbacks.frame_ready = frame_ready_callback;
 }
 
+#define SECOND_TO_NANOSECONDS 1000000000ULL
+#define REFRESH_RATE_HZ 60
+
 static int main_loop(void)
 {
     struct global_settings *settings = get_global_settings();
-    const uint64_t frame_interval_ns = 1000000000ull / 60; // 60 Hz in nanoseconds
+    const uint64_t frame_interval_ns = SECOND_TO_NANOSECONDS / REFRESH_RATE_HZ;
     uint64_t last_render_time = SDL_GetTicksNS();
     uint64_t now_ns;
 
@@ -107,7 +110,21 @@ static int main_loop(void)
             // SDL_CHECK_ERROR(SDL_WaitEvent(NULL));
             // handle_events(&gb);
             // continue;
-            goto render_event_routine;
+
+            /* Sleep to avoid CPU hot loop resulting from busy waiting */
+            now_ns = SDL_GetTicksNS();
+            uint64_t elapsed = now_ns - last_render_time;
+
+            if (elapsed < frame_interval_ns)
+            {
+                SDL_DelayPrecise(frame_interval_ns - elapsed);
+                now_ns = SDL_GetTicksNS();
+            }
+
+            last_render_time = now_ns;
+            gb.callbacks.handle_events(&gb);
+            gb.callbacks.render_frame();
+            continue;
         }
 
         if (settings->reset_signal)
@@ -142,14 +159,12 @@ static int main_loop(void)
 
         check_interrupt(&gb);
 
-    render_event_routine:
-        // TODO: rendering routine + events_handling should be done here 60 times per second (aim for a 60 Hz refresh
-        // rate)
-        // 60 Hz rendering + event handling
+        /* Event handling and rendering routine */
         now_ns = SDL_GetTicksNS();
         if (now_ns - last_render_time >= frame_interval_ns)
         {
-            last_render_time += frame_interval_ns; // keep consistent timing
+            synchronize(&gb);
+            last_render_time += frame_interval_ns;
             gb.callbacks.handle_events(&gb);
             gb.callbacks.render_frame();
         }

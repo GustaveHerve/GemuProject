@@ -34,8 +34,8 @@ void synchronize(struct gb_core *gb)
         elapsed_ns + gb->last_sync_timestamp - nanoseconds; /* Compare the elapsed emulated to the real life elapsed */
     if (time_to_sleep > 0 && time_to_sleep < LCDC_PERIOD * (SECONDS_TO_NANOSECONDS + MARGIN_OF_ERROR) / CPU_FREQUENCY)
     {
-        struct timespec sleep = {0, time_to_sleep};
-        nanosleep(&sleep, NULL);
+        struct timespec time_to_sleep_ts = {0, time_to_sleep};
+        nanosleep(&time_to_sleep_ts, NULL);
         gb->last_sync_timestamp += elapsed_ns;
     }
     else
@@ -44,10 +44,10 @@ void synchronize(struct gb_core *gb)
         if (time_to_sleep < 0 &&
             -time_to_sleep < LCDC_PERIOD * (SECONDS_TO_NANOSECONDS + MARGIN_OF_ERROR) / CPU_FREQUENCY)
         {
-            /* In this case the difference is small enough to be negligible */
+            /* In this case the deviation is small enough to be negligible */
             return;
         }
-        gb->last_sync_timestamp = nanoseconds;
+        gb->last_sync_timestamp = nanoseconds; /* If deviation is too big reset the last sync timestamp to now */
     }
 
     gb->tcycles_since_sync = 0;
