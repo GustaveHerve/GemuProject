@@ -3,6 +3,7 @@
 #endif
 
 #include <SDL3/SDL_main.h>
+#include <SDL3/SDL_timer.h>
 #include <assert.h>
 #include <err.h>
 #include <limits.h>
@@ -88,19 +89,25 @@ static void init_gb_callbacks(struct gb_core *gb)
     gb->callbacks.get_queued_audio_sample_count = get_queued_sample_count;
     gb->callbacks.handle_events = handle_events;
     gb->callbacks.render_frame = render_frame_callback;
+    gb->callbacks.frame_ready = frame_ready_callback;
 }
 
 static int main_loop(void)
 {
     struct global_settings *settings = get_global_settings();
+    const uint64_t frame_interval_ns = 1000000000ull / 60; // 60 Hz in nanoseconds
+    uint64_t last_render_time = SDL_GetTicksNS();
+    uint64_t now_ns;
+
     while (!settings->quit_signal)
     {
         if (settings->paused)
         {
-            // Nothing to do meanwhile, wait for an event and handle it
-            SDL_CHECK_ERROR(SDL_WaitEvent(NULL));
-            handle_events(&gb);
-            continue;
+            // // Nothing to do meanwhile, wait for an event and handle it
+            // SDL_CHECK_ERROR(SDL_WaitEvent(NULL));
+            // handle_events(&gb);
+            // continue;
+            goto render_event_routine;
         }
 
         if (settings->reset_signal)
@@ -134,6 +141,18 @@ static int main_loop(void)
         }
 
         check_interrupt(&gb);
+
+    render_event_routine:
+        // TODO: rendering routine + events_handling should be done here 60 times per second (aim for a 60 Hz refresh
+        // rate)
+        // 60 Hz rendering + event handling
+        now_ns = SDL_GetTicksNS();
+        if (now_ns - last_render_time >= frame_interval_ns)
+        {
+            last_render_time += frame_interval_ns; // keep consistent timing
+            gb.callbacks.handle_events(&gb);
+            gb.callbacks.render_frame();
+        }
     }
     return EXIT_SUCCESS;
 }

@@ -22,13 +22,16 @@ void synchronize(struct gb_core *gb)
 {
     if (get_global_settings()->turbo)
     {
+        /* Full-speed mode done by disabling synchronization */
         gb->tcycles_since_sync = 0;
         return;
     }
 
-    int64_t elapsed_ns = gb->tcycles_since_sync * SECONDS_TO_NANOSECONDS / CPU_FREQUENCY;
-    int64_t nanoseconds = get_nanoseconds();
-    int64_t time_to_sleep = elapsed_ns + gb->last_sync_timestamp - nanoseconds;
+    int64_t elapsed_ns =
+        gb->tcycles_since_sync * SECONDS_TO_NANOSECONDS / CPU_FREQUENCY; /* Represent elapsed emulated worth of time */
+    int64_t nanoseconds = get_nanoseconds();                             /* Used to see the real life elapsed time */
+    int64_t time_to_sleep =
+        elapsed_ns + gb->last_sync_timestamp - nanoseconds; /* Compare the elapsed emulated to the real life elapsed */
     if (time_to_sleep > 0 && time_to_sleep < LCDC_PERIOD * (SECONDS_TO_NANOSECONDS + MARGIN_OF_ERROR) / CPU_FREQUENCY)
     {
         struct timespec sleep = {0, time_to_sleep};
@@ -37,11 +40,11 @@ void synchronize(struct gb_core *gb)
     }
     else
     {
-        // Emulation is late if time_to_sleep is negative
+        /* Emulation is late if time_to_sleep is negative */
         if (time_to_sleep < 0 &&
             -time_to_sleep < LCDC_PERIOD * (SECONDS_TO_NANOSECONDS + MARGIN_OF_ERROR) / CPU_FREQUENCY)
         {
-            // The difference is small enough to be negligible
+            /* In this case the difference is small enough to be negligible */
             return;
         }
         gb->last_sync_timestamp = nanoseconds;

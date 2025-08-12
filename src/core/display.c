@@ -21,7 +21,7 @@ struct pixel_data
 
 static struct color color_palette[5] = {{224, 248, 208}, {136, 192, 112}, {52, 104, 86}, {8, 24, 32}, {229, 245, 218}};
 
-static struct pixel_data frame_buffer[SCREEN_RESOLUTION] = {0};
+static struct pixel_data frame_buffer[SCREEN_RESOLUTION];
 
 void *get_frame_buffer(void)
 {
@@ -35,11 +35,12 @@ void draw_pixel(struct gb_core *gb, struct pixel p)
 
     frame_buffer[gb->memory.io[IO_OFFSET(LY)] * SCREEN_WIDTH + (gb->ppu.lx - 8)].values = color_palette[color_index];
 
-    //  A whole frame is ready, render it, handle inputs, synchronize
+    /*  A whole frame is ready, render it, handle inputs, synchronize */
     if (gb->memory.io[IO_OFFSET(LY)] == SCREEN_HEIGHT - 1 && gb->ppu.lx == SCREEN_WIDTH + 7)
     {
-        gb->callbacks.handle_events(gb);
-        gb->callbacks.render_frame();
+        // gb->callbacks.handle_events(gb);
+        // gb->callbacks.render_frame();
+        gb->callbacks.frame_ready();
         synchronize(gb);
     }
 }
@@ -50,5 +51,6 @@ void lcd_off(struct gb_core *gb)
     {
         frame_buffer[i].values = color_palette[4];
     };
-    gb->callbacks.render_frame();
+    // gb->callbacks.render_frame();
+    gb->callbacks.frame_ready();
 }

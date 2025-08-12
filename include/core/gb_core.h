@@ -55,6 +55,7 @@ struct gb_core
         int (*queue_audio)(void *);
         void (*handle_events)(struct gb_core *);
         int (*render_frame)(void);
+        int (*frame_ready)(void);
     } callbacks;
 };
 

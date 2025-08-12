@@ -7,6 +7,8 @@ int set_vsync(int val);
 
 int render_frame_callback(void);
 
+int frame_ready_callback(void);
+
 int init_rendering(void);
 
 void free_rendering(void);

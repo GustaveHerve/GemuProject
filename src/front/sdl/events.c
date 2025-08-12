@@ -9,6 +9,7 @@
 #include "rendering.h"
 
 extern SDL_Renderer *renderer;
+bool imgui_frame_ready = false;
 bool show_demo_window = false;
 
 void handle_events(struct gb_core *gb)
@@ -17,6 +18,7 @@ void handle_events(struct gb_core *gb)
     struct global_settings *settings = get_global_settings();
     while (SDL_PollEvent(&event))
     {
+        // TODO: filter inputs when UI is drawn
         cImGui_ImplSDL3_ProcessEvent(&event);
 
         switch (event.type)
@@ -153,5 +155,6 @@ void handle_events(struct gb_core *gb)
         cImGui_ImplSDL3_NewFrame();
         ImGui_NewFrame();
         ImGui_ShowDemoWindow(&show_demo_window);
+        imgui_frame_ready = true;
     }
 }

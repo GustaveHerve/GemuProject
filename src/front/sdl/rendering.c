@@ -15,8 +15,7 @@ SDL_Renderer *renderer;
 SDL_Texture *texture;
 SDL_Window *window;
 
-bool first_time_render = true;
-
+extern bool imgui_frame_ready;
 extern bool show_demo_window;
 
 int set_window_title(const char *title)
@@ -31,26 +30,51 @@ int set_vsync(int val)
     return EXIT_SUCCESS;
 }
 
-int render_frame_callback(void)
+static int draw_game_buffer(void)
 {
-    SDL_CHECK_ERROR(SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t)));
+    // SDL_CHECK_ERROR(SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t)));
     SDL_CHECK_ERROR(SDL_RenderClear(renderer));
     SDL_CHECK_ERROR(SDL_RenderTexture(renderer, texture, NULL, NULL));
+    return EXIT_SUCCESS;
+}
 
-    if (show_demo_window && !first_time_render)
+static int draw_imgui(void)
+{
+    if (imgui_frame_ready && show_demo_window)
     {
-
         ImGuiIO *io = ImGui_GetIO();
         ImGui_Render();
         SDL_CHECK_ERROR(SDL_SetRenderScale(renderer, io->DisplayFramebufferScale.x, io->DisplayFramebufferScale.y));
         SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_DISABLED));
         cImGui_ImplSDLRenderer3_RenderDrawData(ImGui_GetDrawData(), renderer);
-
         SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
+        imgui_frame_ready = false;
     }
+    return EXIT_SUCCESS;
+}
+
+int render_frame_callback(void)
+{
+    if (draw_game_buffer())
+    {
+        LOG_ERROR("Error drawing the game buffer");
+        return EXIT_FAILURE;
+    }
+
+    if (draw_imgui())
+    {
+        LOG_ERROR("Error drawing the ImGui");
+        return EXIT_FAILURE;
+    }
+
     SDL_CHECK_ERROR(SDL_RenderPresent(renderer));
 
-    first_time_render = false;
+    return EXIT_SUCCESS;
+}
+
+int frame_ready_callback(void)
+{
+    SDL_CHECK_ERROR(SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t)));
     return EXIT_SUCCESS;
 }
 
