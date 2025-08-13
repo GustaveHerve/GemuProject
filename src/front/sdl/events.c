@@ -10,12 +10,21 @@
 #include "logger.h"
 #include "rendering.h"
 
+#define DEFAULT_TITLE_TEXT "GemuProject - Press F1 to open menu"
+#define PAUSE_TITLE_TEXT "GemuProject (Paused) - Press F1 to open menu"
+
 extern SDL_Renderer *renderer;
+
 bool imgui_frame_ready = false;
 bool show_demo_window = false;
 
-#define DEFAULT_TITLE_TEXT "GemuProject - Press F1 to open menu"
-#define PAUSE_TITLE_TEXT "GemuProject (Paused) - Press F1 to open menu"
+static struct
+{
+    uint8_t left : 1;
+    uint8_t right : 1;
+    uint8_t up : 1;
+    uint8_t down : 1;
+} dpad_state; /* Used to prevent impossible D-Pad input combinations (L+R / U+D) */
 
 void handle_events(struct gb_core *gb)
 {
@@ -37,16 +46,24 @@ void handle_events(struct gb_core *gb)
             switch (event.key.key)
             {
             case SDLK_RIGHT:
+                dpad_state.right = 1;
                 gb->joyp_d &= ~(0x01);
+                gb->joyp_d |= 0x02; /* Prevent Left */
                 break;
             case SDLK_LEFT:
+                dpad_state.left = 1;
                 gb->joyp_d &= ~(0x02);
+                gb->joyp_d |= 0x01; /* Prevent Right */
                 break;
             case SDLK_UP:
+                dpad_state.up = 1;
                 gb->joyp_d &= ~(0x04);
+                gb->joyp_d |= 0x08; /* Prevent Down */
                 break;
             case SDLK_DOWN:
+                dpad_state.down = 1;
                 gb->joyp_d &= ~(0x08);
+                gb->joyp_d |= 0x04; /* Prevent Up */
                 break;
 
             case SDLK_X:
@@ -90,16 +107,28 @@ void handle_events(struct gb_core *gb)
             switch (event.key.key)
             {
             case SDLK_RIGHT:
+                dpad_state.right = 0;
                 gb->joyp_d |= 0x01;
+                if (dpad_state.left)
+                    gb->joyp_d &= ~(0x02);
                 break;
             case SDLK_LEFT:
+                dpad_state.left = 0;
                 gb->joyp_d |= 0x02;
+                if (dpad_state.right)
+                    gb->joyp_d &= ~(0x01);
                 break;
             case SDLK_UP:
+                dpad_state.up = 0;
                 gb->joyp_d |= 0x04;
+                if (dpad_state.down)
+                    gb->joyp_d &= ~(0x08);
                 break;
             case SDLK_DOWN:
+                dpad_state.down = 0;
                 gb->joyp_d |= 0x08;
+                if (dpad_state.up)
+                    gb->joyp_d &= ~(0x04);
                 break;
 
             case SDLK_X:

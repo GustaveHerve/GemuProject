@@ -151,8 +151,8 @@ static int main_loop(void)
 
         if (gb.halt)
             tick_m(&gb);
-        else
-            next_op(&gb);
+        else if (next_op(&gb) == -1)
+            return EXIT_FAILURE;
 
         synchronize(&gb); /* TODO: Find a less intensive place to call this when CPU is running */
 
@@ -162,9 +162,8 @@ static int main_loop(void)
         now_ns = SDL_GetTicksNS();
         if (now_ns - last_render_time >= frame_interval_ns)
         {
-            /* Doing synchronize(&gb); seems like a good idea but it is not enough to call it once per frame,
+            /* Calling synchronize(&gb); here seems like a good idea but it is not enough to call it once per frame,
              * (fast to render screens like bootrom are too fast) */
-            // synchronize(&gb);
             last_render_time += frame_interval_ns;
             gb.callbacks.handle_events(&gb);
             gb.callbacks.render_frame();

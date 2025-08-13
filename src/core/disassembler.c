@@ -7,6 +7,7 @@
 #include "gb_core.h"
 #include "jump.h"
 #include "load.h"
+#include "logger.h"
 #include "logic.h"
 #include "prefix.h"
 #include "read.h"
@@ -759,8 +760,8 @@ int next_op(struct gb_core *gb)
         mcycles = rst(gb, 0x38);
         break;
     default:
-        errx(-2, "ERROR: undefined opcode at PC=0x%X, closing emulator...", gb->cpu.pc - 1);
-        break;
+        LOG_ERROR("Undefined opcode at PC=0x%X", gb->cpu.pc - 1);
+        return -1;
     }
     return mcycles;
 }
