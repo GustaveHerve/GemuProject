@@ -32,7 +32,6 @@ int set_vsync(int val)
 
 static int draw_game_buffer(void)
 {
-    // SDL_CHECK_ERROR(SDL_UpdateTexture(texture, NULL, pixel_buffer, SCREEN_WIDTH * sizeof(uint32_t)));
     SDL_CHECK_ERROR(SDL_RenderClear(renderer));
     SDL_CHECK_ERROR(SDL_RenderTexture(renderer, texture, NULL, NULL));
     return EXIT_SUCCESS;
@@ -86,7 +85,7 @@ static void init_imgui(void)
     ImGuiIO *io = ImGui_GetIO();
     (void)io;
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Control
+    io->ConfigNavEscapeClearFocusWindow = true;
 
     ImGui_StyleColorsDark(NULL);
 

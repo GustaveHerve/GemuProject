@@ -6,16 +6,21 @@
 #include "dcimgui_impl_sdlrenderer3.h"
 #include "emulation.h"
 #include "gb_core.h"
+#include "logger.h"
 #include "rendering.h"
 
 extern SDL_Renderer *renderer;
 bool imgui_frame_ready = false;
 bool show_demo_window = false;
 
+#define DEFAULT_TITLE_TEXT "GemuProject - Press F1 to open menu"
+#define PAUSE_TITLE_TEXT "GemuProject (Paused) - Press F1 to open menu"
+
 void handle_events(struct gb_core *gb)
 {
     SDL_Event event;
     struct global_settings *settings = get_global_settings();
+    ImGuiIO *io = ImGui_GetIO();
     while (SDL_PollEvent(&event))
     {
         // TODO: filter inputs when UI is drawn
@@ -25,6 +30,9 @@ void handle_events(struct gb_core *gb)
         {
         case SDL_EVENT_KEY_DOWN:
         {
+            /* UI intercepts keyboard inputs when opened */
+            if (io->WantCaptureKeyboard)
+                break;
             switch (event.key.key)
             {
             case SDLK_RIGHT:
@@ -60,9 +68,9 @@ void handle_events(struct gb_core *gb)
                 }
                 settings->paused = !settings->paused;
                 if (settings->paused)
-                    set_window_title("GemuProject - Paused");
+                    set_window_title(PAUSE_TITLE_TEXT);
                 else
-                    set_window_title("GemuProject");
+                    set_window_title(DEFAULT_TITLE_TEXT);
                 break;
             case SDLK_T:
                 settings->turbo = true;
@@ -134,17 +142,37 @@ void handle_events(struct gb_core *gb)
                     settings->save_state = key;
                 break;
             }
-            case SDLK_ESCAPE:
+            case SDLK_F1:
                 show_demo_window = !show_demo_window;
+                ImGui_SetWindowFocusStr(show_demo_window
+                                            ? "Dear ImGui Style Editor" /* Set focus on demo window by default */
+                                            : NULL); /* Remove focus when closing UI to get back keyboard access */
                 break;
             }
         }
         break;
         case SDL_EVENT_QUIT:
         {
+            LOG_DEBUG("SDL_EVENT_QUIT event detected");
             struct global_settings *settings = get_global_settings();
             settings->quit_signal = true;
-            return;
+            break;
+        }
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+        {
+            LOG_DEBUG("SDL_EVENT_WINDOW_LOST event detected");
+            set_window_title(PAUSE_TITLE_TEXT);
+            struct global_settings *settings = get_global_settings();
+            settings->paused = true;
+            break;
+        }
+        case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        {
+            LOG_DEBUG("SDL_EVENT_WINDOW_GAINED event detected");
+            set_window_title(DEFAULT_TITLE_TEXT);
+            struct global_settings *settings = get_global_settings();
+            settings->paused = false;
+            break;
         }
         }
     }

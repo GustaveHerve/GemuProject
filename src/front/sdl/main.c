@@ -93,7 +93,7 @@ static void init_gb_callbacks(struct gb_core *gb)
 }
 
 #define SECOND_TO_NANOSECONDS 1000000000ULL
-#define REFRESH_RATE_HZ 60
+#define REFRESH_RATE_HZ 120
 
 static int main_loop(void)
 {
