@@ -24,7 +24,7 @@ find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 # Dear ImGui + dear_bindings (C Bindings)
 # ------------------------
 
-set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/dependencies/imgui)
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/dependencies/dear_imgui)
 set(DEAR_BINDINGS_DIR ${CMAKE_SOURCE_DIR}/dependencies/dear_bindings)
 
 set(IMGUI_SOURCES
