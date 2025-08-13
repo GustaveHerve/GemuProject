@@ -16,7 +16,6 @@ SDL_Texture *texture;
 SDL_Window *window;
 
 extern bool imgui_frame_ready;
-extern bool show_demo_window;
 
 int set_window_title(const char *title)
 {
@@ -39,7 +38,7 @@ static int draw_game_buffer(void)
 
 static int draw_imgui(void)
 {
-    if (imgui_frame_ready && show_demo_window)
+    if (imgui_frame_ready)
     {
         ImGuiIO *io = ImGui_GetIO();
         ImGui_Render();
@@ -77,18 +76,18 @@ int frame_ready_callback(void)
     return EXIT_SUCCESS;
 }
 
-static void init_imgui(void)
+static int init_imgui(void)
 {
     CIMGUI_CHECKVERSION();
 
     ImGui_CreateContext(NULL);
     ImGuiIO *io = ImGui_GetIO();
     (void)io;
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; /* Enable Keyboard Controls */
     io->ConfigNavEscapeClearFocusWindow = true;
+    io->IniFilename = NULL;
 
     ImGui_StyleColorsDark(NULL);
-
     ImGuiStyle *style = ImGui_GetStyle();
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
     ImGuiStyle_ScaleAllSizes(style, main_scale);
@@ -96,6 +95,8 @@ static void init_imgui(void)
 
     cImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
     cImGui_ImplSDLRenderer3_Init(renderer);
+
+    return EXIT_SUCCESS;
 }
 
 static void deinit_imgui(void)
@@ -111,13 +112,9 @@ int init_rendering(void)
 
     SDL_CHECK_ERROR(
         window = SDL_CreateWindow("GemuProject", 960, 864, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE));
-
     SDL_CHECK_ERROR(renderer = SDL_CreateRenderer(window, NULL));
-
     SDL_CHECK_ERROR(SDL_SetRenderVSync(renderer, 1));
-
     SDL_CHECK_ERROR(SDL_SetRenderLogicalPresentation(renderer, 160, 144, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE));
-
     SDL_CHECK_ERROR(texture =
                         SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB32, SDL_TEXTUREACCESS_STREAMING, 160, 144));
     /* Disable texture filtering */

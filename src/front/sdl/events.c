@@ -2,6 +2,7 @@
 #include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_render.h>
 
+#include "dcimgui.h"
 #include "dcimgui_impl_sdl3.h"
 #include "dcimgui_impl_sdlrenderer3.h"
 #include "emulation.h"
@@ -23,15 +24,15 @@ void handle_events(struct gb_core *gb)
     ImGuiIO *io = ImGui_GetIO();
     while (SDL_PollEvent(&event))
     {
-        // TODO: filter inputs when UI is drawn
-        cImGui_ImplSDL3_ProcessEvent(&event);
+        if (show_demo_window)
+            cImGui_ImplSDL3_ProcessEvent(&event);
 
         switch (event.type)
         {
         case SDL_EVENT_KEY_DOWN:
         {
             /* UI intercepts keyboard inputs when opened */
-            if (io->WantCaptureKeyboard)
+            if (show_demo_window && io->WantCaptureKeyboard)
                 break;
             switch (event.key.key)
             {
@@ -144,9 +145,10 @@ void handle_events(struct gb_core *gb)
             }
             case SDLK_F1:
                 show_demo_window = !show_demo_window;
-                ImGui_SetWindowFocusStr(show_demo_window
-                                            ? "Dear ImGui Style Editor" /* Set focus on demo window by default */
-                                            : NULL); /* Remove focus when closing UI to get back keyboard access */
+                if (show_demo_window)
+                {
+                    ImGui_SetWindowFocusStr("Dear ImGui Demo");
+                }
                 break;
             }
         }
@@ -177,12 +179,12 @@ void handle_events(struct gb_core *gb)
         }
     }
 
+    cImGui_ImplSDLRenderer3_NewFrame();
+    cImGui_ImplSDL3_NewFrame();
+    ImGui_NewFrame();
+
     if (show_demo_window)
-    {
-        cImGui_ImplSDLRenderer3_NewFrame();
-        cImGui_ImplSDL3_NewFrame();
-        ImGui_NewFrame();
         ImGui_ShowDemoWindow(&show_demo_window);
-        imgui_frame_ready = true;
-    }
+
+    imgui_frame_ready = true;
 }
