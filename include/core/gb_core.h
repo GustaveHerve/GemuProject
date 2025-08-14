@@ -19,10 +19,10 @@ struct gb_core
         uint8_t *boot_rom;
         uint8_t *vram;
         uint8_t *wram;
-        uint8_t oam[160];
+        uint8_t oam[OAM_SIZE];
         uint8_t *unusable_mem;
-        uint8_t io[128];
-        uint8_t hram[127];
+        uint8_t io[IO_SIZE];
+        uint8_t hram[HRAM_SIZE];
         uint8_t ie;
     } memory;
 
@@ -93,8 +93,8 @@ void init_gb_core_post_boot(struct gb_core *gb, int checksum);
 
 void free_gb_core(struct gb_core *gb);
 
-int serialize_gb_to_file(char *output_path, struct gb_core *gb);
+int gb_core_serialize(char *output_path, struct gb_core *gb);
 
-int load_gb_from_file(char *input_path, struct gb_core *gb);
+int gb_core_load_from_file(char *input_path, struct gb_core *gb);
 
 #endif

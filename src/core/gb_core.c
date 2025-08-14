@@ -3,9 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "apu.h"
 #include "common.h"
 #include "cpu.h"
+#include "logger.h"
 #include "mbc_base.h"
+#include "ppu.h"
 #include "serialization.h"
 #include "sync.h"
 
@@ -90,11 +93,11 @@ int init_gb_core(struct gb_core *gb)
     gb->memory.boot_rom = NULL;
     gb->memory.vram = calloc(VRAM_SIZE, sizeof(uint8_t));
     gb->memory.wram = malloc(WRAM_SIZE * sizeof(uint8_t));
-    gb->memory.unusable_mem = malloc(NOT_USABLE_SIZE * sizeof(uint8_t));
+    gb->memory.unusable_mem = malloc(NOT_USABLE_SIZE * sizeof(uint8_t)); /* TODO: Probably useless */
 
     if (!gb->memory.vram || !gb->memory.wram || !gb->memory.unusable_mem)
     {
-        perror("ERROR: couldn't allocate necessary memory for emulation");
+        LOG_ERROR("Couldn't allocate necessary memory for emulation");
         return EXIT_FAILURE;
     }
 
@@ -126,12 +129,12 @@ int init_gb_core(struct gb_core *gb)
     gb->halt_bug = 0;
     gb->stop = 0;
 
-    gb->internal_div = -24;
+    gb->internal_div = -24; /* TODO: investigate why this value works */
 
     gb->prev_tac_AND = 0;
     gb->prev_serial_AND = 0;
 
-    gb->serial_clock = -24;
+    gb->serial_clock = -24; /* TODO: investigate why this value works */
     gb->serial_acc = 0;
 
     gb->joyp_a = 0xF;
@@ -158,19 +161,17 @@ void free_gb_core(struct gb_core *gb)
     mbc_free(gb->mbc);
 }
 
-int serialize_gb_to_file(char *output_path, struct gb_core *gb)
+int gb_core_serialize(char *output_path, struct gb_core *gb)
 {
     FILE *file;
     if (!(file = fopen(output_path, "wb")))
         return EXIT_FAILURE;
 
-    serialize_cpu_to_stream(file, &gb->cpu);
-
-    fwrite(&gb->ppu, sizeof(uint8_t), sizeof(struct ppu), file);
-    fwrite(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
+    cpu_serialize(file, &gb->cpu);
+    ppu_serialize(file, &gb->ppu);
+    apu_serialize(file, &gb->apu);
 
     fwrite_le_32(file, gb->memory.boot_rom_size);
-
     if (gb->memory.boot_rom_size > 0)
         fwrite(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
 
@@ -184,15 +185,20 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
 
     fwrite_le_16(file, gb->internal_div);
 
+    fwrite(&gb->prev_tac_AND, sizeof(uint8_t), 1, file);
+    fwrite(&gb->prev_serial_AND, sizeof(uint8_t), 1, file);
+    fwrite(&gb->schedule_tima_overflow, sizeof(uint8_t), 1, file);
     fwrite(&gb->halt, sizeof(uint8_t), 1, file);
+    fwrite(&gb->halt_bug, sizeof(uint8_t), 1, file);
     fwrite(&gb->stop, sizeof(uint8_t), 1, file);
+
     fwrite_le_16(file, gb->serial_clock);
-    fwrite(&gb->serial_acc, sizeof(uint8_t), 1, file);
     fwrite(&gb->serial_acc, sizeof(uint8_t), 1, file);
 
     fwrite_le_64(file, gb->tcycles_since_sync);
     fwrite_le_64(file, gb->last_sync_timestamp);
 
+    /* MBC done last because it is of variable size */
     mbc_serialize(gb->mbc, file);
 
     fclose(file);
@@ -200,16 +206,15 @@ int serialize_gb_to_file(char *output_path, struct gb_core *gb)
     return EXIT_SUCCESS;
 }
 
-int load_gb_from_file(char *input_path, struct gb_core *gb)
+int gb_core_load_from_file(char *input_path, struct gb_core *gb)
 {
     FILE *file;
     if ((file = fopen(input_path, "rb")) == NULL)
         return EXIT_FAILURE;
 
-    load_cpu_from_stream(file, &gb->cpu);
-
-    fread(&gb->ppu, sizeof(uint8_t), sizeof(struct ppu), file);
-    fread(&gb->apu, sizeof(uint8_t), sizeof(struct apu), file);
+    cpu_load_from_stream(file, &gb->cpu);
+    ppu_load_from_stream(file, &gb->ppu);
+    apu_load_from_stream(file, &gb->apu);
 
     fread_le_32(file, &gb->memory.boot_rom_size);
     if (gb->memory.boot_rom_size > 0)
@@ -221,6 +226,7 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
         }
         fread(gb->memory.boot_rom, sizeof(uint8_t), gb->memory.boot_rom_size, file);
     }
+
     fread(gb->memory.vram, sizeof(uint8_t), VRAM_SIZE, file);
     fread(gb->memory.wram, sizeof(uint8_t), WRAM_SIZE, file);
     fread(gb->memory.oam, sizeof(uint8_t), OAM_SIZE, file);
@@ -231,8 +237,13 @@ int load_gb_from_file(char *input_path, struct gb_core *gb)
 
     fread_le_16(file, &gb->internal_div);
 
+    fread(&gb->prev_tac_AND, sizeof(uint8_t), 1, file);
+    fread(&gb->prev_serial_AND, sizeof(uint8_t), 1, file);
+    fread(&gb->schedule_tima_overflow, sizeof(uint8_t), 1, file);
     fread(&gb->halt, sizeof(uint8_t), 1, file);
+    fread(&gb->halt_bug, sizeof(uint8_t), 1, file);
     fread(&gb->stop, sizeof(uint8_t), 1, file);
+
     fread_le_16(file, &gb->serial_clock);
     fread(&gb->serial_acc, sizeof(uint8_t), 1, file);
 

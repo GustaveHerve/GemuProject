@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 #include "save.h"
@@ -207,20 +206,34 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
 
 static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
 {
-    // TODO
     struct mbc3 *mbc3 = (struct mbc3 *)mbc;
 
-    fwrite(&mbc3->bank1, sizeof(uint8_t), 4, stream);
+    fwrite(&mbc3->bank1, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc3->bank2, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc3->ram_rtc_registers_enabled, sizeof(uint8_t), 1, stream);
+
+    fwrite(&mbc3->rtc_clock.s, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc3->rtc_clock.m, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc3->rtc_clock.h, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc3->rtc_clock.dl, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc3->rtc_clock.dh, sizeof(uint8_t), 1, stream);
 
     fwrite_le_16(stream, mbc3->latch_last_write);
 }
 
 static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 {
-    // TODO
     struct mbc3 *mbc3 = (struct mbc3 *)mbc;
 
-    fread(&mbc3->bank1, sizeof(uint8_t), 8, stream);
+    fread(&mbc3->bank1, sizeof(uint8_t), 1, stream);
+    fread(&mbc3->bank2, sizeof(uint8_t), 1, stream);
+    fread(&mbc3->ram_rtc_registers_enabled, sizeof(uint8_t), 1, stream);
+
+    fread(&mbc3->rtc_clock.s, sizeof(uint8_t), 1, stream);
+    fread(&mbc3->rtc_clock.m, sizeof(uint8_t), 1, stream);
+    fread(&mbc3->rtc_clock.h, sizeof(uint8_t), 1, stream);
+    fread(&mbc3->rtc_clock.dl, sizeof(uint8_t), 1, stream);
+    fread(&mbc3->rtc_clock.dh, sizeof(uint8_t), 1, stream);
 
     fread_le_16(stream, &mbc3->latch_last_write);
 }

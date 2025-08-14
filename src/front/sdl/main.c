@@ -137,7 +137,8 @@ static int main_loop(void)
         {
             char save_path[PATH_MAX];
             snprintf(save_path, PATH_MAX, "%s" SAVESTATE_EXTENSION "%d", gb.mbc->rom_path, settings->save_state);
-            serialize_gb_to_file(save_path, &gb);
+            gb_core_serialize(save_path, &gb);
+            LOG_INFO("Created save state in slot %d", settings->save_state);
             settings->save_state = 0;
         }
 
@@ -145,7 +146,8 @@ static int main_loop(void)
         {
             char load_path[PATH_MAX];
             snprintf(load_path, PATH_MAX, "%s" SAVESTATE_EXTENSION "%d", gb.mbc->rom_path, settings->load_state);
-            load_gb_from_file(load_path, &gb);
+            gb_core_load_from_file(load_path, &gb);
+            LOG_INFO("Loaded save state in slot %d", settings->load_state);
             settings->load_state = 0;
         }
 

@@ -7,26 +7,10 @@ unsigned long fwrite_le_16(FILE *stream, uint16_t val)
     return fwrite(buffer, sizeof(uint8_t), 2, stream);
 }
 
-unsigned long fread_le_16(FILE *stream, uint16_t *output)
-{
-    uint8_t buffer[2];
-    unsigned long res = fread(&buffer, sizeof(uint8_t), 2, stream);
-    *output = buffer[1] << 8 | buffer[0];
-    return res;
-}
-
 unsigned long fwrite_le_32(FILE *stream, uint32_t val)
 {
     uint8_t buffer[4] = {val & 0xFF, (val >> 8) & 0xFF, (val >> 16) & 0xFF, (val >> 24) & 0xFF};
     return fwrite(buffer, sizeof(uint8_t), 4, stream);
-}
-
-unsigned long fread_le_32(FILE *stream, uint32_t *output)
-{
-    uint8_t buffer[4];
-    unsigned long res = fread(&buffer, sizeof(uint8_t), 4, stream);
-    *output = buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0];
-    return res;
 }
 
 unsigned long fwrite_le_64(FILE *stream, uint64_t val)
@@ -39,7 +23,23 @@ unsigned long fwrite_le_64(FILE *stream, uint64_t val)
                          (val >> 40) & 0xFF,
                          (val >> 48) & 0xFF,
                          (val >> 56) & 0xFF};
-    return fwrite(buffer, sizeof(uint8_t), 4, stream);
+    return fwrite(buffer, sizeof(uint8_t), 8, stream);
+}
+
+unsigned long fread_le_16(FILE *stream, uint16_t *output)
+{
+    uint8_t buffer[2];
+    unsigned long res = fread(&buffer, sizeof(uint8_t), 2, stream);
+    *output = buffer[1] << 8 | buffer[0];
+    return res;
+}
+
+unsigned long fread_le_32(FILE *stream, uint32_t *output)
+{
+    uint8_t buffer[4];
+    unsigned long res = fread(&buffer, sizeof(uint8_t), 4, stream);
+    *output = buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0];
+    return res;
 }
 
 unsigned long fread_le_64(FILE *stream, uint64_t *output)

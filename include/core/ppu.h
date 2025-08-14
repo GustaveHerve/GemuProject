@@ -2,6 +2,7 @@
 #define CORE_PPU_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "common.h"
 #include "ppu_utils.h"
@@ -131,5 +132,9 @@ void ppu_reset(struct gb_core *gb);
 void dma_handle(struct gb_core *gb);
 
 void ppu_tick(struct gb_core *gb);
+
+int ppu_serialize(FILE *stream, struct ppu *ppu);
+
+int ppu_load_from_stream(FILE *stream, struct ppu *ppu);
 
 #endif

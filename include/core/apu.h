@@ -127,8 +127,8 @@ void apu_turn_off(struct gb_core *gb);
 
 void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val);
 
-void serialize_apu_to_stream(FILE *stream, struct apu *apu);
+void apu_serialize(FILE *stream, struct apu *apu);
 
-void load_apu_from_stream(FILE *stream, struct apu *apu);
+void apu_load_from_stream(FILE *stream, struct apu *apu);
 
 #endif

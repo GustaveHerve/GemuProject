@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 #include "mbc_base.h"
@@ -112,7 +111,8 @@ static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
 
     fwrite_le_16(stream, mbc5->bank1);
 
-    fwrite(&mbc5->bank2, sizeof(uint8_t), 2, stream);
+    fwrite(&mbc5->bank2, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc5->ram_enabled, sizeof(uint8_t), 1, stream);
 }
 
 static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
@@ -121,7 +121,8 @@ static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 
     fread_le_16(stream, &mbc5->bank1);
 
-    fread(&mbc5->bank2, sizeof(uint8_t), 2, stream);
+    fread(&mbc5->bank2, sizeof(uint8_t), 1, stream);
+    fread(&mbc5->ram_enabled, sizeof(uint8_t), 1, stream);
 }
 
 int make_mbc5(struct mbc_base **output)

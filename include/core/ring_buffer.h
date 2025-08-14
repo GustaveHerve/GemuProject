@@ -1,15 +1,17 @@
 #ifndef RING_BUFFER_H
 #define RING_BUFFER_H
 
+#include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define DEFINE_RING_BUFFER(TYPE, SIZE)                                                                                 \
     struct ring_buffer_##TYPE                                                                                          \
     {                                                                                                                  \
         TYPE buffer[(SIZE)];                                                                                           \
-        size_t head;                                                                                                   \
-        size_t tail;                                                                                                   \
-        size_t element_count;                                                                                          \
+        uint64_t head;                                                                                                 \
+        uint64_t tail;                                                                                                 \
+        uint64_t element_count;                                                                                        \
     };                                                                                                                 \
                                                                                                                        \
     static inline void ring_buffer_##TYPE##_init(struct ring_buffer_##TYPE *ring_buffer)                               \
@@ -26,6 +28,7 @@
             ++ring_buffer->element_count;                                                                              \
         else                                                                                                           \
             ring_buffer->head = (ring_buffer->head + 1) % (SIZE);                                                      \
+        assert(ring_buffer->tail < SIZE);                                                                              \
         ring_buffer->buffer[ring_buffer->tail] = *elt;                                                                 \
         ring_buffer->tail = (ring_buffer->tail + 1) % (SIZE);                                                          \
     }                                                                                                                  \
@@ -36,7 +39,10 @@
             return -1;                                                                                                 \
         --ring_buffer->element_count;                                                                                  \
         if (output)                                                                                                    \
+        {                                                                                                              \
+            assert(ring_buffer->head < SIZE);                                                                          \
             *output = ring_buffer->buffer[ring_buffer->head];                                                          \
+        }                                                                                                              \
         ring_buffer->head = (ring_buffer->head + 1) % (SIZE);                                                          \
         return 0;                                                                                                      \
     }                                                                                                                  \
@@ -50,6 +56,7 @@
     {                                                                                                                  \
         if (ring_buffer->element_count == 0 || !output)                                                                \
             return -1;                                                                                                 \
+        assert(ring_buffer->head < SIZE);                                                                              \
         *output = ring_buffer->buffer[ring_buffer->head];                                                              \
         return 0;                                                                                                      \
     }                                                                                                                  \
@@ -58,6 +65,7 @@
     {                                                                                                                  \
         if (ring_buffer->element_count == 0 || !output)                                                                \
             return -1;                                                                                                 \
+        assert(ring_buffer->tail - 1 < SIZE);                                                                          \
         *output = ring_buffer->buffer[ring_buffer->tail - 1];                                                          \
         return 0;                                                                                                      \
     }                                                                                                                  \

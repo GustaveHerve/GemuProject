@@ -739,8 +739,9 @@ void apu_write_reg(struct gb_core *gb, uint16_t address, uint8_t val)
     io_write(gb->memory.io, address, val);
 }
 
-void serialize_apu_to_stream(FILE *stream, struct apu *apu)
+void apu_serialize(FILE *stream, struct apu *apu)
 {
+    fwrite_le_32(stream, apu->ch1.trigger_request);
     fwrite_le_32(stream, apu->ch1.length_timer);
     fwrite_le_32(stream, apu->ch1.period_timer);
     fwrite_le_32(stream, apu->ch1.current_volume);
@@ -751,7 +752,9 @@ void serialize_apu_to_stream(FILE *stream, struct apu *apu)
     fwrite_le_32(stream, apu->ch1.sweep_enabled);
     fwrite_le_32(stream, apu->ch1.shadow_frequency);
     fwrite_le_32(stream, apu->ch1.sweep_timer);
+    fwrite(&apu->ch1.neg_calc, sizeof(uint8_t), 1, stream);
 
+    fwrite_le_32(stream, apu->ch2.trigger_request);
     fwrite_le_32(stream, apu->ch2.length_timer);
     fwrite_le_32(stream, apu->ch2.period_timer);
     fwrite_le_32(stream, apu->ch2.current_volume);
@@ -760,11 +763,14 @@ void serialize_apu_to_stream(FILE *stream, struct apu *apu)
     fwrite_le_32(stream, apu->ch2.frequency_timer);
     fwrite_le_32(stream, apu->ch2.duty_pos);
 
+    fwrite_le_32(stream, apu->ch3.trigger_request);
     fwrite_le_32(stream, apu->ch3.length_timer);
     fwrite_le_32(stream, apu->ch3.frequency_timer);
     fwrite_le_32(stream, apu->ch3.wave_pos);
     fwrite_le_32(stream, apu->ch3.sample_buffer);
+    fwrite_le_32(stream, apu->ch3.phantom_sample);
 
+    fwrite_le_32(stream, apu->ch4.trigger_request);
     fwrite_le_32(stream, apu->ch4.length_timer);
     fwrite_le_32(stream, apu->ch4.period_timer);
     fwrite_le_32(stream, apu->ch4.current_volume);
@@ -779,8 +785,9 @@ void serialize_apu_to_stream(FILE *stream, struct apu *apu)
     fwrite_le_16(stream, apu->previous_div_apu);
 }
 
-void load_apu_from_stream(FILE *stream, struct apu *apu)
+void apu_load_from_stream(FILE *stream, struct apu *apu)
 {
+    fread_le_32(stream, &apu->ch1.trigger_request);
     fread_le_32(stream, &apu->ch1.length_timer);
     fread_le_32(stream, &apu->ch1.period_timer);
     fread_le_32(stream, &apu->ch1.current_volume);
@@ -791,7 +798,9 @@ void load_apu_from_stream(FILE *stream, struct apu *apu)
     fread_le_32(stream, &apu->ch1.sweep_enabled);
     fread_le_32(stream, &apu->ch1.shadow_frequency);
     fread_le_32(stream, &apu->ch1.sweep_timer);
+    fread(&apu->ch1.neg_calc, sizeof(uint8_t), 1, stream);
 
+    fread_le_32(stream, &apu->ch2.trigger_request);
     fread_le_32(stream, &apu->ch2.length_timer);
     fread_le_32(stream, &apu->ch2.period_timer);
     fread_le_32(stream, &apu->ch2.current_volume);
@@ -800,11 +809,14 @@ void load_apu_from_stream(FILE *stream, struct apu *apu)
     fread_le_32(stream, &apu->ch2.frequency_timer);
     fread_le_32(stream, &apu->ch2.duty_pos);
 
+    fread_le_32(stream, &apu->ch3.trigger_request);
     fread_le_32(stream, &apu->ch3.length_timer);
     fread_le_32(stream, &apu->ch3.frequency_timer);
     fread_le_32(stream, &apu->ch3.wave_pos);
     fread_le_32(stream, &apu->ch3.sample_buffer);
+    fread_le_32(stream, &apu->ch3.phantom_sample);
 
+    fread_le_32(stream, &apu->ch4.trigger_request);
     fread_le_32(stream, &apu->ch4.length_timer);
     fread_le_32(stream, &apu->ch4.period_timer);
     fread_le_32(stream, &apu->ch4.current_volume);

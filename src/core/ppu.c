@@ -10,6 +10,7 @@
 #include "emulation.h"
 #include "gb_core.h"
 #include "interrupts.h"
+#include "ppu_utils.h"
 #include "read.h"
 #include "serialization.h"
 
@@ -683,23 +684,61 @@ void ppu_tick(struct gb_core *gb)
     }
 }
 
-void serialize_ppu_to_stream(FILE *stream, struct ppu *ppu)
+static int fetcher_serialize(FILE *stream, struct fetcher *fetcher)
+{
+    fwrite(&fetcher->obj_index, sizeof(uint8_t), 1, stream);
+    fwrite(&fetcher->bottom_part, sizeof(uint8_t), 1, stream);
+
+    fwrite(&fetcher->attributes, sizeof(uint8_t), 1, stream);
+    fwrite(&fetcher->tileid, sizeof(uint8_t), 1, stream);
+    fwrite(&fetcher->lo, sizeof(uint8_t), 1, stream);
+    fwrite(&fetcher->hi, sizeof(uint8_t), 1, stream);
+
+    fwrite(&fetcher->current_step, sizeof(uint8_t), 1, stream);
+
+    fwrite(&fetcher->tick, sizeof(uint8_t), 1, stream);
+    fwrite(&fetcher->lx_save, sizeof(uint8_t), 1, stream);
+
+    return EXIT_SUCCESS;
+}
+
+static int fetcher_load_from_stream(FILE *stream, struct fetcher *fetcher)
+{
+    fread(&fetcher->obj_index, sizeof(uint8_t), 1, stream);
+    fread(&fetcher->bottom_part, sizeof(uint8_t), 1, stream);
+
+    fread(&fetcher->attributes, sizeof(uint8_t), 1, stream);
+    fread(&fetcher->tileid, sizeof(uint8_t), 1, stream);
+    fread(&fetcher->lo, sizeof(uint8_t), 1, stream);
+    fread(&fetcher->hi, sizeof(uint8_t), 1, stream);
+
+    fread(&fetcher->current_step, sizeof(uint8_t), 1, stream);
+
+    fread(&fetcher->tick, sizeof(uint8_t), 1, stream);
+    fread(&fetcher->lx_save, sizeof(uint8_t), 1, stream);
+
+    return EXIT_SUCCESS;
+}
+
+int ppu_serialize(FILE *stream, struct ppu *ppu)
 {
     fwrite(&ppu->mode2_tick, sizeof(uint8_t), 1, stream);
     fwrite(&ppu->lx, sizeof(uint8_t), 1, stream);
 
+    /* We need to manually loop to account for potential struct padding */
     for (size_t i = 0; i < sizeof(ppu->obj_slots) / sizeof(struct obj); ++i)
     {
-        fwrite(&ppu->obj_slots[i].x, sizeof(uint8_t), 1, stream);
         fwrite(&ppu->obj_slots[i].y, sizeof(uint8_t), 1, stream);
-        fwrite(&ppu->obj_slots[i].oam_offset, sizeof(uint8_t), 1, stream);
         fwrite(&ppu->obj_slots[i].x, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->obj_slots[i].oam_offset, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->obj_slots[i].done, sizeof(uint8_t), 1, stream);
     }
 
     fwrite(&ppu->obj_count, sizeof(uint8_t), 1, stream);
-    fwrite(&ppu->obj_count, sizeof(uint8_t), 1, stream);
 
-    fwrite_le_64(stream, ppu->bg_fifo.element_count);
+    fwrite_le_64(stream, ppu->bg_fifo.head);
+    fwrite_le_64(stream, ppu->bg_fifo.tail);
+    fwrite_le_64(stream, ppu->bg_fifo.element_count); /* Must be written before the buffer content ! */
     for (size_t i = 0; i < ppu->bg_fifo.element_count; ++i)
     {
         fwrite(&ppu->bg_fifo.buffer[i].obj, sizeof(uint8_t), 1, stream);
@@ -707,10 +746,10 @@ void serialize_ppu_to_stream(FILE *stream, struct ppu *ppu)
         fwrite(&ppu->bg_fifo.buffer[i].palette, sizeof(uint8_t), 1, stream);
         fwrite(&ppu->bg_fifo.buffer[i].priority, sizeof(uint8_t), 1, stream);
     }
-    fwrite_le_64(stream, ppu->bg_fifo.head);
-    fwrite_le_64(stream, ppu->bg_fifo.tail);
 
-    fwrite_le_64(stream, ppu->obj_fifo.element_count);
+    fwrite_le_64(stream, ppu->obj_fifo.head);
+    fwrite_le_64(stream, ppu->obj_fifo.tail);
+    fwrite_le_64(stream, ppu->obj_fifo.element_count); /* Must be written before the buffer content ! */
     for (size_t i = 0; i < ppu->obj_fifo.element_count; ++i)
     {
         fwrite(&ppu->obj_fifo.buffer[i].obj, sizeof(uint8_t), 1, stream);
@@ -718,16 +757,105 @@ void serialize_ppu_to_stream(FILE *stream, struct ppu *ppu)
         fwrite(&ppu->obj_fifo.buffer[i].palette, sizeof(uint8_t), 1, stream);
         fwrite(&ppu->obj_fifo.buffer[i].priority, sizeof(uint8_t), 1, stream);
     }
-    fwrite_le_64(stream, ppu->obj_fifo.head);
-    fwrite_le_64(stream, ppu->obj_fifo.tail);
+
+    fetcher_serialize(stream, &ppu->bg_fetcher);
+    fetcher_serialize(stream, &ppu->obj_fetcher);
+
+    fwrite(&ppu->oam_locked, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->vram_locked, sizeof(uint8_t), 1, stream);
+
+    fwrite_le_64(stream, ppu->dma_requests.head);
+    fwrite_le_64(stream, ppu->dma_requests.tail);
+    fwrite_le_64(stream, ppu->dma_requests.element_count); /* Must be written before the buffer content ! */
+    for (size_t i = 0; i < ppu->dma_requests.element_count; ++i)
+    {
+        fwrite(&ppu->dma_requests.buffer[i].status, sizeof(uint8_t), 1, stream);
+        fwrite(&ppu->dma_requests.buffer[i].source, sizeof(uint8_t), 1, stream);
+    }
+
+    fwrite(&ppu->dma, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->dma_acc, sizeof(uint8_t), 1, stream);
+
+    fwrite_le_16(stream, ppu->line_dot_count);
+
+    fwrite(&ppu->mode1_153th, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->first_tile, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->current_mode, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->win_mode, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->win_ly, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->win_lx, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->wy_trigger, sizeof(uint8_t), 1, stream);
+    fwrite(&ppu->obj_mode, sizeof(uint8_t), 1, stream);
+
+    return EXIT_SUCCESS;
 }
 
-void load_ppu_from_stream(FILE *stream, struct cpu *cpu)
+int ppu_load_from_stream(FILE *stream, struct ppu *ppu)
 {
-    fread(&cpu->a, sizeof(uint8_t), 8, stream);
+    fread(&ppu->mode2_tick, sizeof(uint8_t), 1, stream);
+    fread(&ppu->lx, sizeof(uint8_t), 1, stream);
 
-    fread_le_16(stream, &cpu->sp);
-    fread_le_16(stream, &cpu->pc);
+    /* We need to manually loop to account for potential struct padding */
+    for (size_t i = 0; i < sizeof(ppu->obj_slots) / sizeof(struct obj); ++i)
+    {
+        fread(&ppu->obj_slots[i].y, sizeof(uint8_t), 1, stream);
+        fread(&ppu->obj_slots[i].x, sizeof(uint8_t), 1, stream);
+        fread(&ppu->obj_slots[i].oam_offset, sizeof(uint8_t), 1, stream);
+        fread(&ppu->obj_slots[i].done, sizeof(uint8_t), 1, stream);
+    }
 
-    fread(&cpu->ime, sizeof(uint8_t), 1, stream);
+    fread(&ppu->obj_count, sizeof(uint8_t), 1, stream);
+
+    fread_le_64(stream, &ppu->bg_fifo.head);
+    fread_le_64(stream, &ppu->bg_fifo.tail);
+    fread_le_64(stream, &ppu->bg_fifo.element_count); /* Must be written before the buffer content ! */
+    for (size_t i = 0; i < ppu->bg_fifo.element_count; ++i)
+    {
+        fread(&ppu->bg_fifo.buffer[i].obj, sizeof(uint8_t), 1, stream);
+        fread(&ppu->bg_fifo.buffer[i].color, sizeof(uint8_t), 1, stream);
+        fread(&ppu->bg_fifo.buffer[i].palette, sizeof(uint8_t), 1, stream);
+        fread(&ppu->bg_fifo.buffer[i].priority, sizeof(uint8_t), 1, stream);
+    }
+
+    fread_le_64(stream, &ppu->obj_fifo.head);
+    fread_le_64(stream, &ppu->obj_fifo.tail);
+    fread_le_64(stream, &ppu->obj_fifo.element_count); /* Must be written before the buffer content ! */
+    for (size_t i = 0; i < ppu->obj_fifo.element_count; ++i)
+    {
+        fread(&ppu->obj_fifo.buffer[i].obj, sizeof(uint8_t), 1, stream);
+        fread(&ppu->obj_fifo.buffer[i].color, sizeof(uint8_t), 1, stream);
+        fread(&ppu->obj_fifo.buffer[i].palette, sizeof(uint8_t), 1, stream);
+        fread(&ppu->obj_fifo.buffer[i].priority, sizeof(uint8_t), 1, stream);
+    }
+
+    fetcher_load_from_stream(stream, &ppu->bg_fetcher);
+    fetcher_load_from_stream(stream, &ppu->obj_fetcher);
+
+    fread(&ppu->oam_locked, sizeof(uint8_t), 1, stream);
+    fread(&ppu->vram_locked, sizeof(uint8_t), 1, stream);
+
+    fread_le_64(stream, &ppu->dma_requests.head);
+    fread_le_64(stream, &ppu->dma_requests.tail);
+    fread_le_64(stream, &ppu->dma_requests.element_count); /* Must be written before the buffer content ! */
+    for (size_t i = 0; i < ppu->dma_requests.element_count; ++i)
+    {
+        fread(&ppu->dma_requests.buffer[i].status, sizeof(uint8_t), 1, stream);
+        fread(&ppu->dma_requests.buffer[i].source, sizeof(uint8_t), 1, stream);
+    }
+
+    fread(&ppu->dma, sizeof(uint8_t), 1, stream);
+    fread(&ppu->dma_acc, sizeof(uint8_t), 1, stream);
+
+    fread_le_16(stream, &ppu->line_dot_count);
+
+    fread(&ppu->mode1_153th, sizeof(uint8_t), 1, stream);
+    fread(&ppu->first_tile, sizeof(uint8_t), 1, stream);
+    fread(&ppu->current_mode, sizeof(uint8_t), 1, stream);
+    fread(&ppu->win_mode, sizeof(uint8_t), 1, stream);
+    fread(&ppu->win_ly, sizeof(uint8_t), 1, stream);
+    fread(&ppu->win_lx, sizeof(uint8_t), 1, stream);
+    fread(&ppu->wy_trigger, sizeof(uint8_t), 1, stream);
+    fread(&ppu->obj_mode, sizeof(uint8_t), 1, stream);
+
+    return EXIT_SUCCESS;
 }

@@ -24,8 +24,8 @@ struct cpu
 
 void cpu_set_registers_post_boot(struct cpu *cpu, int checksum);
 
-void serialize_cpu_to_stream(FILE *stream, struct cpu *cpu);
+void cpu_serialize(FILE *stream, struct cpu *cpu);
 
-void load_cpu_from_stream(FILE *stream, struct cpu *cpu);
+void cpu_load_from_stream(FILE *stream, struct cpu *cpu);
 
 #endif

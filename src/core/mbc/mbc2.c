@@ -97,14 +97,18 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
 
 static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
 {
-    // TODO
     struct mbc2 *mbc2 = (struct mbc2 *)mbc;
+
+    fwrite(&mbc2->RAMG, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc2->ROMB, sizeof(uint8_t), 1, stream);
 }
 
 static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 {
-    // TODO
     struct mbc2 *mbc2 = (struct mbc2 *)mbc;
+
+    fread(&mbc2->RAMG, sizeof(uint8_t), 1, stream);
+    fread(&mbc2->ROMB, sizeof(uint8_t), 1, stream);
 }
 
 int make_mbc2(struct mbc_base **output)
