@@ -198,7 +198,6 @@ int gb_core_serialize(char *output_path, struct gb_core *gb)
     fwrite_le_64(file, gb->tcycles_since_sync);
     fwrite_le_64(file, gb->last_sync_timestamp);
 
-    /* MBC done last because it is of variable size */
     mbc_serialize(gb->mbc, file);
 
     fclose(file);

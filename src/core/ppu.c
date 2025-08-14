@@ -725,16 +725,15 @@ int ppu_serialize(FILE *stream, struct ppu *ppu)
     fwrite(&ppu->mode2_tick, sizeof(uint8_t), 1, stream);
     fwrite(&ppu->lx, sizeof(uint8_t), 1, stream);
 
+    fwrite(&ppu->obj_count, sizeof(uint8_t), 1, stream);
     /* We need to manually loop to account for potential struct padding */
-    for (size_t i = 0; i < sizeof(ppu->obj_slots) / sizeof(struct obj); ++i)
+    for (int8_t i = 0; i < ppu->obj_count; ++i)
     {
         fwrite(&ppu->obj_slots[i].y, sizeof(uint8_t), 1, stream);
         fwrite(&ppu->obj_slots[i].x, sizeof(uint8_t), 1, stream);
         fwrite(&ppu->obj_slots[i].oam_offset, sizeof(uint8_t), 1, stream);
         fwrite(&ppu->obj_slots[i].done, sizeof(uint8_t), 1, stream);
     }
-
-    fwrite(&ppu->obj_count, sizeof(uint8_t), 1, stream);
 
     fwrite_le_64(stream, ppu->bg_fifo.head);
     fwrite_le_64(stream, ppu->bg_fifo.tail);
@@ -795,16 +794,15 @@ int ppu_load_from_stream(FILE *stream, struct ppu *ppu)
     fread(&ppu->mode2_tick, sizeof(uint8_t), 1, stream);
     fread(&ppu->lx, sizeof(uint8_t), 1, stream);
 
+    fread(&ppu->obj_count, sizeof(uint8_t), 1, stream);
     /* We need to manually loop to account for potential struct padding */
-    for (size_t i = 0; i < sizeof(ppu->obj_slots) / sizeof(struct obj); ++i)
+    for (int8_t i = 0; i < ppu->obj_count; ++i)
     {
         fread(&ppu->obj_slots[i].y, sizeof(uint8_t), 1, stream);
         fread(&ppu->obj_slots[i].x, sizeof(uint8_t), 1, stream);
         fread(&ppu->obj_slots[i].oam_offset, sizeof(uint8_t), 1, stream);
         fread(&ppu->obj_slots[i].done, sizeof(uint8_t), 1, stream);
     }
-
-    fread(&ppu->obj_count, sizeof(uint8_t), 1, stream);
 
     fread_le_64(stream, &ppu->bg_fifo.head);
     fread_le_64(stream, &ppu->bg_fifo.tail);
