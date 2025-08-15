@@ -11,7 +11,6 @@ struct global_settings
     bool paused;
     bool turbo;
     bool reset_signal;
-    bool occluded;
     unsigned char save_state;
     unsigned char load_state;
     float audio_volume;

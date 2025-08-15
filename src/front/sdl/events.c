@@ -192,13 +192,11 @@ void handle_events(struct gb_core *gb)
         case SDL_EVENT_WINDOW_OCCLUDED:
         {
             LOG_DEBUG("SDL_EVENT_WINDOW_OCCLUDED event detected");
-            settings->occluded = true;
             break;
         }
         case SDL_EVENT_WINDOW_EXPOSED:
         {
             LOG_DEBUG("SDL_EVENT_WINDOW_EXPOSED event detected");
-            settings->occluded = false;
             break;
         }
         }

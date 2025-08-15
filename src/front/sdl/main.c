@@ -93,83 +93,7 @@ static void init_gb_callbacks(struct gb_core *gb)
 }
 
 #define SECOND_TO_NANOSECONDS 1000000000ULL
-#define REFRESH_RATE_HZ 60
-
-#if 0
-static int main_loop(void)
-{
-    struct global_settings *settings = get_global_settings();
-    const uint64_t frame_interval_ns = SECOND_TO_NANOSECONDS / REFRESH_RATE_HZ;
-    uint64_t last_render_time = SDL_GetTicksNS();
-    uint64_t now_ns;
-
-    while (!settings->quit_signal)
-    {
-        if (settings->paused)
-        {
-            /* Sleep to avoid CPU hot loop resulting from busy waiting */
-            now_ns = SDL_GetTicksNS();
-            uint64_t elapsed = now_ns - last_render_time;
-
-            if (elapsed < frame_interval_ns)
-            {
-                SDL_DelayPrecise(frame_interval_ns - elapsed);
-                now_ns = SDL_GetTicksNS();
-            }
-
-            last_render_time = now_ns;
-            gb.callbacks.handle_events(&gb);
-            gb.callbacks.render_frame();
-            continue;
-        }
-
-        if (settings->reset_signal)
-        {
-            reset_gb(&gb);
-            settings->reset_signal = false;
-        }
-
-        else if (settings->save_state)
-        {
-            char save_path[PATH_MAX];
-            snprintf(save_path, PATH_MAX, "%s" SAVESTATE_EXTENSION "%d", gb.mbc->rom_path, settings->save_state);
-            gb_core_serialize(save_path, &gb);
-            LOG_INFO("Created save state in slot %d", settings->save_state);
-            settings->save_state = 0;
-        }
-
-        else if (settings->load_state)
-        {
-            char load_path[PATH_MAX];
-            snprintf(load_path, PATH_MAX, "%s" SAVESTATE_EXTENSION "%d", gb.mbc->rom_path, settings->load_state);
-            gb_core_load_from_file(load_path, &gb);
-            LOG_INFO("Loaded save state in slot %d", settings->load_state);
-            settings->load_state = 0;
-        }
-
-        if (gb.halt)
-            tick_m(&gb);
-        else if (next_op(&gb) == -1)
-            return EXIT_FAILURE;
-
-        synchronize(&gb); /* TODO: Find a less intensive place to call this when CPU is running */
-
-        check_interrupt(&gb);
-
-        /* Event handling and rendering routine */
-        now_ns = SDL_GetTicksNS();
-        if (now_ns - last_render_time >= frame_interval_ns)
-        {
-            /* Calling synchronize(&gb); here seems like a good idea but it is not enough to call it once per frame,
-             * (fast to render screens like bootrom are too fast) */
-            last_render_time += frame_interval_ns;
-            gb.callbacks.handle_events(&gb);
-            gb.callbacks.render_frame();
-        }
-    }
-    return EXIT_SUCCESS;
-}
-#endif
+#define REFRESH_RATE_HZ 165
 
 static int main_loop(void)
 {
@@ -189,7 +113,6 @@ static int main_loop(void)
         {
             last_render_ts += render_period_ns;
             gb.callbacks.handle_events(&gb);
-            // if (!settings->occluded)
             gb.callbacks.render_frame();
         }
 
