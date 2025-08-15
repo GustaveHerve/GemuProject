@@ -4,6 +4,7 @@
 
 #include "gb_core.h"
 #include "interrupts.h"
+#include "ppu.h"
 #include "ring_buffer.h"
 
 // Pixel and slice utils
@@ -139,11 +140,12 @@ void check_lyc(struct gb_core *gb, int line_153)
     if (gb->memory.io[IO_OFFSET(LY)] == gb->memory.io[IO_OFFSET(LYC)])
     {
         set_stat(gb->memory.io, STAT_LYC_EQUAL_LY);
-        if (line_153 && gb->ppu.line_dot_count == 12 && get_stat(gb->memory.io, 6))
+        if (line_153 && gb->ppu.line_dot_count == 12 && get_stat(gb->memory.io, STAT_LYC_SELECT))
             set_if(gb, INTERRUPT_LCD);
-        else if (gb->ppu.line_dot_count == 4 && get_stat(gb->memory.io, 6)) //&& !get_if(ppu->cpu, INTERRUPT_LCD))
+        else if (gb->ppu.line_dot_count == 4 &&
+                 get_stat(gb->memory.io, STAT_LYC_SELECT)) //&& !get_if(ppu->cpu, INTERRUPT_LCD))
             set_if(gb, INTERRUPT_LCD);
     }
     else
-        clear_stat(gb->memory.io, 2);
+        clear_stat(gb->memory.io, STAT_LYC_EQUAL_LY);
 }

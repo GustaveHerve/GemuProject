@@ -6,6 +6,6 @@ struct gb_core;
 
 int64_t get_nanoseconds(void);
 
-void synchronize(struct gb_core *gb);
+int64_t synchronize(struct gb_core *gb);
 
 #endif

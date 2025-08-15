@@ -18,6 +18,8 @@
 #define LCDC_WINDOW_TILE_MAP    6
 #define LCDC_LCD_PPU_ENABLE     7
 
+#define STAT_PPU_MODE_LO        0
+#define STAT_PPU_MODE_HI        1
 #define STAT_LYC_EQUAL_LY       2
 #define STAT_MODE_0_SELECT      3
 #define STAT_MODE_1_SELECT      4

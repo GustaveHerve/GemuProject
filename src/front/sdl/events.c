@@ -20,10 +20,10 @@ bool show_demo_window = false;
 
 static struct
 {
-    uint8_t left : 1;
-    uint8_t right : 1;
-    uint8_t up : 1;
-    uint8_t down : 1;
+    bool left : 1;
+    bool right : 1;
+    bool up : 1;
+    bool down : 1;
 } dpad_state; /* Used to prevent impossible D-Pad input combinations (L+R / U+D) */
 
 void handle_events(struct gb_core *gb)
@@ -82,7 +82,7 @@ void handle_events(struct gb_core *gb)
                 if (settings->turbo)
                 {
                     settings->turbo = false;
-                    set_vsync(1);
+                    // set_vsync(1);
                 }
                 settings->paused = !settings->paused;
                 if (settings->paused)
@@ -92,7 +92,7 @@ void handle_events(struct gb_core *gb)
                 break;
             case SDLK_T:
                 settings->turbo = true;
-                set_vsync(0);
+                // set_vsync(0);
                 break;
             case SDLK_R:
                 if (!settings->paused)
@@ -147,7 +147,7 @@ void handle_events(struct gb_core *gb)
             {
                 struct global_settings *settings = get_global_settings();
                 settings->turbo = false;
-                set_vsync(1);
+                // set_vsync(1);
                 break;
             }
             case SDLK_1:
@@ -189,20 +189,16 @@ void handle_events(struct gb_core *gb)
             settings->quit_signal = true;
             break;
         }
-        case SDL_EVENT_WINDOW_FOCUS_LOST:
+        case SDL_EVENT_WINDOW_OCCLUDED:
         {
-            LOG_DEBUG("SDL_EVENT_WINDOW_LOST event detected");
-            set_window_title(PAUSE_TITLE_TEXT);
-            struct global_settings *settings = get_global_settings();
-            settings->paused = true;
+            LOG_DEBUG("SDL_EVENT_WINDOW_OCCLUDED event detected");
+            settings->occluded = true;
             break;
         }
-        case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        case SDL_EVENT_WINDOW_EXPOSED:
         {
-            LOG_DEBUG("SDL_EVENT_WINDOW_GAINED event detected");
-            set_window_title(DEFAULT_TITLE_TEXT);
-            struct global_settings *settings = get_global_settings();
-            settings->paused = false;
+            LOG_DEBUG("SDL_EVENT_WINDOW_EXPOSED event detected");
+            settings->occluded = false;
             break;
         }
         }

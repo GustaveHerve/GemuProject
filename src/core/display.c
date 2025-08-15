@@ -37,12 +37,7 @@ void draw_pixel(struct gb_core *gb, struct pixel p)
 
     /*  A whole frame is ready, render it, handle inputs, synchronize */
     if (gb->memory.io[IO_OFFSET(LY)] == SCREEN_HEIGHT - 1 && gb->ppu.lx == SCREEN_WIDTH + 7)
-    {
-        // gb->callbacks.handle_events(gb);
-        // gb->callbacks.render_frame();
         gb->callbacks.frame_ready();
-        // synchronize(gb); /* Tying sync to PPU output seems like a bad idea, what if PPU is off? */
-    }
 }
 
 void lcd_off(struct gb_core *gb)
@@ -51,6 +46,5 @@ void lcd_off(struct gb_core *gb)
     {
         frame_buffer[i].values = color_palette[4];
     };
-    // gb->callbacks.render_frame();
     gb->callbacks.frame_ready();
 }

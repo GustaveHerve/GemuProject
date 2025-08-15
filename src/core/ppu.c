@@ -156,7 +156,6 @@ static void fetcher_reset(struct fetcher *f)
     f->obj_index = -1;
 }
 
-// Does one fetcher step (2 dots)
 static int bg_fetcher_step(struct gb_core *gb)
 {
     // BG/Win fetcher
@@ -298,7 +297,6 @@ void ppu_init(struct gb_core *gb)
     gb->memory.io[IO_OFFSET(WY)] = 0x00;
 }
 
-// Sets back PPU to default state when turned off
 void ppu_reset(struct gb_core *gb)
 {
     gb->memory.io[IO_OFFSET(LY)] = 0;
@@ -322,6 +320,7 @@ void ppu_reset(struct gb_core *gb)
 // Mode 2
 static int oam_scan(struct gb_core *gb)
 {
+    /* TODO: shouldn't this be at the start of mode2_handler ?*/
     gb->ppu.oam_locked = 1;
     gb->ppu.vram_locked = 0;
 
@@ -367,8 +366,8 @@ static uint8_t mode2_handler(struct gb_core *gb)
     gb->ppu.mode2_tick = 0;
     if (gb->ppu.line_dot_count == 0)
     {
-        set_stat(gb->memory.io, 1);
-        clear_stat(gb->memory.io, 0);
+        set_stat(gb->memory.io, STAT_PPU_MODE_HI);
+        clear_stat(gb->memory.io, STAT_PPU_MODE_LO);
         // Check the WY trigger
         if (gb->memory.io[IO_OFFSET(LY)] == gb->memory.io[IO_OFFSET(WY)])
             gb->ppu.wy_trigger = 1;
@@ -407,7 +406,6 @@ static uint8_t fetchers_step(struct gb_core *gb)
     return 1;
 }
 
-// Send one pixel to the LCD (1 dot)
 static uint8_t send_pixel(struct gb_core *gb)
 {
     if (RING_BUFFER_IS_EMPTY(pixel, &gb->ppu.bg_fifo))
@@ -458,8 +456,8 @@ static uint8_t mode3_handler(struct gb_core *gb)
     // Start of mode 3
     if (gb->ppu.line_dot_count == 80)
     {
-        set_stat(gb->memory.io, 1);
-        set_stat(gb->memory.io, 0);
+        set_stat(gb->memory.io, STAT_PPU_MODE_HI);
+        set_stat(gb->memory.io, STAT_PPU_MODE_LO);
 
         // Lock OAM and VRAM read (return FF)
         gb->ppu.oam_locked = 1;
@@ -537,11 +535,11 @@ static uint8_t mode3_handler(struct gb_core *gb)
 // Mode 0
 static uint8_t mode0_handler(struct gb_core *gb)
 {
-    if (get_stat(gb->memory.io, 1) || get_stat(gb->memory.io, 0))
+    if (get_stat(gb->memory.io, STAT_PPU_MODE_HI) || get_stat(gb->memory.io, STAT_PPU_MODE_LO))
     {
-        clear_stat(gb->memory.io, 1);
-        clear_stat(gb->memory.io, 0);
-        if (get_stat(gb->memory.io, 3) && !get_if(gb, INTERRUPT_LCD))
+        clear_stat(gb->memory.io, STAT_PPU_MODE_HI);
+        clear_stat(gb->memory.io, STAT_PPU_MODE_LO);
+        if (get_stat(gb->memory.io, STAT_MODE_0_SELECT) && !get_if(gb, INTERRUPT_LCD))
             set_if(gb, INTERRUPT_LCD);
     }
 
@@ -565,9 +563,9 @@ static uint8_t mode0_handler(struct gb_core *gb)
     gb->ppu.current_mode = 2;
     gb->ppu.obj_count = 0;
 
-    set_stat(gb->memory.io, 1);
-    clear_stat(gb->memory.io, 0);
-    if (get_stat(gb->memory.io, 5) && !get_stat(gb->memory.io, 4))
+    set_stat(gb->memory.io, STAT_PPU_MODE_HI);
+    clear_stat(gb->memory.io, STAT_PPU_MODE_LO);
+    if (get_stat(gb->memory.io, STAT_MODE_2_SELECT) && !get_stat(gb->memory.io, STAT_MODE_1_SELECT))
         set_if(gb, INTERRUPT_LCD);
 
     // Start VBlank
@@ -585,10 +583,11 @@ static uint8_t mode1_handler(struct gb_core *gb)
 {
     if (gb->memory.io[IO_OFFSET(LY)] == 144 && gb->ppu.line_dot_count == 0)
     {
-        clear_stat(gb->memory.io, 1);
-        set_stat(gb->memory.io, 0);
-        set_if(gb, INTERRUPT_VBLANK);                                  // VBlank Interrupt
-        if (get_stat(gb->memory.io, 4) && !get_stat(gb->memory.io, 3)) // STAT VBlank Interrupt
+        clear_stat(gb->memory.io, STAT_PPU_MODE_HI);
+        set_stat(gb->memory.io, STAT_PPU_MODE_LO);
+        set_if(gb, INTERRUPT_VBLANK); // VBlank Interrupt
+        if (get_stat(gb->memory.io, STAT_MODE_1_SELECT) &&
+            !get_stat(gb->memory.io, STAT_MODE_0_SELECT)) // STAT VBlank Interrupt
             set_if(gb, INTERRUPT_LCD);
     }
 

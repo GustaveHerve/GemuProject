@@ -93,8 +93,9 @@ static void init_gb_callbacks(struct gb_core *gb)
 }
 
 #define SECOND_TO_NANOSECONDS 1000000000ULL
-#define REFRESH_RATE_HZ 120
+#define REFRESH_RATE_HZ 60
 
+#if 0
 static int main_loop(void)
 {
     struct global_settings *settings = get_global_settings();
@@ -106,11 +107,6 @@ static int main_loop(void)
     {
         if (settings->paused)
         {
-            // // Nothing to do meanwhile, wait for an event and handle it
-            // SDL_CHECK_ERROR(SDL_WaitEvent(NULL));
-            // handle_events(&gb);
-            // continue;
-
             /* Sleep to avoid CPU hot loop resulting from busy waiting */
             now_ns = SDL_GetTicksNS();
             uint64_t elapsed = now_ns - last_render_time;
@@ -171,6 +167,88 @@ static int main_loop(void)
             gb.callbacks.render_frame();
         }
     }
+    return EXIT_SUCCESS;
+}
+#endif
+
+static int main_loop(void)
+{
+    struct global_settings *settings = get_global_settings();
+    double render_period_ns = (1e9 / REFRESH_RATE_HZ);
+    uint64_t last_render_ts = SDL_GetTicksNS();
+    uint64_t now_ts;
+
+    uint64_t emulation_resume_ts = 0;
+
+    while (!settings->quit_signal)
+    {
+        now_ts = SDL_GetTicksNS();
+
+        /* Rendering / Event handling routine */
+        if (now_ts - last_render_ts >= render_period_ns)
+        {
+            last_render_ts += render_period_ns;
+            gb.callbacks.handle_events(&gb);
+            // if (!settings->occluded)
+            gb.callbacks.render_frame();
+        }
+
+        if (settings->paused)
+        {
+            uint64_t next_render_time = last_render_ts + render_period_ns;
+            now_ts = SDL_GetTicksNS();
+            if (now_ts < next_render_time)
+                SDL_DelayPrecise(next_render_time - now_ts);
+            continue;
+        }
+
+        if (settings->reset_signal)
+        {
+            reset_gb(&gb);
+            settings->reset_signal = false;
+        }
+        else if (settings->save_state)
+        {
+            char save_path[PATH_MAX];
+            snprintf(save_path, PATH_MAX, "%s" SAVESTATE_EXTENSION "%d", gb.mbc->rom_path, settings->save_state);
+            gb_core_serialize(save_path, &gb);
+            LOG_INFO("Created save state in slot %d", settings->save_state);
+            settings->save_state = 0;
+        }
+        else if (settings->load_state)
+        {
+            char load_path[PATH_MAX];
+            snprintf(load_path, PATH_MAX, "%s" SAVESTATE_EXTENSION "%d", gb.mbc->rom_path, settings->load_state);
+            gb_core_load_from_file(load_path, &gb);
+            LOG_INFO("Loaded save state in slot %d", settings->load_state);
+            settings->load_state = 0;
+        }
+
+        /* GB emulation routine */
+        if (now_ts >= emulation_resume_ts)
+        {
+            if (gb.halt)
+                tick_m(&gb);
+            else if (next_op(&gb) == -1)
+                return EXIT_FAILURE;
+
+            int64_t ns_to_wait = synchronize(&gb);
+            if (ns_to_wait > 0)
+                emulation_resume_ts = now_ts + (uint64_t)ns_to_wait;
+            else
+                emulation_resume_ts = now_ts;
+
+            check_interrupt(&gb);
+        }
+
+        /* Idle waiting to avoid busy looping */
+        now_ts = SDL_GetTicksNS();
+        uint64_t next_render_ts = last_render_ts + render_period_ns;
+        uint64_t sleep_until = (emulation_resume_ts < next_render_ts) ? emulation_resume_ts : next_render_ts;
+        if (now_ts < sleep_until)
+            SDL_DelayPrecise(sleep_until - now_ts);
+    }
+
     return EXIT_SUCCESS;
 }
 

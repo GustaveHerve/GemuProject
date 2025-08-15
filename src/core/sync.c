@@ -6,7 +6,6 @@
 
 #include "emulation.h"
 #include "gb_core.h"
-#include "logger.h"
 
 #define LCDC_PERIOD 70224
 #define SECONDS_TO_NANOSECONDS 1000000000LL
@@ -20,13 +19,13 @@ int64_t get_nanoseconds(void)
 }
 
 /* This needs to be called often enough to ensure synchronization */
-void synchronize(struct gb_core *gb)
+int64_t synchronize(struct gb_core *gb)
 {
     if (get_global_settings()->turbo)
     {
         /* Full-speed mode done by disabling synchronization */
         gb->tcycles_since_sync = 0;
-        return;
+        return 0;
     }
 
     int64_t elapsed_ns =
@@ -39,8 +38,8 @@ void synchronize(struct gb_core *gb)
      * some margin of error. If the time_to_sleep is superior it means that we have done too much between two syncs */
     if (time_to_sleep > 0 && time_to_sleep < LCDC_PERIOD * (SECONDS_TO_NANOSECONDS * MARGIN_OF_ERROR) / CPU_FREQUENCY)
     {
-        struct timespec time_to_sleep_ts = {0, time_to_sleep};
-        nanosleep(&time_to_sleep_ts, NULL);
+        // struct timespec time_to_sleep_ts = {0, time_to_sleep};
+        // nanosleep(&time_to_sleep_ts, NULL);
         gb->last_sync_timestamp += elapsed_ns;
     }
     else
@@ -50,10 +49,11 @@ void synchronize(struct gb_core *gb)
             -time_to_sleep < LCDC_PERIOD * (SECONDS_TO_NANOSECONDS + MARGIN_OF_ERROR) / CPU_FREQUENCY)
         {
             /* In this case the deviation is small enough to be negligible */
-            return;
+            return 0;
         }
         gb->last_sync_timestamp = nanoseconds; /* If deviation is too big reset the last sync timestamp to now */
     }
 
     gb->tcycles_since_sync = 0;
+    return time_to_sleep;
 }
