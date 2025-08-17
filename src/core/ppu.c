@@ -111,7 +111,7 @@ static uint8_t get_tile_lo(struct gb_core *gb, uint8_t tileid, int obj_index)
     return slice_low;
 }
 
-/* TODO optimize this ? (address is same as low + 1) */
+/* TODO: optimize this ? (address is same as low + 1) */
 static uint8_t get_tile_hi(struct gb_core *gb, uint8_t tileid, int obj_index)
 {
     uint8_t y_part = 0;
@@ -324,14 +324,13 @@ static int oam_scan(struct gb_core *gb)
     gb->ppu.oam_locked = 1;
     gb->ppu.vram_locked = 0;
 
-    uint8_t oam_offset = 2 * (gb->ppu.line_dot_count);
+    uint8_t oam_offset = 2 * gb->ppu.line_dot_count;
     if (gb->ppu.obj_count < 10)
     {
         // 8x16 (LCDC bit 2 = 1) or 8x8 (LCDC bit 2 = 0)
         // TODO: obj_y + 1 != 0 condition is weird ? check this
         int y_max_offset = get_lcdc(gb->memory.io, LCDC_OBJ_SIZE) ? 16 : 8;
-        if (gb->memory.oam[OAM_OFFSET(oam_offset + 1)] != 0 &&
-            gb->memory.io[IO_OFFSET(LY)] + 16 >= gb->memory.oam[oam_offset] &&
+        if (gb->memory.oam[oam_offset + 1] != 0 && gb->memory.io[IO_OFFSET(LY)] + 16 >= gb->memory.oam[oam_offset] &&
             gb->memory.io[IO_OFFSET(LY)] + 16 < gb->memory.oam[oam_offset] + y_max_offset)
         {
             gb->ppu.obj_slots[gb->ppu.obj_count].y = gb->memory.oam[oam_offset];
@@ -681,6 +680,73 @@ void ppu_tick(struct gb_core *gb)
             break;
         }
     }
+}
+
+void ppu_oam_bug_w(struct gb_core *gb)
+{
+    /* While OAM contains 40 OBJ 4 bytes each, OAM bug acts on 20 rows of 2 OBJ (8 bytes) */
+    uint8_t curr_row = (gb->ppu.line_dot_count / 4) * 8;
+    if (curr_row == 0) /* First row is unaffected */
+        return;
+    uint8_t prec_row = curr_row - 8;
+
+    /* First word in current row is replaced */
+    uint16_t a = (gb->memory.oam[curr_row + 1] << 8) | gb->memory.oam[curr_row]; /* First word in current row */
+    uint16_t b = (gb->memory.oam[prec_row + 1] << 8) | gb->memory.oam[prec_row]; /* First word in the preceding row */
+    uint16_t c =
+        (gb->memory.oam[prec_row + 5] << 8) | gb->memory.oam[prec_row + 4]; /* Third word in the preceding row */
+
+    uint16_t new_a = ((a ^ c) & (b ^ c)) ^ c;
+    gb->memory.oam[curr_row] = new_a & 0xFF;
+    gb->memory.oam[curr_row + 1] = new_a >> 8;
+
+    /* Last three words in current row copied from last three words of precering row */
+    gb->memory.oam[curr_row + 2] = gb->memory.oam[prec_row + 2];
+    gb->memory.oam[curr_row + 3] = gb->memory.oam[prec_row + 3];
+
+    gb->memory.oam[curr_row + 4] = gb->memory.oam[prec_row + 4];
+    gb->memory.oam[curr_row + 5] = gb->memory.oam[prec_row + 5];
+
+    gb->memory.oam[curr_row + 6] = gb->memory.oam[prec_row + 6];
+    gb->memory.oam[curr_row + 7] = gb->memory.oam[prec_row + 7];
+}
+
+void ppu_oam_bug_r(struct gb_core *gb)
+{
+    /* While OAM contains 40 OBJ 4 bytes each, OAM bug acts on 20 rows of 2 OBJ (8 bytes) */
+    uint8_t curr_row = (gb->ppu.line_dot_count / 4) * 8;
+    if (curr_row == 0) /* First row is unaffected */
+        return;
+    uint8_t prec_row = curr_row - 8;
+
+    /* First word in current row is replaced */
+    uint16_t a = (gb->memory.oam[curr_row + 1] << 8) | gb->memory.oam[curr_row]; /* First word in current row */
+    uint16_t b = (gb->memory.oam[prec_row + 1] << 8) | gb->memory.oam[prec_row]; /* First word in the preceding row */
+    uint16_t c =
+        (gb->memory.oam[prec_row + 5] << 8) | gb->memory.oam[prec_row + 4]; /* Third word in the preceding row */
+
+    uint16_t new_a = b | (a & c);
+    gb->memory.oam[curr_row] = new_a & 0xFF;
+    gb->memory.oam[curr_row + 1] = new_a >> 8;
+
+    /* Last three words in current row copied from last three words of precering row */
+    gb->memory.oam[curr_row + 2] = gb->memory.oam[prec_row + 2];
+    gb->memory.oam[curr_row + 3] = gb->memory.oam[prec_row + 3];
+
+    gb->memory.oam[curr_row + 4] = gb->memory.oam[prec_row + 4];
+    gb->memory.oam[curr_row + 5] = gb->memory.oam[prec_row + 5];
+
+    gb->memory.oam[curr_row + 6] = gb->memory.oam[prec_row + 6];
+    gb->memory.oam[curr_row + 7] = gb->memory.oam[prec_row + 7];
+}
+
+void ppu_oam_bug_rw(struct gb_core *gb)
+{
+    /* While OAM contains 40 OBJ 4 bytes each, OAM bug acts on 20 rows of 2 OBJ (8 bytes) */
+    uint8_t curr_row = (gb->ppu.line_dot_count / 4) * 8;
+    if (curr_row / 8 <= 3 || curr_row / 8 >= 19) /* First four rows and last row are unaffected */
+        return;
+    /* TODO */
 }
 
 static int fetcher_serialize(FILE *stream, struct fetcher *fetcher)

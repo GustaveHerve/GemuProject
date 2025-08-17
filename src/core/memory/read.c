@@ -38,11 +38,12 @@ static uint8_t _echo_ram(struct gb_core *gb, uint16_t address)
 
 static uint8_t _oam(struct gb_core *gb, uint16_t address)
 {
-    if (address >= 0xFEA0 && address <= 0xFEFF)
+    if (gb->ppu.oam_locked)
     {
-        // TODO: OAM corruption
-        return 0x00;
+        /* TODO: OAM Bug */
     }
+    if (address >= 0xFEA0 && address <= 0xFEFF)
+        return 0x00;
     if (gb->ppu.oam_locked || gb->ppu.dma == 1)
         return 0xFF;
     return gb->memory.oam[OAM_OFFSET(address)];

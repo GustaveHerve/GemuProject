@@ -6,15 +6,15 @@
 
 #include "mbc_base.h"
 #include "save.h"
-#include "serialization.h"
 
 static void _mbc_reset(struct mbc_base *mbc)
 {
     struct mbc5 *mbc5 = (struct mbc5 *)mbc;
 
-    mbc5->bank1 = 1;
-    mbc5->bank2 = 0;
-    mbc5->ram_enabled = 0;
+    mbc5->ROMB0 = 1;
+    mbc5->ROMB1 = 0;
+    mbc5->RAMB = 0;
+    mbc5->RAMG = 0;
 }
 
 static void _mbc_free(struct mbc_base *mbc)
@@ -28,7 +28,11 @@ static uint8_t _read_mbc_rom(struct mbc_base *mbc, uint16_t address)
 
     unsigned int res_addr = address & 0x3FFF;
     if (address >= 0x4000 && address <= 0x7FFF)
-        res_addr = (mbc5->bank1 << 14) | res_addr;
+    {
+        uint16_t mask = mbc->rom_bank_count - 1;
+        uint16_t prefix = ((mbc5->ROMB1 << 8) | mbc5->ROMB0) & mask;
+        res_addr = (prefix << 14) | res_addr;
+    }
 
     // Ensure that res_addr doesn't overflow the ROM size
     res_addr &= mbc->rom_total_size - 1;
@@ -42,41 +46,30 @@ static void _write_mbc_rom(struct mbc_base *mbc, uint16_t address, uint8_t val)
 
     // RAM Enable
     if (address <= 0x1FFF)
-    {
-        if (val == 0x0A)
-            mbc5->ram_enabled = 1;
-        else
-            mbc5->ram_enabled = 0;
-    }
+        mbc5->RAMG = (val == 0x0A);
 
     // Lower 8 bit of ROM bank
     else if (address >= 0x2000 && address <= 0x2FFF)
-    {
-        uint8_t mask = mbc->rom_bank_count - 1;
-        mbc5->bank1 = val & mask;
-    }
+        mbc5->ROMB0 = val;
 
     // 9th bit of ROM bank
     else if (address >= 0x3000 && address <= 0x3FFF)
-    {
-        uint8_t bank = val & 0x01;
-        mbc5->bank1 |= bank << 7;
-    }
+        mbc5->ROMB1 = val & 0x01;
 
     // RAM bank switch
     else if (address >= 0x4000 && address <= 0x5FFF)
-        mbc5->bank2 = val & 0x0F;
+        mbc5->RAMB = val & 0x0F;
 }
 
 static uint8_t _read_mbc_ram(struct mbc_base *mbc, uint16_t address)
 {
     struct mbc5 *mbc5 = (struct mbc5 *)mbc;
 
-    if (!mbc5->ram_enabled || mbc->ram_bank_count == 0)
+    if (!mbc5->RAMG || mbc->ram_bank_count == 0)
         return 0xFF;
 
     unsigned int res_addr = address & 0x1FFF;
-    res_addr = (mbc5->bank2 << 13) | res_addr;
+    res_addr = (mbc5->RAMB << 13) | res_addr;
 
     // Ensure that res_addr doesn't overflow the RAM size
     res_addr &= mbc->ram_total_size - 1;
@@ -89,11 +82,11 @@ static void _write_mbc_ram(struct mbc_base *mbc, uint16_t address, uint8_t val)
     struct mbc5 *mbc5 = (struct mbc5 *)mbc;
 
     // Ignore writes if RAM is disabled or if there is no RAM
-    if (!mbc5->ram_enabled || mbc->ram_bank_count == 0)
+    if (!mbc5->RAMG || mbc->ram_bank_count == 0)
         return;
 
     unsigned int res_addr = address & 0x1FFF;
-    res_addr = (mbc5->bank2 << 13) | res_addr;
+    res_addr = (mbc5->RAMB << 13) | res_addr;
 
     // Ensure that res_addr doesn't overflow the ROM size
     res_addr &= mbc->ram_total_size - 1;
@@ -109,20 +102,22 @@ static void _mbc_serialize(struct mbc_base *mbc, FILE *stream)
 {
     struct mbc5 *mbc5 = (struct mbc5 *)mbc;
 
-    fwrite_le_16(stream, mbc5->bank1);
+    fwrite(&mbc5->ROMB0, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc5->ROMB1, sizeof(uint8_t), 1, stream);
 
-    fwrite(&mbc5->bank2, sizeof(uint8_t), 1, stream);
-    fwrite(&mbc5->ram_enabled, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc5->RAMB, sizeof(uint8_t), 1, stream);
+    fwrite(&mbc5->RAMG, sizeof(uint8_t), 1, stream);
 }
 
 static void _mbc_load_from_stream(struct mbc_base *mbc, FILE *stream)
 {
     struct mbc5 *mbc5 = (struct mbc5 *)mbc;
 
-    fread_le_16(stream, &mbc5->bank1);
+    fread(&mbc5->ROMB0, sizeof(uint8_t), 1, stream);
+    fread(&mbc5->ROMB1, sizeof(uint8_t), 1, stream);
 
-    fread(&mbc5->bank2, sizeof(uint8_t), 1, stream);
-    fread(&mbc5->ram_enabled, sizeof(uint8_t), 1, stream);
+    fread(&mbc5->RAMB, sizeof(uint8_t), 1, stream);
+    fread(&mbc5->RAMG, sizeof(uint8_t), 1, stream);
 }
 
 int make_mbc5(struct mbc_base **output)

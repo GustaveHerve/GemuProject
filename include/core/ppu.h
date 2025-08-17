@@ -1,6 +1,7 @@
 #ifndef CORE_PPU_H
 #define CORE_PPU_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -134,6 +135,10 @@ void ppu_reset(struct gb_core *gb);
 void dma_handle(struct gb_core *gb);
 
 void ppu_tick(struct gb_core *gb);
+
+void ppu_oam_bug_w(struct gb_core *gb);
+void ppu_oam_bug_r(struct gb_core *gb);
+void ppu_oam_bug_rw(struct gb_core *gb);
 
 int ppu_serialize(FILE *stream, struct ppu *ppu);
 

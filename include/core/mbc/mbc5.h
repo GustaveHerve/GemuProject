@@ -6,10 +6,12 @@
 struct mbc5
 {
     struct mbc_base base;
-    uint16_t bank1;
-    uint8_t bank2;
+    uint8_t ROMB0;
+    uint8_t ROMB1;
 
-    uint8_t ram_enabled;
+    uint8_t RAMB;
+
+    uint8_t RAMG;
 };
 
 int make_mbc5(struct mbc_base **output);

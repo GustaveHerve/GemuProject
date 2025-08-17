@@ -62,7 +62,7 @@ struct mbc_base
     void (*_mbc_load_from_stream)(struct mbc_base *mbc, FILE *stream);
 };
 
-int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_size);
+int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path);
 
 void mbc_reset(struct mbc_base *mbc);
 void mbc_free(struct mbc_base *mbc);

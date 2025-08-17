@@ -3,9 +3,12 @@
 #include <assert.h>
 #include <err.h>
 #include <libgen.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "logger.h"
 #include "mbc1.h"
 #include "mbc2.h"
 #include "mbc3.h"
@@ -94,7 +97,30 @@ static int make_mbc(uint8_t type_byte, struct mbc_base **output)
     return EXIT_SUCCESS;
 }
 
-int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_size)
+static bool is_multicart(struct mbc_base *mbc)
+{
+    if (mbc->rom_bank_count != 64) /* All known MBC1M are 1 MiB */
+        return false;
+    LOG_DEBUG("Potential MBC1 Multicart, checking for duplicate logo header data...");
+
+    /* Check for duplicate header logo data */
+    static const uint8_t logo[] = {0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83,
+                                   0x00, 0x0C, 0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
+                                   0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63,
+                                   0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E};
+    unsigned int match_counter = 0;
+    for (uint8_t bank2 = 0; bank2 < 4; ++bank2)
+    {
+        unsigned int start_addr = (bank2 << 18) | 0x104;
+        if (mbc->rom_total_size < start_addr + sizeof(logo))
+            break;
+        match_counter += (!memcmp(logo, mbc->rom + start_addr, sizeof(logo)));
+    }
+
+    return match_counter >= 3;
+}
+
+int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
 {
     assert(output);
     assert(rom);
@@ -112,9 +138,8 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_
     mbc->ram_size_header = rom[0x0149];
 
     if (mbc->rom_size_header > 0x08) /* Unknown/Unofficial ROM size */
-        // TODO: what to do in case of weird ROM size ?
-        // mbc->rom_bank_count = (file_size + (1 << 14) - 1) / (1 << 14);
-        mbc->rom_bank_count = 512;
+        mbc->rom_bank_count =
+            512; /* Allocate max possible value just in case, it's MBC's reponsability to handle wrapping by masking */
     else
         mbc->rom_bank_count = 1 << (mbc->rom_size_header + 1);
 
@@ -160,6 +185,12 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path, size_t file_
     {
         if (open_save_file(mbc))
             goto error_exit;
+    }
+
+    if (mbc->type == MBC1 && is_multicart(mbc))
+    {
+        LOG_DEBUG("Multicart detected");
+        ((struct mbc1 *)mbc)->multicart = true;
     }
 
     // Free previous MBC if one is already loaded
