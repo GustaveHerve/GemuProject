@@ -2,7 +2,9 @@
 
 #include "emulation.h"
 #include "gb_core.h"
+#include "interrupts.h"
 #include "mbc_base.h"
+#include "read.h"
 #include "ring_buffer.h"
 
 static void _rom(struct gb_core *gb, uint16_t address, uint8_t val)
@@ -43,6 +45,13 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
 {
     switch (address)
     {
+    case JOYP:
+    {
+        uint8_t prev_joyp = read_mem(gb, JOYP);
+        io_write(gb->memory.io, address, val);
+        check_joyp_int(gb, prev_joyp);
+        return;
+    }
     case DIV:
         gb->internal_div = 0;
         return;

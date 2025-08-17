@@ -57,7 +57,7 @@ static uint8_t _io(struct gb_core *gb, uint16_t address)
     {
         uint8_t select_bits = (io_read(gb->memory.io, JOYP) >> 4) & 0x03;
         uint8_t buttons_bits[4] = {
-            gb->joyp_a & gb->joyp_d, // TODO: check this case
+            gb->joyp_a & gb->joyp_d,
             gb->joyp_a,
             gb->joyp_d,
             0xF,

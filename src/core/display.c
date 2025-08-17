@@ -15,7 +15,7 @@ struct color
 
 struct pixel_data
 {
-    uint8_t _unused;
+    uint8_t _unused; /* padding */
     struct color values;
 };
 

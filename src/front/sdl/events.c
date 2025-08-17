@@ -7,7 +7,9 @@
 #include "dcimgui_impl_sdlrenderer3.h"
 #include "emulation.h"
 #include "gb_core.h"
+#include "interrupts.h"
 #include "logger.h"
+#include "read.h"
 #include "rendering.h"
 
 #define DEFAULT_TITLE_TEXT "GemuProject - Press F1 to open menu"
@@ -43,47 +45,53 @@ void handle_events(struct gb_core *gb)
             /* UI intercepts keyboard inputs when opened */
             if (show_demo_window && io->WantCaptureKeyboard)
                 break;
+            uint8_t prev_joyp = read_mem(gb, JOYP);
             switch (event.key.key)
             {
             case SDLK_RIGHT:
                 dpad_state.right = 1;
                 gb->joyp_d &= ~(0x01);
                 gb->joyp_d |= 0x02; /* Prevent Left */
+                check_joyp_int(gb, prev_joyp);
                 break;
             case SDLK_LEFT:
                 dpad_state.left = 1;
                 gb->joyp_d &= ~(0x02);
                 gb->joyp_d |= 0x01; /* Prevent Right */
+                check_joyp_int(gb, prev_joyp);
                 break;
             case SDLK_UP:
                 dpad_state.up = 1;
                 gb->joyp_d &= ~(0x04);
                 gb->joyp_d |= 0x08; /* Prevent Down */
+                check_joyp_int(gb, prev_joyp);
                 break;
             case SDLK_DOWN:
                 dpad_state.down = 1;
                 gb->joyp_d &= ~(0x08);
                 gb->joyp_d |= 0x04; /* Prevent Up */
+                check_joyp_int(gb, prev_joyp);
                 break;
 
             case SDLK_X:
                 gb->joyp_a &= ~(0x01);
+                check_joyp_int(gb, prev_joyp);
                 break;
             case SDLK_Z:
                 gb->joyp_a &= ~(0x02);
+                check_joyp_int(gb, prev_joyp);
                 break;
             case SDLK_SPACE:
                 gb->joyp_a &= ~(0x04);
+                check_joyp_int(gb, prev_joyp);
                 break;
             case SDLK_RETURN:
                 gb->joyp_a &= ~(0x08);
+                check_joyp_int(gb, prev_joyp);
                 break;
             case SDLK_P:
                 if (settings->turbo)
-                {
                     settings->turbo = false;
-                    // set_vsync(1);
-                }
                 settings->paused = !settings->paused;
                 if (settings->paused)
                     set_window_title(PAUSE_TITLE_TEXT);
@@ -92,7 +100,6 @@ void handle_events(struct gb_core *gb)
                 break;
             case SDLK_T:
                 settings->turbo = true;
-                // set_vsync(0);
                 break;
             case SDLK_R:
                 if (!settings->paused)
@@ -147,7 +154,6 @@ void handle_events(struct gb_core *gb)
             {
                 struct global_settings *settings = get_global_settings();
                 settings->turbo = false;
-                // set_vsync(1);
                 break;
             }
             case SDLK_1:
@@ -187,16 +193,6 @@ void handle_events(struct gb_core *gb)
             LOG_DEBUG("SDL_EVENT_QUIT event detected");
             struct global_settings *settings = get_global_settings();
             settings->quit_signal = true;
-            break;
-        }
-        case SDL_EVENT_WINDOW_OCCLUDED:
-        {
-            LOG_DEBUG("SDL_EVENT_WINDOW_OCCLUDED event detected");
-            break;
-        }
-        case SDL_EVENT_WINDOW_EXPOSED:
-        {
-            LOG_DEBUG("SDL_EVENT_WINDOW_EXPOSED event detected");
             break;
         }
         }

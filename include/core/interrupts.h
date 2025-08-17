@@ -43,4 +43,6 @@ static inline void clear_ie(struct gb_core *gb, int bit)
 
 int check_interrupt(struct gb_core *gb);
 
+void check_joyp_int(struct gb_core *gb, uint8_t prev_joyp);
+
 #endif

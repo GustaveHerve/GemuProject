@@ -6,12 +6,14 @@
 #include "cpu.h"
 #include "emulation.h"
 #include "gb_core.h"
+#include "logger.h"
+#include "read.h"
 #include "utils.h"
 #include "write.h"
 
 // clang-format off
                                         /* VBlank   LCD     Timer   Serial  Joypad */
-static unsigned int handlers_vector[] = {   0x40,   0x48,   0x50,   0x58,   0x60};
+static unsigned int handlers_vector[] = {   0x40,   0x48,   0x50,   0x58,   0x60    };
 
 // clang-format on
 
@@ -29,7 +31,7 @@ static int handle_interrupt(struct gb_core *gb)
 
     /* Interrupt may be aborted from the previous upper SP push writing in IE */
     uint16_t handler = 0;
-    for (size_t i = 0; i < 4; ++i)
+    for (size_t i = 0; i < 5; ++i)
     {
         if (!get_ie(gb, i) || !get_if(gb, i))
             continue;
@@ -54,25 +56,25 @@ int check_interrupt(struct gb_core *gb)
     if (!gb->halt && gb->cpu.ime != 1)
         return 0;
 
-    /* Joypad check */
-    if ((!(gb->memory.io[IO_OFFSET(JOYP)] >> 5 & 1)) || !(gb->memory.io[IO_OFFSET(JOYP)] >> 4 & 1))
+    if (gb->memory.io[IO_OFFSET(IF)] & gb->memory.ie & 0x1F)
     {
-        for (size_t i = 0; i < 4; ++i)
-        {
-            if (!((gb->memory.io[IO_OFFSET(JOYP)] >> i) & 1))
-                set_if(gb, INTERRUPT_JOYPAD);
-        }
-    }
-
-    for (int i = 0; i < 5; ++i)
-    {
-        if (get_if(gb, i) && get_ie(gb, i))
-        {
-            gb->halt = 0;
-            if (!gb->cpu.ime) // Wake up from halt with IME = 0
-                return 1;
-            handle_interrupt(gb);
-        }
+        gb->halt = 0;
+        if (!gb->cpu.ime) // Wake up from halt with IME = 0
+            return 1;
+        handle_interrupt(gb);
     }
     return 1;
+}
+
+void check_joyp_int(struct gb_core *gb, uint8_t prev_joyp)
+{
+    uint8_t curr_joyp = read_mem(gb, JOYP);
+    for (size_t i = 0; i < 4; ++i)
+    {
+        if (((prev_joyp >> i) & 1) && !((curr_joyp >> i) & 1))
+        {
+            set_if(gb, INTERRUPT_JOYPAD);
+            break;
+        }
+    }
 }
