@@ -9,6 +9,7 @@
 #include "display.h"
 #include "logger.h"
 #include "sdl_utils.h"
+#include "ui.h"
 
 void *pixel_buffer;
 
@@ -26,6 +27,7 @@ int set_window_title(const char *title)
 
 int set_vsync(int val)
 {
+    LOG_DEBUG(val ? "Vsync enabled" : "Vsync disabled");
     SDL_CHECK_ERROR(SDL_SetRenderVSync(renderer, val));
     return EXIT_SUCCESS;
 }
@@ -96,6 +98,8 @@ static int init_imgui(void)
 
     cImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
     cImGui_ImplSDLRenderer3_Init(renderer);
+
+    init_ui();
 
     return EXIT_SUCCESS;
 }

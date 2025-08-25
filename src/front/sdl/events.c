@@ -11,6 +11,7 @@
 #include "logger.h"
 #include "read.h"
 #include "rendering.h"
+#include "ui.h"
 
 #define DEFAULT_TITLE_TEXT "GemuProject - Press F1 to open menu"
 #define PAUSE_TITLE_TEXT "GemuProject (Paused) - Press F1 to open menu"
@@ -18,7 +19,7 @@
 extern SDL_Renderer *renderer;
 
 bool imgui_frame_ready = false;
-bool show_demo_window = false;
+bool show_ui_window = false;
 
 static struct
 {
@@ -35,7 +36,7 @@ void handle_events(struct gb_core *gb)
     ImGuiIO *io = ImGui_GetIO();
     while (SDL_PollEvent(&event))
     {
-        if (show_demo_window)
+        if (show_ui_window)
             cImGui_ImplSDL3_ProcessEvent(&event);
 
         switch (event.type)
@@ -43,7 +44,7 @@ void handle_events(struct gb_core *gb)
         case SDL_EVENT_KEY_DOWN:
         {
             /* UI intercepts keyboard inputs when opened */
-            if (show_demo_window && io->WantCaptureKeyboard)
+            if (show_ui_window && io->WantCaptureKeyboard)
                 break;
             uint8_t prev_joyp = read_mem(gb, JOYP);
             switch (event.key.key)
@@ -179,8 +180,8 @@ void handle_events(struct gb_core *gb)
                 break;
             }
             case SDLK_F1:
-                show_demo_window = !show_demo_window;
-                if (show_demo_window)
+                show_ui_window = !show_ui_window;
+                if (show_ui_window)
                 {
                     ImGui_SetWindowFocusStr("Dear ImGui Demo");
                 }
@@ -202,8 +203,8 @@ void handle_events(struct gb_core *gb)
     cImGui_ImplSDL3_NewFrame();
     ImGui_NewFrame();
 
-    if (show_demo_window)
-        ImGui_ShowDemoWindow(&show_demo_window);
+    if (show_ui_window)
+        show_ui();
 
     imgui_frame_ready = true;
 }

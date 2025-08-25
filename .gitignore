@@ -33,6 +33,7 @@ vgcore*
 
 # CMake files
 build/
+debug/
 CMakeFiles
 *.cmake
 Makefile

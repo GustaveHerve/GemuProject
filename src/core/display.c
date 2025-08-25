@@ -1,3 +1,5 @@
+#include "display.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -6,20 +8,17 @@
 #include "gb_core.h"
 #include "sync.h"
 
-struct color
-{
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-};
-
 struct pixel_data
 {
     uint8_t _unused; /* padding */
     struct color values;
 };
 
-static struct color color_palette[5] = {{224, 248, 208}, {136, 192, 112}, {52, 104, 86}, {8, 24, 32}, {229, 245, 218}};
+#define DEFAULT_PALETTE {224, 248, 208}, {136, 192, 112}, {52, 104, 86}, {8, 24, 32}, {229, 245, 218},
+
+static const struct color default_palette[5] = {DEFAULT_PALETTE};
+
+static struct color color_palette[5] = {DEFAULT_PALETTE};
 
 static struct pixel_data frame_buffer[SCREEN_RESOLUTION];
 
@@ -47,4 +46,24 @@ void lcd_off(struct gb_core *gb)
         frame_buffer[i].values = color_palette[4];
     };
     gb->callbacks.frame_ready();
+}
+
+void reset_palette(void)
+{
+    for (size_t i = 0; i < 5; ++i)
+    {
+        color_palette[i] = default_palette[i];
+    }
+}
+
+struct color get_color_index(unsigned int index)
+{
+    assert(index < 5);
+    return color_palette[index];
+}
+
+void set_color_index(struct color new_color, unsigned int index)
+{
+    assert(index < 5);
+    color_palette[index] = new_color;
 }

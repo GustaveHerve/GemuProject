@@ -3,4 +3,5 @@ target_sources(gemu PUBLIC
     main.c
     events.c
     audio.c
+    ui.c
 )
