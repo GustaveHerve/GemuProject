@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "mbc_base.h"
 
 #include <assert.h>
@@ -34,6 +36,7 @@ void mbc_free(struct mbc_base *mbc)
         fclose(mbc->save_file);
     free(mbc->rom);
     free(mbc->ram);
+    free(mbc->rom_path);
     free(mbc);
 }
 
@@ -131,8 +134,8 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
     if (make_mbc(type, &mbc))
         goto error_exit;
 
-    mbc->rom_path = rom_path;
-    mbc->rom_basename = basename(rom_path);
+    mbc->rom_path = strdup(rom_path);
+    mbc->rom_basename = basename(mbc->rom_path);
     mbc->rom = rom;
     mbc->rom_size_header = rom[0x0148];
     mbc->ram_size_header = rom[0x0149];
@@ -170,7 +173,6 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
     mbc->ram_total_size = mbc->ram_bank_count * 8192;
 
     // Allocate the external RAM
-    free(mbc->ram);
     if (mbc->type == MBC2)
         mbc->ram = calloc(512, sizeof(uint8_t));
     else
@@ -195,7 +197,7 @@ int set_mbc(struct mbc_base **output, uint8_t *rom, char *rom_path)
 
     // Free previous MBC if one is already loaded
     if (*output)
-        (*output)->_mbc_free(*output);
+        mbc_free(*output);
 
     *output = mbc;
     return EXIT_SUCCESS;

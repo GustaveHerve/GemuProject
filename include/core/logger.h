@@ -11,7 +11,7 @@ enum log_verbosity
 
 int logger_set_verbosity(enum log_verbosity verbosity);
 
-int logger_log(enum log_verbosity verbosity, const char *format, ...);
+int logger_log(enum log_verbosity verbosity, const char *fmt, ...);
 
 #define LOG_ERROR(...)                                                                                                 \
     do                                                                                                                 \

@@ -146,6 +146,17 @@ static int main_loop(void)
             LOG_INFO("Loaded save state in slot %d", settings->load_state);
             settings->load_state = 0;
         }
+        else if (settings->open_rom)
+        {
+            if (load_rom(&gb, settings->open_rom, NULL))
+            {
+                LOG_ERROR("Error loading rom");
+                return EXIT_FAILURE;
+            }
+            free(settings->open_rom);
+            settings->open_rom = NULL;
+            reset_gb(&gb);
+        }
 
         /* GB emulation routine */
         if (now_ts >= emulation_resume_ts)

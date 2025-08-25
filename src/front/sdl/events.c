@@ -2,6 +2,7 @@
 #include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_render.h>
 
+#include "cpu.h"
 #include "dcimgui.h"
 #include "dcimgui_impl_sdl3.h"
 #include "dcimgui_impl_sdlrenderer3.h"
@@ -204,7 +205,10 @@ void handle_events(struct gb_core *gb)
     ImGui_NewFrame();
 
     if (show_ui_window)
+    {
         show_ui();
+        // ImGui_ShowDemoWindow(NULL);
+    }
 
     imgui_frame_ready = true;
 }

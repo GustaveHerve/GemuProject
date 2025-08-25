@@ -14,6 +14,7 @@ struct global_settings
     unsigned char save_state;
     unsigned char load_state;
     float audio_volume;
+    char *open_rom;
 };
 
 void reset_gb(struct gb_core *gb);
