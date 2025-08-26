@@ -1,4 +1,3 @@
-#include "emulation.h"
 #define _POSIX_C_SOURCE 200809L
 
 #include <SDL3/SDL_dialog.h>
@@ -10,6 +9,7 @@
 
 #include "dcimgui.h"
 #include "display.h"
+#include "emulation.h"
 #include "logger.h"
 #include "rendering.h"
 
@@ -82,37 +82,79 @@ void show_ui(void)
     if (ImGui_Button("Open ROM"))
         open_rom_dialog();
 
+    struct global_settings *settings = get_global_settings();
+
+    int refresh_rate = 1e9 / settings->render_period_ns;
+    if (ImGui_InputInt("Refresh rate", &refresh_rate))
+    {
+        refresh_rate = refresh_rate < 0 ? 0 : refresh_rate;
+        settings->render_period_ns = 1e9 / refresh_rate;
+    }
+
     if (ImGui_CollapsingHeader("Video settings", ImGuiTreeNodeFlags_None))
     {
         if (ImGui_Checkbox("VSync", &vsync_enable))
             set_vsync(vsync_enable);
-    }
 
-    if (ImGui_CollapsingHeader("Color palette", ImGuiTreeNodeFlags_None))
-    {
-        if (ImGui_ColorEdit3("index 0",
-                             (float *)&palette[0],
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
-            update_palette_index(0);
-        if (ImGui_ColorEdit3("index 1",
-                             (float *)&palette[1],
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
-            update_palette_index(1);
-        if (ImGui_ColorEdit3("index 2",
-                             (float *)&palette[2],
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
-            update_palette_index(2);
-        if (ImGui_ColorEdit3("index 3",
-                             (float *)&palette[3],
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
-            update_palette_index(3);
-        if (ImGui_ColorEdit3("screen off",
-                             (float *)&palette[4],
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
-            update_palette_index(4);
+        ImGui_SeparatorText("Color palette");
 
+        if (ImGui_BeginTable("split", 4, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui_TableNextColumn();
+            if (ImGui_ColorEdit3("index 0",
+                                 (float *)&palette[0],
+                                 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
+            {
+                update_palette_index(0);
+            }
+            ImGui_TableNextColumn();
+            if (ImGui_ColorEdit3("index 1",
+                                 (float *)&palette[1],
+                                 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
+            {
+                update_palette_index(1);
+            }
+            ImGui_TableNextColumn();
+            if (ImGui_ColorEdit3("index 2",
+                                 (float *)&palette[2],
+                                 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
+            {
+                update_palette_index(2);
+            }
+            ImGui_TableNextColumn();
+            if (ImGui_ColorEdit3("index 3",
+                                 (float *)&palette[3],
+                                 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
+            {
+                update_palette_index(3);
+            }
+            ImGui_TableNextColumn();
+            if (ImGui_ColorEdit3("screen off",
+                                 (float *)&palette[4],
+                                 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha))
+            {
+                update_palette_index(4);
+            }
+
+            ImGui_EndTable();
+        }
         if (ImGui_Button("Reset default palette"))
             reset_default_palette();
+    }
+
+    if (ImGui_CollapsingHeader("Audio settings", ImGuiTreeNodeFlags_None))
+    {
+        float audio_percentage = settings->audio_volume * 100;
+        if (ImGui_SliderFloatEx("Master volume", &audio_percentage, 0.0f, 100.0f, "%.0f%%", ImGuiSliderFlags_None))
+        {
+            settings->audio_volume = audio_percentage / 100.0f;
+        }
+
+        ImGui_SeparatorText("APU Channels");
+        ImGui_Checkbox("Channel 1", &settings->apu_channels_enable[0]);
+        ImGui_Checkbox("Channel 2", &settings->apu_channels_enable[1]);
+        ImGui_Checkbox("Channel 3", &settings->apu_channels_enable[2]);
+        ImGui_Checkbox("Channel 4", &settings->apu_channels_enable[3]);
     }
 
     ImGui_End();

@@ -1,7 +1,6 @@
 #include <err.h>
 
 #include "gb_core.h"
-#include "interrupts.h"
 #include "utils.h"
 
 // nop
@@ -22,17 +21,6 @@ int stop(struct gb_core *gb)
 
 static int pending_interrupt(struct gb_core *gb)
 {
-    /* Joypad check */
-    // TODO: this is probably wrong, JOYP is not set directly with the inputs received by the frontend
-    // if ((!(gb->memory.io[IO_OFFSET(JOYP)] >> 5 & 0x01)) || !(gb->memory.io[IO_OFFSET(JOYP)] >> 4 & 0x01))
-    // {
-    //     for (size_t i = 0; i < 4; ++i)
-    //     {
-    //         if (!((gb->memory.io[IO_OFFSET(JOYP)] >> i) & 0x01))
-    //             set_if(gb, INTERRUPT_JOYPAD);
-    //     }
-    // }
-
     if (gb->memory.io[IO_OFFSET(IF)] & gb->memory.ie & 0x1F)
         return 1;
     return 0;

@@ -2,7 +2,6 @@
 #include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_render.h>
 
-#include "cpu.h"
 #include "dcimgui.h"
 #include "dcimgui_impl_sdl3.h"
 #include "dcimgui_impl_sdlrenderer3.h"
@@ -30,6 +29,100 @@ static struct
     bool down : 1;
 } dpad_state; /* Used to prevent impossible D-Pad input combinations (L+R / U+D) */
 
+static void gb_key_down(struct gb_core *gb, SDL_Keycode keycode)
+{
+    uint8_t prev_joyp = read_mem(gb, JOYP);
+
+    switch (keycode)
+    {
+    case SDLK_RIGHT:
+        dpad_state.right = 1;
+        gb->joyp_d &= ~(0x01);
+        gb->joyp_d |= 0x02; /* Prevent Left */
+        check_joyp_int(gb, prev_joyp);
+        break;
+    case SDLK_LEFT:
+        dpad_state.left = 1;
+        gb->joyp_d &= ~(0x02);
+        gb->joyp_d |= 0x01; /* Prevent Right */
+        check_joyp_int(gb, prev_joyp);
+        break;
+    case SDLK_UP:
+        dpad_state.up = 1;
+        gb->joyp_d &= ~(0x04);
+        gb->joyp_d |= 0x08; /* Prevent Down */
+        check_joyp_int(gb, prev_joyp);
+        break;
+    case SDLK_DOWN:
+        dpad_state.down = 1;
+        gb->joyp_d &= ~(0x08);
+        gb->joyp_d |= 0x04; /* Prevent Up */
+        check_joyp_int(gb, prev_joyp);
+        break;
+
+    case SDLK_X:
+        gb->joyp_a &= ~(0x01);
+        check_joyp_int(gb, prev_joyp);
+        break;
+    case SDLK_Z:
+        gb->joyp_a &= ~(0x02);
+        check_joyp_int(gb, prev_joyp);
+        break;
+    case SDLK_SPACE:
+        gb->joyp_a &= ~(0x04);
+        check_joyp_int(gb, prev_joyp);
+        break;
+    case SDLK_RETURN:
+        gb->joyp_a &= ~(0x08);
+        check_joyp_int(gb, prev_joyp);
+        break;
+    }
+}
+
+static void gb_key_up(struct gb_core *gb, SDL_Keycode keycode)
+{
+    switch (keycode)
+    {
+    case SDLK_RIGHT:
+        dpad_state.right = 0;
+        gb->joyp_d |= 0x01;
+        if (dpad_state.left)
+            gb->joyp_d &= ~(0x02);
+        break;
+    case SDLK_LEFT:
+        dpad_state.left = 0;
+        gb->joyp_d |= 0x02;
+        if (dpad_state.right)
+            gb->joyp_d &= ~(0x01);
+        break;
+    case SDLK_UP:
+        dpad_state.up = 0;
+        gb->joyp_d |= 0x04;
+        if (dpad_state.down)
+            gb->joyp_d &= ~(0x08);
+        break;
+    case SDLK_DOWN:
+        dpad_state.down = 0;
+        gb->joyp_d |= 0x08;
+        if (dpad_state.up)
+            gb->joyp_d &= ~(0x04);
+        break;
+
+    case SDLK_X:
+        gb->joyp_a |= 0x01;
+        break;
+    case SDLK_Z:
+        gb->joyp_a |= 0x02;
+        break;
+    case SDLK_SPACE:
+        gb->joyp_a |= 0x04;
+        break;
+    case SDLK_RETURN:
+        gb->joyp_a |= 0x08;
+        break;
+    }
+}
+
 void handle_events(struct gb_core *gb)
 {
     SDL_Event event;
@@ -44,54 +137,26 @@ void handle_events(struct gb_core *gb)
         {
         case SDL_EVENT_KEY_DOWN:
         {
-            /* UI intercepts keyboard inputs when opened */
-            if (show_ui_window && io->WantCaptureKeyboard)
-                break;
-            uint8_t prev_joyp = read_mem(gb, JOYP);
             switch (event.key.key)
             {
             case SDLK_RIGHT:
-                dpad_state.right = 1;
-                gb->joyp_d &= ~(0x01);
-                gb->joyp_d |= 0x02; /* Prevent Left */
-                check_joyp_int(gb, prev_joyp);
-                break;
             case SDLK_LEFT:
-                dpad_state.left = 1;
-                gb->joyp_d &= ~(0x02);
-                gb->joyp_d |= 0x01; /* Prevent Right */
-                check_joyp_int(gb, prev_joyp);
-                break;
             case SDLK_UP:
-                dpad_state.up = 1;
-                gb->joyp_d &= ~(0x04);
-                gb->joyp_d |= 0x08; /* Prevent Down */
-                check_joyp_int(gb, prev_joyp);
-                break;
             case SDLK_DOWN:
-                dpad_state.down = 1;
-                gb->joyp_d &= ~(0x08);
-                gb->joyp_d |= 0x04; /* Prevent Up */
-                check_joyp_int(gb, prev_joyp);
+            case SDLK_X:
+            case SDLK_Z:
+            case SDLK_SPACE:
+            case SDLK_RETURN:
+                /* UI intercepts keyboard inputs when opened */
+                if (show_ui_window && io->WantCaptureKeyboard)
+                    break;
+                gb_key_down(gb, event.key.key);
                 break;
 
-            case SDLK_X:
-                gb->joyp_a &= ~(0x01);
-                check_joyp_int(gb, prev_joyp);
-                break;
-            case SDLK_Z:
-                gb->joyp_a &= ~(0x02);
-                check_joyp_int(gb, prev_joyp);
-                break;
-            case SDLK_SPACE:
-                gb->joyp_a &= ~(0x04);
-                check_joyp_int(gb, prev_joyp);
-                break;
-            case SDLK_RETURN:
-                gb->joyp_a &= ~(0x08);
-                check_joyp_int(gb, prev_joyp);
-                break;
             case SDLK_P:
+                /* UI intercepts keyboard inputs when opened */
+                if (show_ui_window && io->WantCaptureKeyboard)
+                    break;
                 if (settings->turbo)
                     settings->turbo = false;
                 settings->paused = !settings->paused;
@@ -101,9 +166,15 @@ void handle_events(struct gb_core *gb)
                     set_window_title(DEFAULT_TITLE_TEXT);
                 break;
             case SDLK_T:
+                /* UI intercepts keyboard inputs when opened */
+                if (show_ui_window && io->WantCaptureKeyboard)
+                    break;
                 settings->turbo = true;
                 break;
             case SDLK_R:
+                /* UI intercepts keyboard inputs when opened */
+                if (show_ui_window && io->WantCaptureKeyboard)
+                    break;
                 if (!settings->paused)
                     settings->reset_signal = true;
                 break;
@@ -116,45 +187,24 @@ void handle_events(struct gb_core *gb)
             switch (event.key.key)
             {
             case SDLK_RIGHT:
-                dpad_state.right = 0;
-                gb->joyp_d |= 0x01;
-                if (dpad_state.left)
-                    gb->joyp_d &= ~(0x02);
-                break;
             case SDLK_LEFT:
-                dpad_state.left = 0;
-                gb->joyp_d |= 0x02;
-                if (dpad_state.right)
-                    gb->joyp_d &= ~(0x01);
-                break;
             case SDLK_UP:
-                dpad_state.up = 0;
-                gb->joyp_d |= 0x04;
-                if (dpad_state.down)
-                    gb->joyp_d &= ~(0x08);
-                break;
             case SDLK_DOWN:
-                dpad_state.down = 0;
-                gb->joyp_d |= 0x08;
-                if (dpad_state.up)
-                    gb->joyp_d &= ~(0x04);
+            case SDLK_X:
+            case SDLK_Z:
+            case SDLK_SPACE:
+            case SDLK_RETURN:
+                /* UI intercepts keyboard inputs when opened */
+                if (show_ui_window && io->WantCaptureKeyboard)
+                    break;
+                gb_key_up(gb, event.key.key);
                 break;
 
-            case SDLK_X:
-                gb->joyp_a |= 0x01;
-                break;
-            case SDLK_Z:
-                gb->joyp_a |= 0x02;
-                break;
-            case SDLK_SPACE:
-                gb->joyp_a |= 0x04;
-                break;
-            case SDLK_RETURN:
-                gb->joyp_a |= 0x08;
-                break;
             case SDLK_T:
             {
-                struct global_settings *settings = get_global_settings();
+                /* UI intercepts keyboard inputs when opened */
+                if (show_ui_window && io->WantCaptureKeyboard)
+                    break;
                 settings->turbo = false;
                 break;
             }
@@ -168,7 +218,9 @@ void handle_events(struct gb_core *gb)
             case SDLK_8:
             case SDLK_9:
             {
-                struct global_settings *settings = get_global_settings();
+                /* UI intercepts keyboard inputs when opened */
+                if (show_ui_window && io->WantCaptureKeyboard)
+                    break;
                 unsigned char key = event.key.key - SDLK_1 + 1;
 #ifdef _MACOS
                 if (event.key.mod & SDL_KMOD_LGUI)
@@ -193,7 +245,6 @@ void handle_events(struct gb_core *gb)
         case SDL_EVENT_QUIT:
         {
             LOG_DEBUG("SDL_EVENT_QUIT event detected");
-            struct global_settings *settings = get_global_settings();
             settings->quit_signal = true;
             break;
         }
@@ -207,7 +258,7 @@ void handle_events(struct gb_core *gb)
     if (show_ui_window)
     {
         show_ui();
-        // ImGui_ShowDemoWindow(NULL);
+        ImGui_ShowDemoWindow(NULL);
     }
 
     imgui_frame_ready = true;

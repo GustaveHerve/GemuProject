@@ -38,7 +38,8 @@ int logger_log(enum log_verbosity verbosity, const char *format, ...)
     va_start(args, format);
     vfprintf(stderr, format, args);
     va_end(args);
-    puts(""); /* Print newline */
+    fputs("\n", stderr);
+    fflush(stderr);
     pthread_mutex_unlock(&log_mutex);
 
     return EXIT_SUCCESS;

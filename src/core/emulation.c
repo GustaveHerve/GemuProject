@@ -14,7 +14,11 @@
 #include "sync.h"
 #include "timers.h"
 
-struct global_settings settings = {.audio_volume = 0.4f};
+struct global_settings settings = {
+    .audio_volume = 1.0f,
+    .render_period_ns = 1e9 / 165,
+    .apu_channels_enable = {true, true, true, true},
+};
 
 struct global_settings *get_global_settings(void)
 {

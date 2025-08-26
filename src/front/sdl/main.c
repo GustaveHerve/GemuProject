@@ -92,13 +92,9 @@ static void init_gb_callbacks(struct gb_core *gb)
     gb->callbacks.frame_ready = frame_ready_callback;
 }
 
-#define SECOND_TO_NANOSECONDS 1000000000ULL
-#define REFRESH_RATE_HZ 165
-
 static int main_loop(void)
 {
     struct global_settings *settings = get_global_settings();
-    double render_period_ns = (1e9 / REFRESH_RATE_HZ);
     uint64_t last_render_ts = SDL_GetTicksNS();
     uint64_t now_ts;
 
@@ -109,16 +105,16 @@ static int main_loop(void)
         now_ts = SDL_GetTicksNS();
 
         /* Rendering / Event handling routine */
-        if (now_ts - last_render_ts >= render_period_ns)
+        if (now_ts - last_render_ts >= settings->render_period_ns)
         {
-            last_render_ts += render_period_ns;
+            last_render_ts += settings->render_period_ns;
             gb.callbacks.handle_events(&gb);
             gb.callbacks.render_frame();
         }
 
         if (settings->paused)
         {
-            uint64_t next_render_time = last_render_ts + render_period_ns;
+            uint64_t next_render_time = last_render_ts + settings->render_period_ns;
             now_ts = SDL_GetTicksNS();
             if (now_ts < next_render_time)
                 SDL_DelayPrecise(next_render_time - now_ts);
@@ -177,7 +173,7 @@ static int main_loop(void)
 
         /* Idle waiting to avoid busy looping */
         now_ts = SDL_GetTicksNS();
-        uint64_t next_render_ts = last_render_ts + render_period_ns;
+        uint64_t next_render_ts = last_render_ts + settings->render_period_ns;
         uint64_t sleep_until = (emulation_resume_ts < next_render_ts) ? emulation_resume_ts : next_render_ts;
         if (now_ts < sleep_until)
             SDL_DelayPrecise(sleep_until - now_ts);

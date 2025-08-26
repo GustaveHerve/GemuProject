@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "emulation.h"
 #include "gb_core.h"
 #include "serialization.h"
 
@@ -483,6 +484,13 @@ static void ch4_tick(struct gb_core *gb)
 
 static unsigned int get_channel_amplitude(struct gb_core *gb, uint8_t ch_number, uint8_t panning)
 {
+    assert(ch_number >= 1);
+    assert(ch_number <= 4);
+
+    bool is_not_mute = get_global_settings()->apu_channels_enable[ch_number - 1];
+    if (!is_not_mute)
+        return 0;
+
     if (!is_dac_on(gb, ch_number) || !is_channel_on(gb, ch_number))
         return 0;
 
@@ -544,8 +552,9 @@ static void queue_audio_sample(struct gb_core *gb)
 
     uint8_t nr50 = gb->memory.io[IO_OFFSET(NR50)];
 
-    float left_sample = mix_channels(gb, PANNING_LEFT) * (float)LEFT_MASTER_VOLUME(nr50) / 8.0f;
-    float right_sample = mix_channels(gb, PANNING_RIGHT) * (float)RIGHT_MASTER_VOLUME(nr50) / 8.0f;
+    float volume = get_global_settings()->audio_volume;
+    float left_sample = mix_channels(gb, PANNING_LEFT) * (float)LEFT_MASTER_VOLUME(nr50) * volume / 8.0f;
+    float right_sample = mix_channels(gb, PANNING_RIGHT) * (float)RIGHT_MASTER_VOLUME(nr50) * volume / 8.0f;
 
     union audio_sample sample = {
         .stereo_sample =

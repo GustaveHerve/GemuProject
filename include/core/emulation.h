@@ -15,6 +15,8 @@ struct global_settings
     unsigned char load_state;
     float audio_volume;
     char *open_rom;
+    double render_period_ns;
+    bool apu_channels_enable[4];
 };
 
 void reset_gb(struct gb_core *gb);
