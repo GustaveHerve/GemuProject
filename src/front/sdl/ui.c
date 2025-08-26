@@ -75,24 +75,25 @@ static void reset_default_palette(void)
 
 void show_ui(void)
 {
-    ImGui_SetNextWindowSizeConstraints((ImVec2){250, 200}, (ImVec2){FLT_MAX, FLT_MAX}, NULL, NULL);
+    ImGui_SetNextWindowSizeConstraints((ImVec2){400, 300}, (ImVec2){FLT_MAX, 500}, NULL, NULL);
     ImGui_SetNextWindowSize((ImVec2){300, 300}, ImGuiCond_Appearing);
-    ImGui_Begin("GemuProject configuration", NULL, ImGuiWindowFlags_None);
+    ImGui_Begin("GemuProject configuration", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 
     if (ImGui_Button("Open ROM"))
         open_rom_dialog();
 
     struct global_settings *settings = get_global_settings();
 
-    int refresh_rate = 1e9 / settings->render_period_ns;
-    if (ImGui_InputInt("Refresh rate", &refresh_rate))
-    {
-        refresh_rate = refresh_rate < 0 ? 0 : refresh_rate;
-        settings->render_period_ns = 1e9 / refresh_rate;
-    }
-
     if (ImGui_CollapsingHeader("Video settings", ImGuiTreeNodeFlags_None))
     {
+
+        int refresh_rate = 1e9 / settings->render_period_ns;
+        if (ImGui_InputInt("Refresh rate", &refresh_rate))
+        {
+            refresh_rate = refresh_rate < 0 ? 0 : refresh_rate;
+            settings->render_period_ns = 1e9 / refresh_rate;
+        }
+        ImGui_SameLine();
         if (ImGui_Checkbox("VSync", &vsync_enable))
             set_vsync(vsync_enable);
 

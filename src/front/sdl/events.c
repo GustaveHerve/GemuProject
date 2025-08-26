@@ -258,7 +258,7 @@ void handle_events(struct gb_core *gb)
     if (show_ui_window)
     {
         show_ui();
-        ImGui_ShowDemoWindow(NULL);
+        // ImGui_ShowDemoWindow(NULL);
     }
 
     imgui_frame_ready = true;
