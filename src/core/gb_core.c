@@ -147,6 +147,9 @@ int init_gb_core(struct gb_core *gb)
     gb->tcycles_since_sync = 0;
     gb->last_sync_timestamp = get_nanoseconds();
 
+    gb->if_written = 0;
+    gb->tima_written = 0;
+
     gb->memory.io[IO_OFFSET(JOYP)] = 0xCF;
 
     return EXIT_SUCCESS;
@@ -198,6 +201,9 @@ int gb_core_serialize(char *output_path, struct gb_core *gb)
     fwrite_le_64(file, gb->tcycles_since_sync);
     fwrite_le_64(file, gb->last_sync_timestamp);
 
+    fwrite(&gb->if_written, sizeof(uint8_t), 1, file);
+    fwrite(&gb->tima_written, sizeof(uint8_t), 1, file);
+
     mbc_serialize(gb->mbc, file);
 
     fclose(file);
@@ -248,6 +254,9 @@ int gb_core_load_from_file(char *input_path, struct gb_core *gb)
 
     fread_le_64(file, &gb->tcycles_since_sync);
     fread_le_64(file, (void *)&gb->last_sync_timestamp);
+
+    fread(&gb->if_written, sizeof(uint8_t), 1, file);
+    fread(&gb->tima_written, sizeof(uint8_t), 1, file);
 
     mbc_load_from_stream(gb->mbc, file);
 

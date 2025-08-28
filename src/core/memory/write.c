@@ -58,8 +58,16 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
 
     case TIMA:
         /* Ignore TIMA write on cycle after TIMA overflow */
-        if (gb->schedule_tima_overflow)
+        if (gb->schedule_tima_overflow) /* TODO: may be unnecessary, the next tick_m call will overwrite this ? */
             return;
+        gb->tima_written = 1;
+        break;
+    case TMA:
+        /* TODO */
+        break;
+
+    case IF:
+        gb->if_written = 1;
         break;
 
     case NR10:
@@ -123,7 +131,8 @@ static void _io(struct gb_core *gb, uint16_t address, uint8_t val)
     case DMA:
     {
         struct dma_request new_req = {
-            .source = val > 0xDF ? val & 0xDF : val,
+            .source = val > 0xDF ? val & 0xDF : val, /* TODO: it is technically possible to write something superior to
+                                                        0xDF but it results in weird behaviour (bus conflicts) */
             .status = DMA_REQUESTED,
         };
         RING_BUFFER_ENQUEUE(dma_request, &gb->ppu.dma_requests, &new_req);

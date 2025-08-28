@@ -60,6 +60,9 @@ void reset_gb(struct gb_core *gb)
     gb->tcycles_since_sync = 0;
     gb->last_sync_timestamp = get_nanoseconds();
 
+    gb->if_written = 0;
+    gb->tima_written = 0;
+
     init_gb_core_post_boot(gb, gb->mbc->rom[CHECKSUM_ADDR]);
 }
 

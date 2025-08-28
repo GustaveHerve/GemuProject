@@ -48,6 +48,9 @@ struct gb_core
     uint64_t tcycles_since_sync;
     int64_t last_sync_timestamp;
 
+    uint8_t if_written;
+    uint8_t tima_written;
+
     /* Callbacks */
     struct
     {

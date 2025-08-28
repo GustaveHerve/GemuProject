@@ -11,7 +11,7 @@ void update_timers(struct gb_core *gb)
     /* TIMA overflow consequences are delayed by 4 TCycles and can be aborted before */
     if (gb->schedule_tima_overflow)
     {
-        if (1) // TODO: if IF register not written to during the current TCycle
+        if (!gb->if_written) // TODO: if IF register not written to during the current TCycle
             set_if(gb, INTERRUPT_TIMER);
         gb->memory.io[IO_OFFSET(TIMA)] = gb->memory.io[IO_OFFSET(TMA)];
         gb->schedule_tima_overflow = 0;
@@ -36,7 +36,10 @@ void update_timers(struct gb_core *gb)
 
     /* TIMA overflow consequences are delayed by 4 TCycles */
     if (previous_tima > gb->memory.io[IO_OFFSET(TIMA)])
-        gb->schedule_tima_overflow = 1; /* Schedule an interrupt for next Mcycle */
+    {
+        /* Writing to TIMA in the same MCycle as the overflow will abort the overflow */
+        gb->schedule_tima_overflow = !gb->tima_written;
+    }
 
     gb->prev_tac_AND = new_tac_AND;
     gb->internal_div = new_div;
