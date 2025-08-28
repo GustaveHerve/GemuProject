@@ -22,7 +22,7 @@ int inc_r(struct gb_core *gb, uint8_t *dest)
 int inc_hl(struct gb_core *gb)
 {
     set_n(&gb->cpu, 0);
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t value = read_mem_tick(gb, address);
     hflag_add_set(&gb->cpu, value, 1);
     ++value;
@@ -36,11 +36,12 @@ int inc_hl(struct gb_core *gb)
 int inc_rr(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 {
     // During fetch of the opcode probably writes to lo
-    uint16_t convert = convert_8to16(hi, lo);
+    uint16_t convert = unpack16(*hi, *lo);
     ++convert;
+    // tick_m(gb);
+    *hi = convert >> 8;
+    *lo = convert & 0xFF;
     tick_m(gb);
-    *lo = regist_lo(&convert);
-    *hi = regist_hi(&convert);
     return 2;
 }
 
@@ -48,7 +49,6 @@ int inc_rr(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 // x33	2 MCycle
 int inc_sp(struct gb_core *gb)
 {
-    // During fetch of the opcode probably writes to lo
     ++gb->cpu.sp;
     tick_m(gb);
     return 2;
@@ -70,7 +70,7 @@ int dec_r(struct gb_core *gb, uint8_t *dest)
 int dec_hl(struct gb_core *gb)
 {
     set_n(&gb->cpu, 1);
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t value = read_mem_tick(gb, address);
     hflag_sub_set(&gb->cpu, value, 1);
     --value;
@@ -84,11 +84,11 @@ int dec_hl(struct gb_core *gb)
 int dec_rr(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 {
     // During fetch of the opcode probably writes to lo
-    uint16_t temp = convert_8to16(hi, lo);
+    uint16_t temp = unpack16(*hi, *lo);
     --temp;
     tick_m(gb);
-    *lo = regist_lo(&temp);
-    *hi = regist_hi(&temp);
+    *hi = temp >> 8;
+    *lo = temp & 0xFF;
     return 2;
 }
 
@@ -119,7 +119,7 @@ int add_a_r(struct gb_core *gb, uint8_t *src)
 int add_a_hl(struct gb_core *gb)
 {
     set_n(&gb->cpu, 0);
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     hflag_add_set(&gb->cpu, gb->cpu.a, val);
     cflag_add_set(&gb->cpu, gb->cpu.a, val);
@@ -170,7 +170,7 @@ int adc_a_hl(struct gb_core *gb)
 {
     uint8_t a_copy = gb->cpu.a;
     set_n(&gb->cpu, 0);
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     int temp = gb->cpu.a + val;
     gb->cpu.a += val;
@@ -214,15 +214,15 @@ int adc_a_n(struct gb_core *gb)
 // x(0-2)9	2 MCycle
 int add_hl_rr(struct gb_core *gb, uint8_t *hi, uint8_t *lo)
 {
-    // During fetch of the opcode probably writes to lo
+    /* TODO: more accurate C H flag handling and timing */
     set_n(&gb->cpu, 0);
-    uint16_t hl = convert_8to16(&gb->cpu.h, &gb->cpu.l);
-    uint16_t rr = convert_8to16(hi, lo);
+    uint16_t hl = unpack16(gb->cpu.h, gb->cpu.l);
+    uint16_t rr = unpack16(*hi, *lo);
     hflag16_add_set(&gb->cpu, hl, rr);
     cflag16_add_set(&gb->cpu, hl, rr);
     uint16_t sum = hl + rr;
-    gb->cpu.h = regist_hi(&sum);
-    gb->cpu.l = regist_lo(&sum);
+    gb->cpu.h = sum >> 8;
+    gb->cpu.l = sum & 0xFF;
     tick_m(gb);
     return 2;
 }
@@ -233,12 +233,12 @@ int add_hl_sp(struct gb_core *gb)
 {
     // During fetch of the opcode probably writes to lo
     set_n(&gb->cpu, 0);
-    uint16_t hl = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t hl = unpack16(gb->cpu.h, gb->cpu.l);
     hflag16_add_set(&gb->cpu, hl, gb->cpu.sp);
     cflag16_add_set(&gb->cpu, hl, gb->cpu.sp);
     uint16_t sum = hl + gb->cpu.sp;
-    gb->cpu.h = regist_hi(&sum);
-    gb->cpu.l = regist_lo(&sum);
+    gb->cpu.h = sum >> 8;
+    gb->cpu.l = sum & 0xFF;
     tick_m(gb);
     return 2;
 }
@@ -246,7 +246,7 @@ int add_hl_sp(struct gb_core *gb)
 int add_sp_e8(struct gb_core *gb)
 {
     int8_t offset = read_mem_tick(gb, gb->cpu.pc);
-    uint8_t lo = regist_lo(&gb->cpu.sp);
+    uint8_t lo = gb->cpu.sp & 0xFF;
     tick_m(gb);
     cflag_add_set(&gb->cpu, lo, offset);
     hflag_add_set(&gb->cpu, lo, offset);
@@ -273,7 +273,7 @@ int sub_a_r(struct gb_core *gb, uint8_t *src)
 // x69   2 MCycle
 int sub_a_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     set_n(&gb->cpu, 1);
     uint8_t val = read_mem_tick(gb, address);
     cflag_sub_set(&gb->cpu, gb->cpu.a, val);
@@ -320,7 +320,7 @@ int sbc_a_hl(struct gb_core *gb)
 {
     uint8_t a_copy = gb->cpu.a;
     set_n(&gb->cpu, 1);
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     gb->cpu.a -= val;
     if (get_c(&gb->cpu))
@@ -372,7 +372,7 @@ int and_a_r(struct gb_core *gb, uint8_t *src)
 // x6A   2 MCycle
 int and_a_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     gb->cpu.a = gb->cpu.a & read_mem_tick(gb, address);
     set_n(&gb->cpu, 0);
     set_h(&gb->cpu, 1);
@@ -411,7 +411,7 @@ int xor_a_r(struct gb_core *gb, uint8_t *src)
 // xAE   2 MCycle
 int xor_a_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     gb->cpu.a = gb->cpu.a ^ read_mem_tick(gb, address);
     set_n(&gb->cpu, 0);
     set_h(&gb->cpu, 0);
@@ -450,7 +450,7 @@ int or_a_r(struct gb_core *gb, uint8_t *src)
 // xB6   2 MCycle
 int or_a_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     gb->cpu.a = gb->cpu.a | read_mem_tick(gb, address);
     set_n(&gb->cpu, 0);
     set_h(&gb->cpu, 0);
@@ -488,7 +488,7 @@ int cp_a_r(struct gb_core *gb, uint8_t *src)
 // xBE   2 MCycle
 int cp_a_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     set_n(&gb->cpu, 1);
     uint8_t val = read_mem_tick(gb, address);
     cflag_sub_set(&gb->cpu, gb->cpu.a, val);

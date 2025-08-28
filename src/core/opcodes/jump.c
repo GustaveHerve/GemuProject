@@ -36,7 +36,7 @@ int ret(struct gb_core *gb)
     uint8_t lo = read_mem_tick(gb, gb->cpu.sp++);
     uint8_t hi = read_mem_tick(gb, gb->cpu.sp++);
     tick_m(gb);
-    gb->cpu.pc = convert_8to16(&hi, &lo);
+    gb->cpu.pc = unpack16(hi, lo);
     return 4;
 }
 
@@ -50,7 +50,7 @@ int ret_cc(struct gb_core *gb, int cc)
         uint8_t lo = read_mem_tick(gb, gb->cpu.sp++);
         uint8_t hi = read_mem_tick(gb, gb->cpu.sp++);
         tick_m(gb);
-        gb->cpu.pc = convert_8to16(&hi, &lo);
+        gb->cpu.pc = unpack16(hi, lo);
         return 5;
     }
     return 2;
@@ -69,7 +69,7 @@ int reti(struct gb_core *gb)
 // 0xE9 1 MCycle
 int jp_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     gb->cpu.pc = address;
     return 1;
 }
@@ -78,7 +78,7 @@ int jp_nn(struct gb_core *gb)
 {
     uint8_t lo = read_mem_tick(gb, gb->cpu.pc++);
     uint8_t hi = read_mem_tick(gb, gb->cpu.pc);
-    uint16_t address = convert_8to16(&hi, &lo);
+    uint16_t address = unpack16(hi, lo);
     tick_m(gb);
     gb->cpu.pc = address;
     return 4;
@@ -88,7 +88,7 @@ int jp_cc_nn(struct gb_core *gb, int cc)
 {
     uint8_t lo = read_mem_tick(gb, gb->cpu.pc++);
     uint8_t hi = read_mem_tick(gb, gb->cpu.pc++);
-    uint16_t address = convert_8to16(&hi, &lo);
+    uint16_t address = unpack16(hi, lo);
     if (cc)
     {
         tick_m(gb);
@@ -102,10 +102,10 @@ int call_nn(struct gb_core *gb)
 {
     uint8_t lo = read_mem_tick(gb, gb->cpu.pc++);
     uint8_t hi = read_mem_tick(gb, gb->cpu.pc++);
-    uint16_t nn = convert_8to16(&hi, &lo);
+    uint16_t nn = unpack16(hi, lo);
     tick_m(gb);
-    write_mem(gb, --gb->cpu.sp, regist_hi(&gb->cpu.pc));
-    write_mem(gb, --gb->cpu.sp, regist_lo(&gb->cpu.pc));
+    write_mem(gb, --gb->cpu.sp, gb->cpu.pc >> 8);
+    write_mem(gb, --gb->cpu.sp, gb->cpu.pc & 0xFF);
     gb->cpu.pc = nn;
     return 6;
 }
@@ -114,12 +114,12 @@ int call_cc_nn(struct gb_core *gb, int cc)
 {
     uint8_t lo = read_mem_tick(gb, gb->cpu.pc++);
     uint8_t hi = read_mem_tick(gb, gb->cpu.pc++);
-    uint16_t nn = convert_8to16(&hi, &lo);
+    uint16_t nn = unpack16(hi, lo);
     if (cc)
     {
         tick_m(gb);
-        write_mem(gb, --gb->cpu.sp, regist_hi(&gb->cpu.pc));
-        write_mem(gb, --gb->cpu.sp, regist_lo(&gb->cpu.pc));
+        write_mem(gb, --gb->cpu.sp, gb->cpu.pc >> 8);
+        write_mem(gb, --gb->cpu.sp, gb->cpu.pc & 0xFF);
         gb->cpu.pc = nn;
         return 6;
     }
@@ -129,8 +129,8 @@ int call_cc_nn(struct gb_core *gb, int cc)
 int rst(struct gb_core *gb, uint8_t vec)
 {
     tick_m(gb);
-    write_mem(gb, --gb->cpu.sp, regist_hi(&gb->cpu.pc));
-    write_mem(gb, --gb->cpu.sp, regist_lo(&gb->cpu.pc));
+    write_mem(gb, --gb->cpu.sp, gb->cpu.pc >> 8);
+    write_mem(gb, --gb->cpu.sp, gb->cpu.pc & 0xFF);
     gb->cpu.pc = vec;
     return 4;
 }

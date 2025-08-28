@@ -23,7 +23,7 @@ int rlc(struct gb_core *gb, uint8_t *dest)
 // x06   4 MCycle
 int rlc_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     rotl(&val);
     write_mem(gb, address, val);
@@ -50,7 +50,7 @@ int rrc(struct gb_core *gb, uint8_t *dest)
 // x0E   4 MCycle
 int rrc_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     rotr(&val);
     write_mem(gb, address, val);
@@ -76,7 +76,7 @@ int rl(struct gb_core *gb, uint8_t *dest)
 // x16   4 MCycle
 int rl_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     rotl_carry(&gb->cpu, &val);
     write_mem(gb, address, val);
@@ -101,7 +101,7 @@ int rr(struct gb_core *gb, uint8_t *dest)
 // x1E   4 MCycle
 int rr_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     rotr_carry(&gb->cpu, &val);
     write_mem(gb, address, val);
@@ -127,7 +127,7 @@ int sla(struct gb_core *gb, uint8_t *dest)
 // x26   4 MCycle
 int sla_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     set_c(&gb->cpu, (val & 0x80) == 0x80);
     val = val << 1;
@@ -156,7 +156,7 @@ int sra(struct gb_core *gb, uint8_t *dest)
 // x2E   4 MCycle
 int sra_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     uint8_t temp = 0x80 & val;
     set_c(&gb->cpu, val & 0x01);
@@ -173,8 +173,7 @@ int sra_hl(struct gb_core *gb)
 // 0x3(0-7)  2 MCycle
 int swap(struct gb_core *gb, uint8_t *dest)
 {
-    uint8_t val = get_msb_nibble(*dest) | (get_lsb_nibble(*dest) << 4);
-    *dest = val;
+    *dest = *dest >> 4 | *dest << 4;
     set_z(&gb->cpu, *dest == 0);
     set_n(&gb->cpu, 0);
     set_c(&gb->cpu, 0);
@@ -186,9 +185,9 @@ int swap(struct gb_core *gb, uint8_t *dest)
 // 0x36  4 MCycle
 int swap_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
-    val = get_msb_nibble(val) | (get_lsb_nibble(val) << 4);
+    val = val >> 4 | val << 4;
     write_mem(gb, address, val);
     set_z(&gb->cpu, val == 0);
     set_n(&gb->cpu, 0);
@@ -213,7 +212,7 @@ int srl(struct gb_core *gb, uint8_t *dest)
 // x3E   4 MCycle
 int srl_hl(struct gb_core *gb)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     set_c(&gb->cpu, (val & 0x01) == 0x01);
     val = val >> 1;
@@ -239,7 +238,7 @@ int bit(struct gb_core *gb, uint8_t *dest, int n)
 // x
 int bit_hl(struct gb_core *gb, int n)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     uint8_t bit = (val >> n) & 0x01;
     set_z(&gb->cpu, bit == 0x00);
@@ -261,7 +260,7 @@ int res(uint8_t *dest, int n)
 // x
 int res_hl(struct gb_core *gb, int n)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     val &= ~(0x01 << n);
     write_mem(gb, address, val);
@@ -280,7 +279,7 @@ int set(uint8_t *dest, int n)
 // x
 int set_hl(struct gb_core *gb, int n)
 {
-    uint16_t address = convert_8to16(&gb->cpu.h, &gb->cpu.l);
+    uint16_t address = unpack16(gb->cpu.h, gb->cpu.l);
     uint8_t val = read_mem_tick(gb, address);
     val |= (0x01 << n);
     write_mem(gb, address, val);

@@ -1,7 +1,7 @@
 # GemuProject
-GemuProject is a simple work-in-progress emulator for the GameBoy game system. (Most specifically emulating the DMG black and white model).
+GemuProject is a simple work-in-progress emulator for the original Game Boy game system (DMG model).
 
-This is a personal project that I started in the process of learning more about C programming, low level programming, assembly and video game system emulation in general. As such, it is not aimed to be an alternative for already existing GameBoy emulators and is only targeting a moderate level of accuracy (for now it is at best M-cycle level).
+This is a personal project that I started in the process of learning more about C/low level programming, assembly and video game system emulation in general. As such, it is not aimed to be an alternative for already existing GameBoy emulators and is only targeting a moderate level of accuracy (M-cycle level at best).
 
 Currently the following is implemented:
 - Opcodes intepreter and full CPU emulation
@@ -19,7 +19,7 @@ To build the project, you can currently run CMake (ideally in a separate build d
 
 ## Credits
 ### Documentation
-This emulator was made using the following documentation:
+I was able to make this emulator thanks to the following resources:
 - [Pandocs](https://gbdev.io/pandocs/)
 - [The Cycle-Accurate Game Boy Docs](https://github.com/AntonioND/giibiiadvance/blob/master/docs/TCAGBD.pdf)
 - [Gekkio's Complete Technical Reference](https://gekkio.fi/files/gb-docs/gbctr.pdf)
@@ -27,8 +27,8 @@ This emulator was made using the following documentation:
 - [The Gameboy Emulator Development Guide](https://hacktix.github.io/GBEDG/)
 - [NightShade's Game Boy Sound Emulation Guide](https://nightshade256.github.io/2021/03/27/gb-sound-emulation.html)
 
-
-### Frameworks
-I used the following technologies and frameworks to make GemuProject:
-- C language
-- [SDL3](https://www.libsdl.org/) for rendering, input and audio handling
+### Dependencies
+The following dependencies are powering GemuProject:
+- [SDL3](https://www.libsdl.org/) for rendering, input and audio handling in the front-end
+- [Dear ImGui](https://github.com/ocornut/imgui) for immediate mode GUI
+- [Dear Bindings](https://github.com/dearimgui/dear_bindings) for Dear ImGui C bindings

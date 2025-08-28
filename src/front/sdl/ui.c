@@ -2,25 +2,35 @@
 
 #include <SDL3/SDL_dialog.h>
 #include <SDL3/SDL_error.h>
+#include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_stdinc.h>
 #include <float.h>
+#include <limits.h>
+#include <linux/limits.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "dcimgui.h"
 #include "display.h"
 #include "emulation.h"
 #include "logger.h"
 #include "rendering.h"
+#include "sdl_utils.h"
+#include "tomlc17.h"
 
 extern SDL_Window *window;
+extern bool show_ui_window;
 
 bool vsync_enable = false;
 
+/* TODO: remove this context and use direct backend values */
 static ImVec4 palette[5];
 
-void init_ui(void)
+void synchronize_ui(void)
 {
+    /* Synchronize the palette colors with the backend palette */
     for (size_t i = 0; i < 5; ++i)
     {
         struct color c = get_color_index(i);
@@ -50,10 +60,133 @@ static void SDLCALL open_rom_callback(void *userdata, const char *const *filelis
     }
 }
 
+static void SDLCALL load_palette_callback(void *userdata, const char *const *filelist, int filter)
+{
+    (void)userdata;
+    (void)filter;
+    if (!filelist)
+    {
+        LOG_ERROR("Error opening palette: %s", SDL_GetError());
+        return;
+    }
+    if (!*filelist)
+    {
+        LOG_WARN("No palette file selected");
+        return;
+    }
+    LOG_INFO("Loading palette: %s", *filelist);
+
+    toml_result_t result = toml_parse_file_ex(*filelist);
+
+    if (!result.ok)
+    {
+        LOG_ERROR("Error parsing palette file: %s", *filelist);
+        return;
+    }
+
+    toml_datum_t colors = toml_seek(result.toptab, "palette.colors");
+    if (colors.type != TOML_ARRAY)
+    {
+        LOG_ERROR("Missing or invalid 'colors' property in palette file:", *filelist);
+        return;
+    }
+    if (colors.u.arr.size != 5)
+    {
+        LOG_ERROR("Invalid 'colors' property in palette file:", *filelist);
+        return;
+    }
+
+    for (size_t i = 0; i < 5; ++i)
+    {
+        if (colors.u.arr.elem[i].type != TOML_INT64)
+        {
+            LOG_ERROR("Invalid value in 'colors' property in palette file:", *filelist);
+            return;
+        }
+    }
+
+    for (size_t i = 0; i < 5; ++i)
+    {
+        set_color_index((struct color)COLOR_FROM_HEX(colors.u.arr.elem[i].u.int64), i);
+    }
+
+    synchronize_ui();
+}
+
+static void SDLCALL save_palette_callback(void *userdata, const char *const *filelist, int filter)
+{
+    (void)userdata;
+    (void)filter;
+    if (!filelist)
+    {
+        LOG_ERROR("Error opening palette: %s", SDL_GetError());
+        return;
+    }
+    if (!*filelist)
+    {
+        LOG_WARN("No palette file selected");
+        return;
+    }
+
+    LOG_INFO("Saving palette: %s", *filelist);
+
+    FILE *fptr;
+    if (!(fptr = fopen(*filelist, "w")))
+    {
+        LOG_ERROR("Error saving palette");
+        return;
+    }
+
+    struct color col0 = get_color_index(0);
+    struct color col1 = get_color_index(1);
+    struct color col2 = get_color_index(2);
+    struct color col3 = get_color_index(3);
+    struct color col4 = get_color_index(4);
+
+    char buf[512];
+    size_t len = snprintf(buf,
+                          SDL_arraysize(buf),
+                          "[palette]\ncolors = [0x%x, 0x%x, 0x%x, 0x%x, 0x%x]\n",
+                          HEX_FROM_COLOR(col0),
+                          HEX_FROM_COLOR(col1),
+                          HEX_FROM_COLOR(col2),
+                          HEX_FROM_COLOR(col3),
+                          HEX_FROM_COLOR(col4));
+    fwrite(buf, 1, len, fptr);
+
+    fclose(fptr);
+}
+
 static void open_rom_dialog(void)
 {
     static const SDL_DialogFileFilter filters[] = {{"GameBoy roms", "gb;gbc"}, {"All files", "*"}};
     SDL_ShowOpenFileDialog(open_rom_callback, NULL, window, filters, SDL_arraysize(filters), NULL, false);
+}
+
+static int load_palette_dialog(void)
+{
+    static const SDL_DialogFileFilter filters[] = {{"TOML file", "toml"}, {"All files", "*"}};
+    const char *base_path;
+    SDL_CHECK_ERROR(base_path = SDL_GetBasePath());
+
+    char full_path[PATH_MAX];
+    snprintf(full_path, PATH_MAX, "%s/../assets/palettes", base_path);
+
+    SDL_ShowOpenFileDialog(load_palette_callback, NULL, window, filters, SDL_arraysize(filters), full_path, false);
+    return EXIT_SUCCESS;
+}
+
+static int save_palette_dialog(void)
+{
+    static const SDL_DialogFileFilter filters[] = {{"TOML file", "toml"}, {"All files", "*"}};
+    const char *base_path;
+    SDL_CHECK_ERROR(base_path = SDL_GetBasePath());
+
+    char full_path[PATH_MAX];
+    snprintf(full_path, PATH_MAX, "%s/../assets/palettes", base_path);
+
+    SDL_ShowSaveFileDialog(save_palette_callback, NULL, window, filters, SDL_arraysize(filters), full_path);
+    return EXIT_SUCCESS;
 }
 
 static void update_palette_index(unsigned int index)
@@ -70,14 +203,14 @@ static void update_palette_index(unsigned int index)
 static void reset_default_palette(void)
 {
     reset_palette();
-    init_ui();
+    synchronize_ui();
 }
 
 void show_ui(void)
 {
     ImGui_SetNextWindowSizeConstraints((ImVec2){400, 300}, (ImVec2){FLT_MAX, 500}, NULL, NULL);
     ImGui_SetNextWindowSize((ImVec2){300, 300}, ImGuiCond_Appearing);
-    ImGui_Begin("GemuProject configuration", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui_Begin("GemuProject menu", &show_ui_window, ImGuiWindowFlags_AlwaysAutoResize);
 
     if (ImGui_Button("Open ROM"))
         open_rom_dialog();
@@ -139,6 +272,12 @@ void show_ui(void)
 
             ImGui_EndTable();
         }
+
+        if (ImGui_Button("Load palette"))
+            load_palette_dialog();
+        ImGui_SameLine();
+        if (ImGui_Button("Save palette"))
+            save_palette_dialog();
         if (ImGui_Button("Reset default palette"))
             reset_default_palette();
     }

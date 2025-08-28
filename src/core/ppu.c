@@ -640,7 +640,7 @@ void dma_handle(struct gb_core *gb)
                 dequeue = 1; /* This DMA request overrides the currently active one */
             break;
         case DMA_ACTIVE:
-            gb->memory.oam[gb->ppu.dma_acc] = read_mem(gb, (req->source << 8) + gb->ppu.dma_acc);
+            gb->memory.oam[gb->ppu.dma_acc] = read_mem(gb, ((uint16_t)req->source << 8) + gb->ppu.dma_acc);
             ++gb->ppu.dma_acc;
             if (gb->ppu.dma_acc >= 160)
             {
@@ -691,10 +691,11 @@ void ppu_oam_bug_w(struct gb_core *gb)
     uint8_t prec_row = curr_row - 8;
 
     /* First word in current row is replaced */
-    uint16_t a = (gb->memory.oam[curr_row + 1] << 8) | gb->memory.oam[curr_row]; /* First word in current row */
-    uint16_t b = (gb->memory.oam[prec_row + 1] << 8) | gb->memory.oam[prec_row]; /* First word in the preceding row */
-    uint16_t c =
-        (gb->memory.oam[prec_row + 5] << 8) | gb->memory.oam[prec_row + 4]; /* Third word in the preceding row */
+    uint16_t a = (uint16_t)gb->memory.oam[curr_row + 1] << 8 | gb->memory.oam[curr_row]; /* First word in current row */
+    uint16_t b =
+        (uint16_t)gb->memory.oam[prec_row + 1] << 8 | gb->memory.oam[prec_row]; /* First word in the preceding row */
+    uint16_t c = (uint16_t)gb->memory.oam[prec_row + 5] << 8 |
+                 gb->memory.oam[prec_row + 4]; /* Third word in the preceding row */
 
     uint16_t new_a = ((a ^ c) & (b ^ c)) ^ c;
     gb->memory.oam[curr_row] = new_a & 0xFF;
@@ -720,10 +721,11 @@ void ppu_oam_bug_r(struct gb_core *gb)
     uint8_t prec_row = curr_row - 8;
 
     /* First word in current row is replaced */
-    uint16_t a = (gb->memory.oam[curr_row + 1] << 8) | gb->memory.oam[curr_row]; /* First word in current row */
-    uint16_t b = (gb->memory.oam[prec_row + 1] << 8) | gb->memory.oam[prec_row]; /* First word in the preceding row */
-    uint16_t c =
-        (gb->memory.oam[prec_row + 5] << 8) | gb->memory.oam[prec_row + 4]; /* Third word in the preceding row */
+    uint16_t a = (uint16_t)gb->memory.oam[curr_row + 1] << 8 | gb->memory.oam[curr_row]; /* First word in current row */
+    uint16_t b =
+        (uint16_t)gb->memory.oam[prec_row + 1] << 8 | gb->memory.oam[prec_row]; /* First word in the preceding row */
+    uint16_t c = (uint16_t)gb->memory.oam[prec_row + 5] << 8 |
+                 gb->memory.oam[prec_row + 4]; /* Third word in the preceding row */
 
     uint16_t new_a = b | (a & c);
     gb->memory.oam[curr_row] = new_a & 0xFF;

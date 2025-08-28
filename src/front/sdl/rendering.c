@@ -99,7 +99,7 @@ static int init_imgui(void)
     cImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
     cImGui_ImplSDLRenderer3_Init(renderer);
 
-    init_ui();
+    synchronize_ui();
 
     return EXIT_SUCCESS;
 }

@@ -38,7 +38,7 @@ static unsigned int ch4_divisors[] = {
 #define NRXY(X, Y) (NR1##Y + ((NR2##Y - NR1##Y) * ((X) - 1)))
 
 #define FREQUENCY(CH_NUMBER)                                                                                           \
-    ((gb->memory.io[IO_OFFSET(NR##CH_NUMBER##4)] & 0x07) << 8 | gb->memory.io[IO_OFFSET(NR##CH_NUMBER##3)])
+    ((uint16_t)(gb->memory.io[IO_OFFSET(NR##CH_NUMBER##4)] & 0x07) << 8 | gb->memory.io[IO_OFFSET(NR##CH_NUMBER##3)])
 
 #define DIV_APU_MASK (1 << (4 + 8))
 

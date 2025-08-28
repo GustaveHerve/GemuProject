@@ -6,9 +6,7 @@
 #include "cpu.h"
 #include "emulation.h"
 #include "gb_core.h"
-#include "logger.h"
 #include "read.h"
-#include "utils.h"
 #include "write.h"
 
 // clang-format off
@@ -25,8 +23,8 @@ static int handle_interrupt(struct gb_core *gb)
     uint16_t pc = gb->cpu.pc - gb->halt_bug;
     gb->halt_bug = 0;
 
-    uint8_t lo = regist_lo(&pc);
-    uint8_t hi = regist_hi(&pc);
+    uint8_t hi = pc >> 8;
+    uint8_t lo = pc & 0xFF;
     write_mem(gb, --gb->cpu.sp, hi);
 
     /* Interrupt may be aborted from the previous upper SP push writing in IE */

@@ -238,7 +238,7 @@ void tick_m(struct gb_core *gb)
     {
         gb->tcycles_since_sync += 1;
 
-        update_timers(gb);
+        update_timers(gb); /* TODO: DIV is actually increasing every M-cycles */
         update_serial(gb);
 
         apu_tick(gb);

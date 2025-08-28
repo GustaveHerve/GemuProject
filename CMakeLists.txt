@@ -44,6 +44,19 @@ set(DEAR_BINDINGS_SOURCES
     ${DEAR_BINDINGS_DIR}/src/dcimgui_impl_sdlrenderer3.cpp
 )
 
+#
+# ------------------------
+# tomlc17
+# ------------------------
+
+set(TOMLC17_DIR ${CMAKE_SOURCE_DIR}/dependencies/tomlc17)
+
+set(TOMLC17_SOURCES
+    ${TOMLC17_DIR}/src/tomlc17.c
+)
+
+add_library(tomlc17 ${TOMLC17_SOURCES})
+
 # ------------------------
 # GemuProject
 # ------------------------
@@ -92,10 +105,11 @@ target_include_directories(gemu PUBLIC
     "include/front/sdl"
     ${IMGUI_DIR}/include
     ${DEAR_BINDINGS_DIR}/include
+    ${TOMLC17_DIR}/src
 )
 
 # ------------------------
 # Linking
 # ------------------------
 
-target_link_libraries(gemu PRIVATE SDL3::SDL3)
+target_link_libraries(gemu PRIVATE SDL3::SDL3 tomlc17)

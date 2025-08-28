@@ -29,6 +29,16 @@ static struct
     bool down : 1;
 } dpad_state; /* Used to prevent impossible D-Pad input combinations (L+R / U+D) */
 
+static void gb_clear_input(struct gb_core *gb)
+{
+    gb->joyp_d |= 0x0F;
+    gb->joyp_a |= 0x0F;
+    dpad_state.left = 0;
+    dpad_state.right = 0;
+    dpad_state.up = 0;
+    dpad_state.down = 0;
+}
+
 static void gb_key_down(struct gb_core *gb, SDL_Keycode keycode)
 {
     uint8_t prev_joyp = read_mem(gb, JOYP);
@@ -236,7 +246,8 @@ void handle_events(struct gb_core *gb)
                 show_ui_window = !show_ui_window;
                 if (show_ui_window)
                 {
-                    ImGui_SetWindowFocusStr("Dear ImGui Demo");
+                    gb_clear_input(gb);
+                    ImGui_SetWindowFocusStr("GemuProject menu");
                 }
                 break;
             }
